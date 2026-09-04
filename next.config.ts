@@ -1,11 +1,9 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
-  output: "export",
-  images: {
-    unoptimized: true,
-  },
+  // IITrack menegakkan izin di lapisan server (PRD NFR Keamanan Akses), jadi
+  // aplikasi tidak boleh di-export sebagai situs statis seperti default template.
+  output: "standalone",
 };
 
 export default nextConfig;

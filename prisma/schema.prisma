@@ -1,0 +1,41 @@
+// Skema basis data IITrack.
+//
+// Model ditambahkan per fitur mengikuti pembagian sprint, bukan sekaligus di
+// muka. Berkas ini berisi fondasi yang dipakai seluruh fitur sejak Sprint 0.
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Division {
+  OPERATIONAL
+  FINANCE
+  TECHDEV
+}
+
+enum UserStatus {
+  INVITED
+  ACTIVE
+  DEACTIVATED
+}
+
+/// Anggota pengurus yang memakai IITrack. Anggota TechDev yang hanya
+/// mengerjakan kode tidak punya akun di sini (PRD bab 2.1).
+model User {
+  id           String     @id @default(cuid())
+  email        String     @unique
+  name         String
+  /// Kosong selama akun masih berstatus INVITED dan belum diaktivasi.
+  passwordHash String?
+  status       UserStatus @default(INVITED)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  @@map("users")
+}
