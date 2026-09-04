@@ -2,16 +2,15 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { AUDIT_ACTIONS } from "@/lib/audit/actions";
 import { hashPassword } from "@/lib/auth/password";
 import { attemptLogin } from "@/server/auth/login";
-import { cleanUpUsers, testDb } from "../support/database";
+import { testDb, uniqueEmail } from "../support/database";
 
 const PREFIX = "f02-ac1-";
-const EMAIL = `${PREFIX}pm@iit.test`;
+const EMAIL = uniqueEmail(PREFIX);
 const PASSWORD = "kataSandiYangBenar123";
 
 let userId: string;
 
 beforeAll(async () => {
-  await cleanUpUsers(PREFIX);
   const user = await testDb.user.create({
     data: {
       email: EMAIL,
@@ -33,7 +32,6 @@ beforeAll(async () => {
 });
 
 afterAll(async () => {
-  await cleanUpUsers(PREFIX);
   await testDb.$disconnect();
 });
 
@@ -82,7 +80,7 @@ describe("F02-AC1 Kredensial salah ditolak tanpa membocorkan informasi.", () => 
     });
 
     const result = await attemptLogin({
-      email: `${PREFIX}tidak-ada@iit.test`,
+      email: uniqueEmail(`${PREFIX}tidak-ada-`),
       password: PASSWORD,
       now: new Date("2026-09-04T03:00:00.000Z"),
     });
@@ -98,7 +96,7 @@ describe("F02-AC1 Kredensial salah ditolak tanpa membocorkan informasi.", () => 
   it("Email tidak terdaftar dan kata sandi salah menghasilkan penolakan yang sama persis", async () => {
     const now = new Date("2026-09-04T03:00:00.000Z");
     const emailAsing = await attemptLogin({
-      email: `${PREFIX}asing@iit.test`,
+      email: uniqueEmail(`${PREFIX}asing-`),
       password: PASSWORD,
       now,
     });

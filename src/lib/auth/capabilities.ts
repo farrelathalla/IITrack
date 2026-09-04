@@ -76,6 +76,9 @@ export const ROLE_CAPABILITIES: Record<RoleName, RoleCapability> = {
   PROJECT_MANAGER: {
     global: [
       ...BASELINE_VIEW,
+      // PM yang mendaftarkan project dan menerima Project ID-nya
+      // (PRD bab 3.3). Menetapkan nomor secara manual tetap tidak boleh.
+      "project.create",
       "finance.view",
       "techdev.view",
       "approval.p0_second_confirmation",

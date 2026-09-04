@@ -1,16 +1,15 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { AUDIT_ACTIONS, AUDIT_OBJECTS } from "@/lib/audit/actions";
-import { cleanUpUsers, testDb } from "../support/database";
+import { testDb, uniqueEmail } from "../support/database";
 
 const PREFIX = "f24-ac1-";
 
 let actorId: string;
 
 beforeAll(async () => {
-  await cleanUpUsers(PREFIX);
   const user = await testDb.user.create({
     data: {
-      email: `${PREFIX}coo@iit.test`,
+      email: uniqueEmail(`${PREFIX}coo-`),
       name: "Penguji COO",
       status: "ACTIVE",
     },
@@ -19,7 +18,6 @@ beforeAll(async () => {
 });
 
 afterAll(async () => {
-  await cleanUpUsers(PREFIX);
   await testDb.$disconnect();
 });
 
@@ -62,7 +60,7 @@ describe("F24-AC1 Entri memuat pelaku, aksi, objek, nilai sebelum, nilai sesudah
   it("Pengurus yang sudah punya riwayat tidak bisa dihapus, sehingga jejaknya tidak ikut hilang", async () => {
     const sementara = await testDb.user.create({
       data: {
-        email: `${PREFIX}sementara@iit.test`,
+        email: uniqueEmail(`${PREFIX}sementara-`),
         name: "Pengurus Lama",
         status: "ACTIVE",
       },

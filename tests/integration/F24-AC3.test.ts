@@ -1,16 +1,15 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { AUDIT_ACTIONS, AUDIT_OBJECTS } from "@/lib/audit/actions";
-import { cleanUpUsers, testDb } from "../support/database";
+import { testDb, uniqueEmail } from "../support/database";
 
 const PREFIX = "f24-ac3-";
 
 let entryId: string;
 
 beforeAll(async () => {
-  await cleanUpUsers(PREFIX);
   const user = await testDb.user.create({
     data: {
-      email: `${PREFIX}admin@iit.test`,
+      email: uniqueEmail(`${PREFIX}admin-`),
       name: "Authorized TechDev",
       status: "ACTIVE",
     },
@@ -28,7 +27,6 @@ beforeAll(async () => {
 });
 
 afterAll(async () => {
-  await cleanUpUsers(PREFIX);
   await testDb.$disconnect();
 });
 

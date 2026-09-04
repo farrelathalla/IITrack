@@ -36,9 +36,10 @@ model User {
   createdAt    DateTime   @default(now())
   updatedAt    DateTime   @updatedAt
 
-  roleAssignments RoleAssignment[]
-  sessions        Session[]
-  auditLogs       AuditLog[]
+  roleAssignments    RoleAssignment[]
+  sessions           Session[]
+  auditLogs          AuditLog[]
+  projectsRegistered Project[]
 
   @@map("users")
 }
@@ -122,4 +123,54 @@ model AuditLog {
   @@index([objectType, objectId])
   @@index([createdAt])
   @@map("audit_logs")
+}
+
+enum ProjectStatus {
+  ACTIVE
+  CANCELLED
+  COMPLETED
+}
+
+/// Project sebagai entitas utama. Seluruh dokumen, termin, pengajuan, dan
+/// penugasan menempel pada Project ID-nya (F05).
+model Project {
+  id         String        @id @default(cuid())
+  /// Nomor resmi berformat IIT-2627-NNN. Unik dan tidak pernah didaur ulang.
+  projectId  String        @unique
+  /// Periode dan urutan disimpan terurai supaya keunikannya bisa dijamin
+  /// basis data, bukan hanya lewat keunikan teks nomornya.
+  period     String
+  sequence   Int
+  name       String
+  /// Nama client disimpan sementara sebagai teks. Relasi ke tabel client
+  /// menyusul pada F06 yang dikerjakan Dev B; sampai saat itu kolom ini yang
+  /// dipakai, dan tidak boleh ada salinan master data lain.
+  clientName String
+  value      Decimal?      @db.Decimal(18, 2)
+  status     ProjectStatus @default(ACTIVE)
+
+  registeredById String
+  registeredBy   User   @relation(fields: [registeredById], references: [id], onDelete: Restrict)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([period, sequence])
+  @@index([status])
+  @@map("projects")
+}
+
+/// Penghitung nomor project per periode.
+///
+/// Nomor diambil dengan menaikkan baris ini di dalam transaksi yang sama
+/// dengan penyimpanan project, sehingga dua permintaan bersamaan tidak bisa
+/// mendapat nomor yang sama dan transaksi yang batal tidak meninggalkan
+/// lompatan. Sequence bawaan Postgres tidak dipakai karena bisa berlubang saat
+/// transaksi dibatalkan.
+model ProjectNumberCounter {
+  period        String   @id
+  highestIssued Int      @default(0)
+  updatedAt     DateTime @updatedAt
+
+  @@map("project_number_counters")
 }

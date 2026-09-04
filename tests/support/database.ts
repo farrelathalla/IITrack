@@ -1,43 +1,75 @@
-import process from "node:process";
-import { PrismaPg } from "@prisma/adapter-pg";
-import { PrismaClient } from "@/generated/prisma/client";
-
-const connectionString = process.env.DATABASE_URL;
-
-if (!connectionString) {
-  throw new Error(
-    "DATABASE_URL belum diisi. Jalankan `bunx prisma dev`, salin URL-nya ke .env, lalu ulangi.",
-  );
-}
-
-/** Klien khusus test integrasi, terpisah dari klien aplikasi. */
-export const testDb = new PrismaClient({
-  adapter: new PrismaPg({ connectionString }),
-});
+import type { Actor, Division, RoleName } from "@/lib/auth/types";
+import { prisma } from "@/server/db";
 
 /**
- * Membersihkan data yang dibuat sebuah berkas test, dikenali dari awalan email.
+ * Test memakai klien yang sama dengan aplikasi, bukan klien kedua.
  *
- * Trigger append-only dimatikan sementara khusus di sini. Jaminan pada F24
- * berlaku untuk jabatan di dalam aplikasi, bukan untuk pemilik basis data, dan
- * test memang memiliki basis datanya sendiri. Kode aplikasi tidak boleh
- * memakai jalan ini.
+ * Dua klien berarti dua connection pool ke basis data yang sama, dan pada
+ * transaksi bersamaan keduanya berebut sampai koneksinya terputus.
  */
-export async function cleanUpUsers(emailPrefix: string): Promise<void> {
-  await testDb.$executeRawUnsafe(
-    'ALTER TABLE "audit_logs" DISABLE TRIGGER USER',
-  );
-  try {
-    await testDb.auditLog.deleteMany({
-      where: { actor: { email: { startsWith: emailPrefix } } },
-    });
-  } finally {
-    await testDb.$executeRawUnsafe(
-      'ALTER TABLE "audit_logs" ENABLE TRIGGER USER',
-    );
-  }
+export const testDb = prisma;
 
-  await testDb.user.deleteMany({
-    where: { email: { startsWith: emailPrefix } },
+/**
+ * Penanda unik per eksekusi test.
+ *
+ * Data test tidak dibersihkan dengan menghapus jejak aktivitasnya, karena
+ * memang tidak bisa: larangan hapus ditegakkan trigger basis data dan tidak ada
+ * jalan pintas untuk siapa pun, termasuk test. Sebagai gantinya setiap
+ * eksekusi memakai email dan periode yang berbeda, sehingga sisa eksekusi
+ * sebelumnya tidak pernah mengganggu.
+ */
+export const RUN = `${Date.now().toString(36)}${Math.floor(Math.random() * 1e4)}`;
+
+export function uniqueEmail(prefix: string): string {
+  return `${prefix}${RUN}@iit.test`;
+}
+
+/** Menghapus project sebuah periode. Project tidak tersentuh larangan append-only. */
+export async function cleanUpProjects(period: string): Promise<void> {
+  await testDb.project.deleteMany({ where: { period } });
+}
+
+/** Mengosongkan penghitung nomor sebuah periode agar test mulai dari nol. */
+export async function resetCounter(period: string): Promise<void> {
+  await testDb.projectNumberCounter.deleteMany({ where: { period } });
+}
+
+/** Membuat pengurus aktif beserta penetapan jabatannya, siap dipakai sebagai actor. */
+export async function actorFrom(
+  email: string,
+  role: RoleName,
+  division: Division,
+): Promise<{ userId: string; actor: Actor }> {
+  const user = await testDb.user.create({
+    data: {
+      email,
+      name: email,
+      status: "ACTIVE",
+      roleAssignments: {
+        create: {
+          role,
+          division,
+          period: "2026/2027",
+          startDate: new Date("2020-01-01T00:00:00.000Z"),
+          endDate: null,
+        },
+      },
+    },
+    include: { roleAssignments: true },
   });
+
+  return {
+    userId: user.id,
+    actor: {
+      userId: user.id,
+      status: "ACTIVE",
+      roleAssignments: user.roleAssignments.map((a) => ({
+        role: a.role as RoleName,
+        division: a.division as Division,
+        startDate: a.startDate,
+        endDate: a.endDate,
+        isSystemAdmin: a.isSystemAdmin,
+      })),
+    },
+  };
 }
