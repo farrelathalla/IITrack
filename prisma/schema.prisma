@@ -36,5 +36,44 @@ model User {
   createdAt    DateTime   @default(now())
   updatedAt    DateTime   @updatedAt
 
+  roleAssignments RoleAssignment[]
+
   @@map("users")
+}
+
+enum RoleName {
+  COO
+  VICE_COO
+  CFO
+  VICE_CFO
+  CTO
+  VICE_CTO
+  PROJECT_MANAGER
+  FINANCE_POC
+  OFFICER_OPERATIONAL
+  TECHDEV_MEMBER
+}
+
+/// Penetapan jabatan beserta masa berlakunya. Izin menempel pada penetapan ini,
+/// bukan pada orangnya, sehingga akses berhenti sendiri ketika kepengurusan
+/// berganti (F03).
+model RoleAssignment {
+  id            String    @id @default(cuid())
+  userId        String
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role          RoleName
+  division      Division
+  /// Label periode kepengurusan, misalnya "2026/2027".
+  period        String
+  /// Awal masa jabatan, inklusif.
+  startDate     DateTime
+  /// Akhir masa jabatan, eksklusif. Kosong berarti belum ditentukan.
+  endDate       DateTime?
+  /// System Administrator privilege, bukan divisi keempat (PRD bab 3.5).
+  isSystemAdmin Boolean   @default(false)
+  createdAt     DateTime  @default(now())
+
+  @@index([userId])
+  @@index([startDate, endDate])
+  @@map("role_assignments")
 }
