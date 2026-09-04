@@ -1,0 +1,8 @@
+# Seluruh berkas teks disimpan dan di-checkout dengan akhir baris LF, supaya
+# Biome memberi hasil yang sama di Windows, macOS, dan runner CI.
+* text=auto eol=lf
+
+*.png binary
+*.ico binary
+*.svg text eol=lf
+bun.lock -diff
