@@ -15,6 +15,10 @@ export const AUDIT_ACTIONS = {
   PROJECT_ID_OVERRIDDEN: "project.id_overridden",
   PROJECT_STAGE_CHANGED: "project.stage_changed",
   PROJECT_PM_ASSIGNED: "project.pm_assigned",
+  MEMBER_ROLE_ASSIGNED: "member.role_assigned",
+  MEMBER_ROLE_PERIOD_OVERRIDDEN: "member.role_period_overridden",
+  MEMBER_HANDOVER: "member.handover",
+  USER_DEACTIVATED: "user.deactivated",
 } as const;
 
 export type AuditAction = (typeof AUDIT_ACTIONS)[keyof typeof AUDIT_ACTIONS];
