@@ -24,6 +24,18 @@ export function uniqueEmail(prefix: string): string {
   return `${prefix}${RUN}@iit.test`;
 }
 
+/**
+ * Periode empat digit yang berbeda tiap eksekusi.
+ *
+ * Dipakai test yang menghasilkan riwayat tahap. Riwayat itu tidak bisa dihapus
+ * karena larangannya ditegakkan trigger, dan projectnya pun ikut tidak bisa
+ * dihapus karena dirujuk riwayat, jadi test memakai ruang nomor sendiri
+ * alih-alih membersihkan bekasnya.
+ */
+export function uniquePeriod(): string {
+  return `9${String(Math.floor(Math.random() * 1000)).padStart(3, "0")}`;
+}
+
 /** Menghapus project sebuah periode. Project tidak tersentuh larangan append-only. */
 export async function cleanUpProjects(period: string): Promise<void> {
   await testDb.project.deleteMany({ where: { period } });

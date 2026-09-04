@@ -40,6 +40,7 @@ model User {
   sessions           Session[]
   auditLogs          AuditLog[]
   projectsRegistered Project[]
+  stageChanges       ProjectStageHistory[]
 
   @@map("users")
 }
@@ -148,9 +149,15 @@ model Project {
   clientName String
   value      Decimal?      @db.Decimal(18, 2)
   status     ProjectStatus @default(ACTIVE)
+  /// Kunci tahap berjalan, merujuk katalog pada src/lib/project/stages.ts.
+  /// Disimpan sebagai teks, bukan enum, karena daftar resmi sebelas tahapnya
+  /// masih ditunggu (DEP-04). Kosong berarti belum pernah dipindahkan.
+  stage      String?
 
   registeredById String
   registeredBy   User   @relation(fields: [registeredById], references: [id], onDelete: Restrict)
+
+  stageHistory ProjectStageHistory[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -173,4 +180,25 @@ model ProjectNumberCounter {
   updatedAt     DateTime @updatedAt
 
   @@map("project_number_counters")
+}
+
+/// Riwayat perpindahan tahap. Entri hanya bisa ditambah, ditegakkan trigger
+/// basis data, supaya tahap project menjadi data yang bisa ditelusuri dan
+/// riwayatnya tidak bisa dimanipulasi (F09-AC3).
+model ProjectStageHistory {
+  id        String  @id @default(uuid())
+  projectId String
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Restrict)
+  /// Tahap sebelumnya. Kosong pada perpindahan pertama.
+  fromStage String?
+  toStage   String
+
+  changedById String
+  changedBy   User   @relation(fields: [changedById], references: [id], onDelete: Restrict)
+
+  note      String?
+  createdAt DateTime @default(now())
+
+  @@index([projectId, createdAt])
+  @@map("project_stage_history")
 }

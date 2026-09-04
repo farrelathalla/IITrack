@@ -13,6 +13,7 @@ export const AUDIT_ACTIONS = {
   SESSION_REVOKED_BY_ADMIN: "session.revoked_by_admin",
   PROJECT_CREATED: "project.created",
   PROJECT_ID_OVERRIDDEN: "project.id_overridden",
+  PROJECT_STAGE_CHANGED: "project.stage_changed",
 } as const;
 
 export type AuditAction = (typeof AUDIT_ACTIONS)[keyof typeof AUDIT_ACTIONS];
