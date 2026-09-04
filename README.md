@@ -38,13 +38,20 @@ yang dicetaknya ke `DATABASE_URL`:
 bunx prisma dev
 ```
 
-Bangkitkan klien Prisma, terapkan skema, lalu jalankan aplikasi:
+Perintah itu mencetak `DATABASE_URL`; salin ke `.env`. Lalu bangkitkan klien
+Prisma, terapkan skema, isi data contoh, dan jalankan aplikasi:
 
 ```sh
 bun run db:generate
-bun run db:migrate
+bun run db:deploy
+bun run db:seed
 bun run dev
 ```
+
+Data contoh berisi lima akun untuk periode 2026/2027 dengan kata sandi
+`iitrack-dev-2627`: `coo@iit.test`, `cfo@iit.test`, `cto@iit.test`,
+`pm@iit.test`, dan `admin@iit.test` yang memegang System Administrator
+privilege.
 
 ## Perintah
 
@@ -55,7 +62,9 @@ bun run dev
 | `bun run test:watch` | Menjalankan test secara berkelanjutan |
 | `bun run typecheck` | Memeriksa tipe tanpa membangun |
 | `bun run lint` | Memeriksa lint dan format |
-| `bun run db:migrate` | Membuat dan menerapkan migrasi |
+| `bun run db:migrate` | Membuat migrasi baru dari perubahan skema |
+| `bun run db:deploy` | Menerapkan migrasi yang sudah ada |
+| `bun run db:seed` | Mengisi data contoh untuk pengembangan |
 
 ## Struktur
 
