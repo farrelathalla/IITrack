@@ -39,7 +39,8 @@ model User {
   roleAssignments    RoleAssignment[]
   sessions           Session[]
   auditLogs          AuditLog[]
-  projectsRegistered Project[]
+  projectsRegistered Project[]             @relation("ProjectRegisteredBy")
+  projectsAsPm       Project[]             @relation("ProjectAssignedPm")
   stageChanges       ProjectStageHistory[]
 
   @@map("users")
@@ -135,27 +136,35 @@ enum ProjectStatus {
 /// Project sebagai entitas utama. Seluruh dokumen, termin, pengajuan, dan
 /// penugasan menempel pada Project ID-nya (F05).
 model Project {
-  id         String        @id @default(cuid())
+  id                String        @id @default(cuid())
   /// Nomor resmi berformat IIT-2627-NNN. Unik dan tidak pernah didaur ulang.
-  projectId  String        @unique
+  projectId         String        @unique
   /// Periode dan urutan disimpan terurai supaya keunikannya bisa dijamin
   /// basis data, bukan hanya lewat keunikan teks nomornya.
-  period     String
-  sequence   Int
-  name       String
+  period            String
+  sequence          Int
+  name              String
   /// Nama client disimpan sementara sebagai teks. Relasi ke tabel client
   /// menyusul pada F06 yang dikerjakan Dev B; sampai saat itu kolom ini yang
   /// dipakai, dan tidak boleh ada salinan master data lain.
-  clientName String
-  value      Decimal?      @db.Decimal(18, 2)
-  status     ProjectStatus @default(ACTIVE)
+  clientName        String
+  value             Decimal?      @db.Decimal(18, 2)
+  status            ProjectStatus @default(ACTIVE)
+  /// Waktu client mengonfirmasi, menjadi titik awal pengukuran SLA penugasan
+  /// PM (F04). Kosong bila belum dicatat.
+  clientConfirmedAt DateTime?
+  /// PM yang ditugaskan. Penugasan inilah yang memberi hak edit Operational,
+  /// bukan pengaturan izin manual. Penugasan lintas divisi menyusul di F31.
+  assignedPmId      String?
+  assignedPm        User?         @relation("ProjectAssignedPm", fields: [assignedPmId], references: [id], onDelete: Restrict)
+  pmAssignedAt      DateTime?
   /// Kunci tahap berjalan, merujuk katalog pada src/lib/project/stages.ts.
   /// Disimpan sebagai teks, bukan enum, karena daftar resmi sebelas tahapnya
   /// masih ditunggu (DEP-04). Kosong berarti belum pernah dipindahkan.
-  stage      String?
+  stage             String?
 
   registeredById String
-  registeredBy   User   @relation(fields: [registeredById], references: [id], onDelete: Restrict)
+  registeredBy   User   @relation("ProjectRegisteredBy", fields: [registeredById], references: [id], onDelete: Restrict)
 
   stageHistory ProjectStageHistory[]
 

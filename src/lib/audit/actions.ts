@@ -14,6 +14,7 @@ export const AUDIT_ACTIONS = {
   PROJECT_CREATED: "project.created",
   PROJECT_ID_OVERRIDDEN: "project.id_overridden",
   PROJECT_STAGE_CHANGED: "project.stage_changed",
+  PROJECT_PM_ASSIGNED: "project.pm_assigned",
 } as const;
 
 export type AuditAction = (typeof AUDIT_ACTIONS)[keyof typeof AUDIT_ACTIONS];
