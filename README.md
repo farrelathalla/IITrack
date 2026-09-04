@@ -38,9 +38,10 @@ yang dicetaknya ke `DATABASE_URL`:
 bunx prisma dev
 ```
 
-Terapkan skema dan jalankan aplikasi:
+Bangkitkan klien Prisma, terapkan skema, lalu jalankan aplikasi:
 
 ```sh
+bun run db:generate
 bun run db:migrate
 bun run dev
 ```
@@ -60,6 +61,7 @@ bun run dev
 
 ```
 prisma/schema.prisma   Skema basis data
+prisma.config.ts       Konfigurasi Prisma: lokasi skema, migrasi, dan URL
 src/app/               Halaman dan route (App Router)
 src/lib/               Logika murni tanpa basis data, diuji sebagai unit
 src/server/            Kode khusus server: akses basis data, sesi, penjaga izin

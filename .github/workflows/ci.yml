@@ -8,6 +8,13 @@ on:
 jobs:
   verify:
     runs-on: ubuntu-latest
+
+    env:
+      # Prisma butuh URL yang bisa diurai untuk membaca konfigurasinya. Tidak ada
+      # koneksi yang dibuka: pipeline hanya menjalankan lint, typecheck, dan test
+      # yang tidak menyentuh basis data.
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/iitrack
+
     steps:
       - uses: actions/checkout@v4
 
