@@ -3,12 +3,8 @@ import {
   ROLE_CAPABILITIES,
   SYSTEM_ADMIN_CAPABILITIES,
 } from "./capabilities";
-import type {
-  Action,
-  PermissionDecision,
-  PermissionQuery,
-  RoleAssignment,
-} from "./types";
+import { activeAssignments } from "./period";
+import type { Action, PermissionDecision, PermissionQuery } from "./types";
 
 const ALLOWED: PermissionDecision = { allowed: true };
 
@@ -38,12 +34,6 @@ const PROJECT_SCOPED_ACTIONS: ReadonlySet<Action> = new Set<Action>([
   "approval.p0_second_confirmation",
 ]);
 
-function isWithinPeriod(assignment: RoleAssignment, now: Date): boolean {
-  if (now.getTime() < assignment.startDate.getTime()) return false;
-  if (assignment.endDate === null) return true;
-  return now.getTime() < assignment.endDate.getTime();
-}
-
 /**
  * Penentu izin IITrack (F03).
  *
@@ -72,11 +62,9 @@ export function checkPermission(query: PermissionQuery): PermissionDecision {
     );
   }
 
-  const activeAssignments = actor.roleAssignments.filter((a) =>
-    isWithinPeriod(a, now),
-  );
+  const active = activeAssignments(actor.roleAssignments, now);
 
-  if (activeAssignments.length === 0) {
+  if (active.length === 0) {
     return deny(
       "Masa jabatan Anda sudah berakhir atau belum dimulai, sehingga tidak ada kewenangan yang berlaku. Minta pengurus TechDev memperbarui periode jabatan Anda bila ini keliru.",
     );
@@ -89,7 +77,7 @@ export function checkPermission(query: PermissionQuery): PermissionDecision {
     );
   }
 
-  for (const assignment of activeAssignments) {
+  for (const assignment of active) {
     if (
       assignment.isSystemAdmin &&
       SYSTEM_ADMIN_CAPABILITIES.includes(action)

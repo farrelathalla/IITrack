@@ -37,6 +37,7 @@ model User {
   updatedAt    DateTime   @updatedAt
 
   roleAssignments RoleAssignment[]
+  sessions        Session[]
 
   @@map("users")
 }
@@ -76,4 +77,21 @@ model RoleAssignment {
   @@index([userId])
   @@index([startDate, endDate])
   @@map("role_assignments")
+}
+
+/// Sesi masuk disimpan di basis data, bukan hanya di dalam cookie, supaya bisa
+/// dicabut seketika ketika masa jabatan habis atau akun dinonaktifkan (F02).
+model Session {
+  id        String    @id @default(cuid())
+  /// HMAC dari token sesi. Token aslinya hanya ada di cookie peramban.
+  tokenHash String    @unique
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  revokedAt DateTime?
+  createdAt DateTime  @default(now())
+  userAgent String?
+
+  @@index([userId])
+  @@map("sessions")
 }
