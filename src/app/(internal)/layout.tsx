@@ -22,19 +22,23 @@ export default async function InternalLayout({
   }
 
   return (
-    <div className="flex min-h-dvh flex-col">
-      <header className="flex items-center justify-between border-black/10 border-b px-6 py-3 dark:border-white/15">
-        <span className="font-semibold">IITrack</span>
+    <div className="flex min-h-dvh flex-col bg-white">
+      {/* Satu-satunya elemen gradien per halaman (Design Brief bab 1). */}
+      <div className="pita-gradien" />
+
+      <header className="flex items-center justify-between border-line border-b px-6 py-3">
+        <span className="font-semibold text-plum-900">IITrack</span>
         <form action={logoutAction}>
           <button
             type="submit"
-            className="text-sm underline underline-offset-4"
+            className="text-slate-500 underline underline-offset-4 hover:text-plum-900"
           >
             Keluar
           </button>
         </form>
       </header>
-      <main className="flex-1 px-6 py-8">{children}</main>
+
+      <main className="flex-1 px-6 py-6">{children}</main>
     </div>
   );
 }

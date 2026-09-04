@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { LoginForm } from "./login-form";
 
 export const metadata: Metadata = {
-  title: "Masuk — IITrack",
+  title: "Masuk",
 };
 
 /** Pesan yang menjelaskan kenapa pengguna kembali ke halaman masuk. */
@@ -22,24 +22,31 @@ export default async function LoginPage({
   const notice = alasan ? REASONS[alasan] : undefined;
 
   return (
-    <main className="mx-auto flex min-h-dvh w-full max-w-sm flex-col justify-center gap-6 px-6">
-      <div className="flex flex-col gap-1">
-        <h1 className="font-semibold text-2xl">Masuk ke IITrack</h1>
-        <p className="text-black/60 text-sm dark:text-white/60">
-          Akun dibuat lewat undangan pengurus. Tidak ada pendaftaran mandiri.
-        </p>
-      </div>
+    <div className="min-h-dvh bg-surface-alt">
+      {/* Satu-satunya elemen gradien di halaman ini (Design Brief bab 1). */}
+      <div className="pita-gradien" />
 
-      {notice ? (
-        <p
-          role="status"
-          className="rounded-md border border-black/10 bg-black/[.03] px-3 py-2 text-sm dark:border-white/15 dark:bg-white/[.04]"
-        >
-          {notice}
-        </p>
-      ) : null}
+      <main className="mx-auto flex min-h-[calc(100dvh-3px)] w-full max-w-sm flex-col justify-center gap-5 px-6 py-12">
+        <div className="flex flex-col gap-1">
+          <h1 className="text-2xl">Masuk ke IITrack</h1>
+          <p className="text-slate-500">
+            Akun dibuat lewat undangan pengurus. Tidak ada pendaftaran mandiri.
+          </p>
+        </div>
 
-      <LoginForm />
-    </main>
+        {notice ? (
+          <p
+            role="status"
+            className="rounded-card border border-amber-text/20 bg-amber-bg px-3 py-2 text-amber-text"
+          >
+            {notice}
+          </p>
+        ) : null}
+
+        <div className="rounded-card border border-line bg-white p-5">
+          <LoginForm />
+        </div>
+      </main>
+    </div>
   );
 }
