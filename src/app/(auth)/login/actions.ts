@@ -3,10 +3,8 @@
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { z } from "zod";
-import { authenticate } from "@/lib/auth/login";
-import type { Division, RoleName, UserStatus } from "@/lib/auth/types";
+import { attemptLogin } from "@/server/auth/login";
 import { createSession, revokeCurrentSession } from "@/server/auth/session";
-import { prisma } from "@/server/db";
 
 const credentials = z.object({
   email: z.string().trim().min(1),
@@ -30,48 +28,19 @@ export async function loginAction(
     return { error: "Email dan kata sandi wajib diisi." };
   }
 
-  const record = await prisma.user.findUnique({
-    where: { email: parsed.data.email.toLowerCase() },
-    select: {
-      id: true,
-      status: true,
-      passwordHash: true,
-      roleAssignments: {
-        select: {
-          role: true,
-          division: true,
-          startDate: true,
-          endDate: true,
-          isSystemAdmin: true,
-        },
-      },
-    },
-  });
+  const requestHeaders = await headers();
 
-  const result = await authenticate({
-    user: record
-      ? {
-          id: record.id,
-          status: record.status as UserStatus,
-          passwordHash: record.passwordHash,
-          roleAssignments: record.roleAssignments.map((assignment) => ({
-            role: assignment.role as RoleName,
-            division: assignment.division as Division,
-            startDate: assignment.startDate,
-            endDate: assignment.endDate,
-            isSystemAdmin: assignment.isSystemAdmin,
-          })),
-        }
-      : null,
+  const result = await attemptLogin({
+    email: parsed.data.email,
     password: parsed.data.password,
-    now: new Date(),
+    ipAddress: requestHeaders.get("x-forwarded-for"),
   });
 
   if (!result.authenticated) {
     return { error: result.reason };
   }
 
-  await createSession(result.userId, (await headers()).get("user-agent"));
+  await createSession(result.userId, requestHeaders.get("user-agent"));
 
   // redirect melempar ke luar, jadi harus di luar percabangan penolakan.
   redirect("/beranda");

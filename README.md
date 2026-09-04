@@ -58,8 +58,10 @@ privilege.
 | Perintah | Kegunaan |
 |---|---|
 | `bun run dev` | Menjalankan server pengembangan |
-| `bun run test` | Menjalankan seluruh test |
-| `bun run test:watch` | Menjalankan test secara berkelanjutan |
+| `bun run test` | Menjalankan test unit, tanpa basis data |
+| `bun run test:integration` | Menjalankan test integrasi, perlu Postgres hidup |
+| `bun run test:all` | Menjalankan keduanya |
+| `bun run test:watch` | Menjalankan test unit secara berkelanjutan |
 | `bun run typecheck` | Memeriksa tipe tanpa membangun |
 | `bun run lint` | Memeriksa lint dan format |
 | `bun run db:migrate` | Membuat migrasi baru dari perubahan skema |
@@ -75,7 +77,7 @@ src/app/               Halaman dan route (App Router)
 src/lib/               Logika murni tanpa basis data, diuji sebagai unit
 src/server/            Kode khusus server: akses basis data, sesi, penjaga izin
 tests/unit/            Test aturan bisnis, tanpa basis data dan peramban
-tests/integration/     Test yang menyentuh basis data
+tests/integration/     Test yang menyentuh basis data, konfigurasi terpisah
 tests/e2e/             Skenario alur penuh, dinamai mengikuti ID test case UAT
 ```
 

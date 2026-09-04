@@ -6,7 +6,10 @@ export default defineConfig({
     // Aturan izin, gate, dan approval diuji tanpa basis data maupun peramban
     // (PRD bab 3.9), jadi environment default cukup node.
     environment: "node",
-    include: ["tests/unit/**/*.test.ts", "tests/integration/**/*.test.ts"],
+    // Test unit tidak menyentuh basis data maupun peramban (PRD bab 3.9),
+    // sehingga bisa dijalankan puluhan kali per hari tanpa menyalakan apa pun.
+    // Test integrasi punya konfigurasi terpisah karena memerlukan Postgres.
+    include: ["tests/unit/**/*.test.ts"],
     coverage: {
       provider: "v8",
       include: ["src/lib/**/*.ts"],

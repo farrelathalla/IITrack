@@ -38,6 +38,7 @@ model User {
 
   roleAssignments RoleAssignment[]
   sessions        Session[]
+  auditLogs       AuditLog[]
 
   @@map("users")
 }
@@ -94,4 +95,31 @@ model Session {
 
   @@index([userId])
   @@map("sessions")
+}
+
+/// Jejak aktivitas. Entri hanya bisa ditambah: pemblokiran UPDATE dan DELETE
+/// ditegakkan trigger basis data, bukan hanya disiplin kode, sehingga jabatan
+/// mana pun termasuk pemegang System Administrator privilege tidak dapat
+/// merapikan catatan lama (PRD bab 5, Ketertelusuran).
+model AuditLog {
+  id         String   @id @default(cuid())
+  /// Kosong bila pelakunya belum teridentifikasi, misalnya percobaan masuk
+  /// dengan email yang tidak terdaftar.
+  actorId    String?
+  actor      User?    @relation(fields: [actorId], references: [id], onDelete: SetNull)
+  action     String
+  objectType String
+  objectId   String?
+  /// Nilai sebelum dan sesudah perubahan, kosong untuk aksi yang tidak mengubah data.
+  before     Json?
+  after      Json?
+  /// Alasan yang wajib diisi pada aksi tertentu, misalnya penolakan dan override.
+  reason     String?
+  ipAddress  String?
+  createdAt  DateTime @default(now())
+
+  @@index([actorId])
+  @@index([objectType, objectId])
+  @@index([createdAt])
+  @@map("audit_logs")
 }

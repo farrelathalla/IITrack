@@ -1,7 +1,9 @@
 import { createHmac, randomBytes } from "node:crypto";
 import { cookies } from "next/headers";
+import { AUDIT_ACTIONS, AUDIT_OBJECTS } from "@/lib/audit/actions";
 import { evaluateSession } from "@/lib/auth/session";
 import type { Actor, Division, RoleName, UserStatus } from "@/lib/auth/types";
+import { recordAudit } from "@/server/audit";
 import { prisma } from "@/server/db";
 
 const COOKIE_NAME = "iitrack_session";
@@ -122,6 +124,14 @@ export async function getAuthenticatedSession(): Promise<AuthenticatedSession | 
         where: { id: session.id },
         data: { revokedAt: new Date() },
       });
+
+      await recordAudit({
+        actorId: actor.userId,
+        action: AUDIT_ACTIONS.SESSION_REVOKED_AUTOMATIC,
+        objectType: AUDIT_OBJECTS.SESSION,
+        objectId: session.id,
+        reason: evaluation.reason,
+      });
     }
     return null;
   }
@@ -134,21 +144,59 @@ export async function revokeCurrentSession(): Promise<void> {
   const token = store.get(COOKIE_NAME)?.value;
 
   if (token) {
-    await prisma.session.updateMany({
-      where: { tokenHash: hashToken(token), revokedAt: null },
-      data: { revokedAt: new Date() },
+    const tokenHash = hashToken(token);
+    const session = await prisma.session.findUnique({
+      where: { tokenHash },
+      select: { id: true, userId: true, revokedAt: true },
     });
+
+    if (session && session.revokedAt === null) {
+      await prisma.session.update({
+        where: { id: session.id },
+        data: { revokedAt: new Date() },
+      });
+
+      await recordAudit({
+        actorId: session.userId,
+        action: AUDIT_ACTIONS.AUTH_LOGOUT,
+        objectType: AUDIT_OBJECTS.SESSION,
+        objectId: session.id,
+      });
+    }
   }
 
   store.delete(COOKIE_NAME);
 }
 
-/** Dipakai ketika akun dinonaktifkan atau masa jabatannya ditutup. */
-export async function revokeAllSessionsFor(userId: string): Promise<void> {
-  await prisma.session.updateMany({
+/**
+ * Mencabut seluruh sesi seseorang sekaligus.
+ *
+ * Dipanggil ketika akun dinonaktifkan atau masa jabatannya ditutup, supaya
+ * pemiliknya langsung keluar tanpa menunggu permintaan berikutnya. Pemeriksaan
+ * per permintaan pada `getAuthenticatedSession` tetap menjadi jaring pengaman
+ * bila pemanggilan ini terlewat.
+ */
+export async function revokeAllSessionsFor(
+  userId: string,
+  options: { actorId: string | null; reason: string },
+): Promise<number> {
+  const revoked = await prisma.session.updateMany({
     where: { userId, revokedAt: null },
     data: { revokedAt: new Date() },
   });
+
+  if (revoked.count > 0) {
+    await recordAudit({
+      actorId: options.actorId,
+      action: AUDIT_ACTIONS.SESSION_REVOKED_BY_ADMIN,
+      objectType: AUDIT_OBJECTS.USER,
+      objectId: userId,
+      after: { sesiDicabut: revoked.count },
+      reason: options.reason,
+    });
+  }
+
+  return revoked.count;
 }
 
 export { COOKIE_NAME };
