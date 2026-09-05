@@ -12,9 +12,19 @@ export interface SessionUser {
   roleAssignments: RoleAssignment[];
 }
 
+/**
+ * Kode mesin untuk alasan sesi berakhir. Dipakai UI supaya pesan di halaman
+ * masuk bisa dibedakan tanpa menyalin kalimat panjang lewat query string.
+ */
+export type SessionEndCode =
+  | "revoked"
+  | "expired"
+  | "inactive"
+  | "no_assignment";
+
 export type SessionEvaluation =
   | { valid: true }
-  | { valid: false; reason: string };
+  | { valid: false; reason: string; code: SessionEndCode };
 
 export interface EvaluateSessionInput {
   session: SessionRecord;
@@ -40,6 +50,7 @@ export function evaluateSession(
   ) {
     return {
       valid: false,
+      code: "revoked",
       reason: "Sesi Anda sudah berakhir. Silakan masuk kembali.",
     };
   }
@@ -47,6 +58,7 @@ export function evaluateSession(
   if (now.getTime() >= session.expiresAt.getTime()) {
     return {
       valid: false,
+      code: "expired",
       reason:
         "Sesi Anda sudah berakhir karena tidak dipakai terlalu lama. Silakan masuk kembali.",
     };
@@ -55,6 +67,7 @@ export function evaluateSession(
   if (user.status !== "ACTIVE") {
     return {
       valid: false,
+      code: "inactive",
       reason:
         "Akun Anda sudah dinonaktifkan, sehingga sesinya ikut berakhir. Hubungi pengurus TechDev yang memegang wewenang administrasi akun.",
     };
@@ -63,6 +76,7 @@ export function evaluateSession(
   if (!hasActiveAssignment(user.roleAssignments, now)) {
     return {
       valid: false,
+      code: "no_assignment",
       reason:
         "Masa jabatan Anda sudah berakhir, sehingga sesinya ikut berakhir. Minta pengurus TechDev memperbarui periode jabatan Anda bila ini keliru.",
     };

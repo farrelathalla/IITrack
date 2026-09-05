@@ -1,6 +1,10 @@
 import { createHmac, randomBytes } from "node:crypto";
 import { cookies } from "next/headers";
 import { AUDIT_ACTIONS, AUDIT_OBJECTS } from "@/lib/audit/actions";
+import {
+  alasanFromSessionEnd,
+  type LoginAlasan,
+} from "@/lib/auth/login-notice";
 import { evaluateSession } from "@/lib/auth/session";
 import type { Actor, Division, RoleName, UserStatus } from "@/lib/auth/types";
 import { recordAudit } from "@/server/audit";
@@ -36,6 +40,16 @@ export interface AuthenticatedSession {
   actor: Actor;
 }
 
+/**
+ * Hasil pemeriksaan sesi untuk penjaga halaman. Membedakan "belum pernah
+ * masuk" dari "sesi yang baru saja berakhir", supaya halaman masuk tidak
+ * menampilkan pesan berakhir palsu (F02-T03).
+ */
+export type SessionInspection =
+  | { kind: "authenticated"; session: AuthenticatedSession }
+  | { kind: "anonymous" }
+  | { kind: "ended"; alasan: Exclude<LoginAlasan, "logout"> };
+
 export async function createSession(
   userId: string,
   userAgent: string | null,
@@ -69,10 +83,10 @@ export async function createSession(
  * Sesi yang sudah tidak sah langsung dicabut di basis data, supaya token yang
  * sama tidak perlu diperiksa ulang pada permintaan berikutnya.
  */
-export async function getAuthenticatedSession(): Promise<AuthenticatedSession | null> {
+export async function inspectSession(): Promise<SessionInspection> {
   const store = await cookies();
   const token = store.get(COOKIE_NAME)?.value;
-  if (!token) return null;
+  if (!token) return { kind: "anonymous" };
 
   const session = await prisma.session.findUnique({
     where: { tokenHash: hashToken(token) },
@@ -98,7 +112,7 @@ export async function getAuthenticatedSession(): Promise<AuthenticatedSession | 
     },
   });
 
-  if (!session) return null;
+  if (!session) return { kind: "anonymous" };
 
   const actor: Actor = {
     userId: session.user.id,
@@ -133,10 +147,26 @@ export async function getAuthenticatedSession(): Promise<AuthenticatedSession | 
         reason: evaluation.reason,
       });
     }
-    return null;
+
+    // Hapus cookie supaya permintaan berikutnya tidak menafsirkan ulang sesi
+    // yang sudah dicabut sebagai "sesi berakhir" generik (F02-T03).
+    store.delete(COOKIE_NAME);
+
+    return {
+      kind: "ended",
+      alasan: alasanFromSessionEnd(evaluation.code),
+    };
   }
 
-  return { sessionId: session.id, actor };
+  return {
+    kind: "authenticated",
+    session: { sessionId: session.id, actor },
+  };
+}
+
+export async function getAuthenticatedSession(): Promise<AuthenticatedSession | null> {
+  const inspection = await inspectSession();
+  return inspection.kind === "authenticated" ? inspection.session : null;
 }
 
 export async function revokeCurrentSession(): Promise<void> {

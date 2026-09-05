@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { logoutAction } from "@/app/(auth)/login/actions";
-import { getAuthenticatedSession } from "@/server/auth/session";
+import { inspectSession } from "@/server/auth/session";
 
 /**
  * Halaman internal tidak boleh disimpan peramban. Tanpa ini, tombol Back
@@ -15,10 +15,15 @@ export default async function InternalLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const session = await getAuthenticatedSession();
+  const inspection = await inspectSession();
 
-  if (!session) {
-    redirect("/login?alasan=sesi");
+  if (inspection.kind === "anonymous") {
+    // Belum ada cookie/sesi — jangan menampilkan pesan "sesi berakhir".
+    redirect("/login");
+  }
+
+  if (inspection.kind === "ended") {
+    redirect(`/login?alasan=${inspection.alasan}`);
   }
 
   return (
