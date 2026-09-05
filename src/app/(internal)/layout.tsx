@@ -49,6 +49,12 @@ export default async function InternalLayout({
             >
               Daftarkan project
             </a>
+            <a
+              href="/pengurus"
+              className="underline-offset-4 hover:text-plum-900 hover:underline"
+            >
+              Pengurus
+            </a>
           </nav>
         </div>
         <form action={logoutAction}>
