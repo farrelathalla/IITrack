@@ -22,7 +22,14 @@ export default async function BerandaPage() {
         <p className="max-w-prose text-slate-500">
           Project Hub lengkap (F08) menyusul. Sementara ini beranda menampilkan
           sesi aktif dan ringkasan SLA penugasan PM (F04) bila datanya sudah
-          ada.
+          ada. PM atau COO dapat{" "}
+          <a
+            href="/projects/baru"
+            className="font-medium text-plum-900 underline-offset-4 hover:underline"
+          >
+            mendaftarkan project baru
+          </a>{" "}
+          untuk menerbitkan Project ID.
         </p>
 
         <div className="flex flex-wrap items-center gap-2">

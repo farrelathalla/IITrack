@@ -32,7 +32,25 @@ export default async function InternalLayout({
       <div className="pita-gradien" />
 
       <header className="flex items-center justify-between border-line border-b px-6 py-3">
-        <span className="font-semibold text-plum-900">IITrack</span>
+        <div className="flex items-center gap-4">
+          <a href="/beranda" className="font-semibold text-plum-900">
+            IITrack
+          </a>
+          <nav className="flex items-center gap-3 text-slate-500 text-sm">
+            <a
+              href="/beranda"
+              className="underline-offset-4 hover:text-plum-900 hover:underline"
+            >
+              Beranda
+            </a>
+            <a
+              href="/projects/baru"
+              className="underline-offset-4 hover:text-plum-900 hover:underline"
+            >
+              Daftarkan project
+            </a>
+          </nav>
+        </div>
         <form action={logoutAction}>
           <button
             type="submit"
