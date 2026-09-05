@@ -12,12 +12,15 @@ describe("F03-T04 Menyembunyikan menu dan tombol di luar kewenangan.", () => {
     expect(labels(actor("TECHDEV_MEMBER"))).toContain("Beranda");
   });
 
-  it("Daftarkan project hanya untuk jabatan yang punya project.create", () => {
-    expect(labels(actor("PROJECT_MANAGER"))).toContain("Daftarkan project");
-    expect(labels(actor("COO"))).toContain("Daftarkan project");
-    expect(labels(actor("CFO"))).not.toContain("Daftarkan project");
-    expect(labels(actor("FINANCE_POC"))).not.toContain("Daftarkan project");
-    expect(labels(actor("TECHDEV_MEMBER"))).not.toContain("Daftarkan project");
+  it("Nav Project tampil untuk pemilik project.view; Daftarkan bukan item nav permanen", () => {
+    expect(labels(actor("PROJECT_MANAGER"))).toContain("Project");
+    expect(labels(actor("CFO"))).toContain("Project");
+    expect(labels(actor("TECHDEV_MEMBER"))).toContain("Project");
+    expect(labels(actor("PROJECT_MANAGER"))).not.toContain("Daftarkan project");
+    expect(canSeeAction(actor("PROJECT_MANAGER"), "project.create", NOW)).toBe(
+      true,
+    );
+    expect(canSeeAction(actor("CFO"), "project.create", NOW)).toBe(false);
   });
 
   it("Pengurus tampil untuk pemilik master_data.view, tersembunyi untuk TechDev Member biasa", () => {

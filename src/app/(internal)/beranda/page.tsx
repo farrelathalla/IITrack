@@ -23,8 +23,14 @@ export default async function BerandaPage() {
         <h1 className="text-xl">Beranda</h1>
 
         <p className="max-w-prose text-slate-500">
-          Project Hub lengkap (F08) menyusul. Sementara ini beranda menampilkan
-          sesi aktif dan ringkasan SLA penugasan PM (F04) bila datanya sudah
+          Project Hub (F08) tersedia di menu{" "}
+          <a
+            href="/projects"
+            className="font-medium text-plum-900 underline-offset-4 hover:underline"
+          >
+            Project
+          </a>
+          . Ringkasan SLA penugasan PM (F04) muncul di bawah bila datanya sudah
           ada.
           {bolehDaftar ? (
             <>

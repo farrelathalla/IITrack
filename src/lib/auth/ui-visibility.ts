@@ -1,3 +1,7 @@
+import {
+  type PlannedNavItem,
+  plannedNavNow,
+} from "@/lib/ui/project-hub-layout";
 import { can } from "./permissions";
 import type { Action, Actor } from "./types";
 
@@ -6,31 +10,16 @@ import type { Action, Actor } from "./types";
  *
  * Ini hanya pelengkap UX. Larangan sungguhan tetap di `checkPermission` /
  * `authorize` di server — menyembunyikan tautan tidak menggantikan itu.
+ *
+ * Susunan item nav mengikuti kontrak F08 (`plannedNavNow`).
  */
 
 export type MainNavItem = {
   href: string;
   label: string;
   /** Aksi yang harus diizinkan agar item muncul. `null` = selalu tampil. */
-  requires: Action | null;
+  requires: Action | readonly Action[] | null;
 };
-
-/** Menu utama yang dipakai layout internal saat ini. */
-export const MAIN_NAV_ITEMS: readonly MainNavItem[] = [
-  { href: "/beranda", label: "Beranda", requires: null },
-  {
-    href: "/projects/baru",
-    label: "Daftarkan project",
-    requires: "project.create",
-  },
-  {
-    href: "/pengurus",
-    label: "Pengurus",
-    // Daftar bisa dibaca oleh pemilik master_data.view; System Admin tanpa
-    // baseline view tetap masuk lewat member.manage (lihat visibleMainNav).
-    requires: "master_data.view",
-  },
-] as const;
 
 function canAny(actor: Actor, actions: readonly Action[], now: Date): boolean {
   return actions.some((action) => can({ actor, action, now }));
@@ -49,19 +38,30 @@ export function canSeeAction(
   return canAny(actor, actions, now);
 }
 
+function navItemVisible(
+  actor: Actor,
+  item: PlannedNavItem,
+  now: Date,
+): boolean {
+  if (item.requires === null) return true;
+  if (typeof item.requires === "string") {
+    return can({ actor, action: item.requires, now });
+  }
+  return canAny(actor, item.requires, now);
+}
+
 /**
- * Menu utama yang boleh ditampilkan untuk actor. Item Pengurus juga muncul
- * bila actor punya `member.manage` (System Admin tanpa `master_data.view`).
+ * Menu utama yang boleh ditampilkan untuk actor (hanya item `availability: now`).
  */
 export function visibleMainNav(
   actor: Actor,
   now: Date = new Date(),
 ): MainNavItem[] {
-  return MAIN_NAV_ITEMS.filter((item) => {
-    if (item.requires === null) return true;
-    if (item.href === "/pengurus") {
-      return canAny(actor, ["master_data.view", "member.manage"], now);
-    }
-    return can({ actor, action: item.requires, now });
-  });
+  return plannedNavNow()
+    .filter((item) => navItemVisible(actor, item, now))
+    .map((item) => ({
+      href: item.href,
+      label: item.label,
+      requires: item.requires,
+    }));
 }

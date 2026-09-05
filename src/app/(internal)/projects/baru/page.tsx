@@ -24,6 +24,10 @@ export default async function RegisterProjectPage() {
             Beranda
           </Link>
           {" / "}
+          <Link href="/projects" className="underline-offset-4 hover:underline">
+            Project
+          </Link>
+          {" / "}
           Daftarkan project
         </p>
         <h1 className="text-xl">Daftarkan project</h1>
