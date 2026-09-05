@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { PmAssignmentSla } from "@/components/sla/pm-assignment-sla";
 import { StatusBadge } from "@/components/ui";
+import { canSeeAction } from "@/lib/auth/ui-visibility";
 import { getAuthenticatedSession } from "@/server/auth/session";
 import { listProjectsWithPmSla } from "@/server/project/sla-display";
 
@@ -13,6 +14,8 @@ export default async function BerandaPage() {
   const session = await getAuthenticatedSession();
   const roles = session?.actor.roleAssignments.map((a) => a.role) ?? [];
   const projects = await listProjectsWithPmSla();
+  const bolehDaftar =
+    session !== null && canSeeAction(session.actor, "project.create");
 
   return (
     <div className="flex flex-col gap-6">
@@ -22,14 +25,20 @@ export default async function BerandaPage() {
         <p className="max-w-prose text-slate-500">
           Project Hub lengkap (F08) menyusul. Sementara ini beranda menampilkan
           sesi aktif dan ringkasan SLA penugasan PM (F04) bila datanya sudah
-          ada. PM atau COO dapat{" "}
-          <a
-            href="/projects/baru"
-            className="font-medium text-plum-900 underline-offset-4 hover:underline"
-          >
-            mendaftarkan project baru
-          </a>{" "}
-          untuk menerbitkan Project ID.
+          ada.
+          {bolehDaftar ? (
+            <>
+              {" "}
+              Anda dapat{" "}
+              <a
+                href="/projects/baru"
+                className="font-medium text-plum-900 underline-offset-4 hover:underline"
+              >
+                mendaftarkan project baru
+              </a>{" "}
+              untuk menerbitkan Project ID.
+            </>
+          ) : null}
         </p>
 
         <div className="flex flex-wrap items-center gap-2">

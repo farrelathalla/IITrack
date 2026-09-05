@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Alert } from "@/components/ui";
-import { can } from "@/lib/auth/permissions";
+import { canSeeAction } from "@/lib/auth/ui-visibility";
 import { getAuthenticatedSession } from "@/server/auth/session";
 import { RegisterProjectForm } from "./register-form";
 
@@ -12,13 +12,9 @@ export const metadata: Metadata = {
 export default async function RegisterProjectPage() {
   const session = await getAuthenticatedSession();
   // Layout sudah menjamin sesi ada; penjaga izin form tetap di server.
+  // Menu nav juga disembunyikan lewat F03-T04; form tetap dilindungi di sini.
   const bolehDaftar =
-    session !== null &&
-    can({
-      actor: session.actor,
-      action: "project.create",
-      now: new Date(),
-    });
+    session !== null && canSeeAction(session.actor, "project.create");
 
   return (
     <div className="mx-auto flex w-full max-w-lg flex-col gap-5">

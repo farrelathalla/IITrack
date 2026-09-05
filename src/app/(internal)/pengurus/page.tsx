@@ -10,7 +10,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui";
-import { can } from "@/lib/auth/permissions";
+import { canSeeAction } from "@/lib/auth/ui-visibility";
 import { formatDateId } from "@/lib/member/ui";
 import { getAuthenticatedSession } from "@/server/auth/session";
 import { listMembersWithRoles } from "@/server/member/list";
@@ -25,11 +25,7 @@ export default async function PengurusPage() {
   const session = await getAuthenticatedSession();
   const bolehKelola =
     session !== null &&
-    can({
-      actor: session.actor,
-      action: "user.manage_role_assignment",
-      now: new Date(),
-    });
+    canSeeAction(session.actor, "user.manage_role_assignment");
 
   const members = await listMembersWithRoles();
   const activeUsers = members

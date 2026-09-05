@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { logoutAction } from "@/app/(auth)/login/actions";
+import { visibleMainNav } from "@/lib/auth/ui-visibility";
 import { inspectSession } from "@/server/auth/session";
 
 /**
@@ -26,6 +27,9 @@ export default async function InternalLayout({
     redirect(`/login?alasan=${inspection.alasan}`);
   }
 
+  const now = new Date();
+  const navItems = visibleMainNav(inspection.session.actor, now);
+
   return (
     <div className="flex min-h-dvh flex-col bg-white">
       {/* Satu-satunya elemen gradien per halaman (Design Brief bab 1). */}
@@ -37,24 +41,15 @@ export default async function InternalLayout({
             IITrack
           </a>
           <nav className="flex items-center gap-3 text-slate-500 text-sm">
-            <a
-              href="/beranda"
-              className="underline-offset-4 hover:text-plum-900 hover:underline"
-            >
-              Beranda
-            </a>
-            <a
-              href="/projects/baru"
-              className="underline-offset-4 hover:text-plum-900 hover:underline"
-            >
-              Daftarkan project
-            </a>
-            <a
-              href="/pengurus"
-              className="underline-offset-4 hover:text-plum-900 hover:underline"
-            >
-              Pengurus
-            </a>
+            {navItems.map((item) => (
+              <a
+                key={item.href}
+                href={item.href}
+                className="underline-offset-4 hover:text-plum-900 hover:underline"
+              >
+                {item.label}
+              </a>
+            ))}
           </nav>
         </div>
         <form action={logoutAction}>
