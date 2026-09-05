@@ -1,35 +1,34 @@
-import type { InputHTMLAttributes, ReactNode } from "react";
+import type { ReactNode, TextareaHTMLAttributes } from "react";
 import { FieldError } from "@/components/ui/alert";
 import { FIELD_CONTROL } from "@/components/ui/field-styles";
 import { cn } from "@/lib/utils";
 
-/**
- * Label + input teks yang dipakai berulang di formulir. Gaya field dipusatkan
- * di sini supaya halaman tidak menyalin konstanta Tailwind (Design Brief bab 5).
- */
-export function TextField({
+/** Area teks bermerk IIT, pasangan TextField untuk catatan dan alasan. */
+export function TextArea({
   label,
   error,
   hint,
   className,
   id,
+  rows = 4,
   ...props
 }: {
   label: ReactNode;
   error?: ReactNode;
   hint?: ReactNode;
   className?: string;
-} & InputHTMLAttributes<HTMLInputElement>) {
+} & TextareaHTMLAttributes<HTMLTextAreaElement>) {
   const controlId = id ?? props.name;
 
   return (
     <label className="flex flex-col gap-1.5" htmlFor={controlId}>
       <span className="font-medium text-plum-900">{label}</span>
-      <input
+      <textarea
         {...props}
         id={controlId}
+        rows={rows}
         aria-invalid={error ? true : undefined}
-        className={cn(FIELD_CONTROL, className)}
+        className={cn(FIELD_CONTROL, "min-h-24 resize-y", className)}
       />
       {hint && !error ? (
         <span className="text-slate-500 text-xs">{hint}</span>
