@@ -42,7 +42,11 @@ export function HandoverPanel({
       </Button>
 
       <Dialog open={open} onOpenChange={setOpen} title="Serah terima jabatan">
-        <form action={formAction} className="flex flex-col gap-4">
+        <form
+          action={formAction}
+          className="flex flex-col gap-4"
+          autoComplete="off"
+        >
           {state.error ? <Alert tone="danger">{state.error}</Alert> : null}
           {state.success ? <Alert tone="success">{state.success}</Alert> : null}
 

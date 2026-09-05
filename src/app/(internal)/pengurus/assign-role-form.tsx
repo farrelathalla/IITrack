@@ -1,9 +1,9 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useActionState, useEffect, useMemo, useState } from "react";
+import { useActionState, useEffect, useState } from "react";
 import { Alert, Button, SelectField, TextField } from "@/components/ui";
-import type { RoleName } from "@/lib/auth/types";
+import type { Division, RoleName } from "@/lib/auth/types";
 import {
   DIVISION_OPTIONS,
   defaultDivisionForRole,
@@ -20,19 +20,24 @@ export function AssignRoleForm({
 }) {
   const router = useRouter();
   const [role, setRole] = useState<RoleName>("PROJECT_MANAGER");
+  const [division, setDivision] = useState<Division>(() =>
+    defaultDivisionForRole("PROJECT_MANAGER"),
+  );
   const [state, formAction, pending] = useActionState(
     assignRoleAction,
     INITIAL,
   );
-
-  const defaultDivision = useMemo(() => defaultDivisionForRole(role), [role]);
 
   useEffect(() => {
     if (state.success) router.refresh();
   }, [state.success, router]);
 
   return (
-    <form action={formAction} className="flex flex-col gap-4">
+    <form
+      action={formAction}
+      className="flex flex-col gap-4"
+      autoComplete="off"
+    >
       {state.error ? <Alert tone="danger">{state.error}</Alert> : null}
       {state.success ? <Alert tone="success">{state.success}</Alert> : null}
 
@@ -50,7 +55,11 @@ export function AssignRoleForm({
         name="role"
         required
         value={role}
-        onChange={(event) => setRole(event.target.value as RoleName)}
+        onChange={(event) => {
+          const next = event.target.value as RoleName;
+          setRole(next);
+          setDivision(defaultDivisionForRole(next));
+        }}
       >
         {ROLE_OPTIONS.map((option) => (
           <option key={option.value} value={option.value}>
@@ -60,11 +69,11 @@ export function AssignRoleForm({
       </SelectField>
 
       <SelectField
-        key={defaultDivision}
         label="Divisi"
         name="division"
         required
-        defaultValue={defaultDivision}
+        value={division}
+        onChange={(event) => setDivision(event.target.value as Division)}
       >
         {DIVISION_OPTIONS.map((option) => (
           <option key={option.value} value={option.value}>
