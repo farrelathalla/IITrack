@@ -1,12 +1,11 @@
 "use client";
 
 import { useActionState } from "react";
+import { Alert } from "@/components/ui/alert";
+import { TextField } from "@/components/ui/text-field";
 import { type LoginState, loginAction } from "./actions";
 
 const INITIAL: LoginState = { error: null };
-
-const FIELD =
-  "rounded-card border border-line bg-white px-3 py-2 text-ink outline-none focus:border-plum-400 focus:ring-2 focus:ring-plum-400/25";
 
 export function LoginForm() {
   const [state, formAction, pending] = useActionState(loginAction, INITIAL);
@@ -17,36 +16,23 @@ export function LoginForm() {
        * Galat tingkat halaman untuk penolakan dari server, dibedakan dari galat
        * per kolom (Design Brief bab 5).
        */}
-      {state.error ? (
-        <p
-          role="alert"
-          className="rounded-card border border-danger-text/20 bg-danger-bg px-3 py-2 text-danger-text"
-        >
-          {state.error}
-        </p>
-      ) : null}
+      {state.error ? <Alert tone="danger">{state.error}</Alert> : null}
 
-      <label className="flex flex-col gap-1.5">
-        <span className="font-medium text-plum-900">Email</span>
-        <input
-          type="email"
-          name="email"
-          autoComplete="email"
-          required
-          className={FIELD}
-        />
-      </label>
+      <TextField
+        label="Email"
+        type="email"
+        name="email"
+        autoComplete="email"
+        required
+      />
 
-      <label className="flex flex-col gap-1.5">
-        <span className="font-medium text-plum-900">Kata sandi</span>
-        <input
-          type="password"
-          name="password"
-          autoComplete="current-password"
-          required
-          className={FIELD}
-        />
-      </label>
+      <TextField
+        label="Kata sandi"
+        type="password"
+        name="password"
+        autoComplete="current-password"
+        required
+      />
 
       <button
         type="submit"
