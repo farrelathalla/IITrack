@@ -48,6 +48,7 @@ model User {
   assignmentsMade    ProjectAssignment[]   @relation("AssignmentAssigner")
   staffingRequested  StaffingRequest[]     @relation("StaffingRequester")
   staffingFulfilled  StaffingRequest[]     @relation("StaffingFulfiller")
+  referencesAdded    ExternalReference[]
 
   @@map("users")
 }
@@ -176,6 +177,7 @@ model Project {
   submissions      Submission[]
   assignments      ProjectAssignment[]
   staffingRequests StaffingRequest[]
+  references       ExternalReference[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -368,4 +370,36 @@ model StaffingRequest {
   @@index([projectId])
   @@index([status])
   @@map("staffing_requests")
+}
+
+enum ReferenceKind {
+  GOOGLE_DRIVE
+  NOTION
+  GITHUB_REPO
+  OTHER
+}
+
+/// Tautan ke berkas dan repository di luar IITrack (F25).
+///
+/// Isinya tidak disalin. Yang disimpan hanya alamatnya bersama Project ID,
+/// sehingga tidak ada salinan master data kedua yang bisa berbeda.
+model ExternalReference {
+  id        String  @id @default(uuid())
+  projectId String
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Restrict)
+
+  kind  ReferenceKind
+  /// Alamat yang sudah dibakukan, supaya satu berkas tidak tersimpan dua kali
+  /// hanya karena beda cara menuliskannya.
+  url   String
+  label String
+
+  addedById String
+  addedBy   User   @relation(fields: [addedById], references: [id], onDelete: Restrict)
+
+  createdAt DateTime @default(now())
+
+  @@unique([projectId, url])
+  @@index([projectId, kind])
+  @@map("external_references")
 }

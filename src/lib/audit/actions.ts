@@ -27,6 +27,7 @@ export const AUDIT_ACTIONS = {
   PROJECT_MEMBER_UNASSIGNED: "project.member_unassigned",
   STAFFING_REQUESTED: "staffing.requested",
   STAFFING_FULFILLED: "staffing.fulfilled",
+  REFERENCE_ADDED: "reference.added",
 } as const;
 
 export type AuditAction = (typeof AUDIT_ACTIONS)[keyof typeof AUDIT_ACTIONS];

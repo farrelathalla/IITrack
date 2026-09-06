@@ -120,7 +120,11 @@ export const ROLE_CAPABILITIES: Record<RoleName, RoleCapability> = {
   // Jabatan ini hanya menjadi tempat menempelnya System Administrator privilege.
   TECHDEV_MEMBER: {
     global: ["project.view"],
-    assigned: [],
+    // Pelaksana TechDev yang ditugaskan pada sebuah project dapat mengubah
+    // data TechDev project itu, termasuk informasi repository (PRD bab 3.2).
+    // Ini tidak bertentangan dengan bab 2.1: yang tidak memakai IITrack adalah
+    // anggota yang mengerjakan kode, bukan pelaksana yang ditunjuk CTO.
+    assigned: ["techdev.edit"],
   },
 
   // Wakil memegang kewenangan yang sama dengan pejabat utamanya.

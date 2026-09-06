@@ -43,7 +43,6 @@ describe("F03-AC2 Menyembunyikan tombol saja tidak cukup: permintaan langsung ke
       "gate.override",
       "finance.edit",
       "finance.approve_final",
-      "techdev.edit",
       "staffing.approve",
       "approval.project_value_scope",
       "user.invite",
@@ -61,6 +60,30 @@ describe("F03-AC2 Menyembunyikan tombol saja tidak cukup: permintaan langsung ke
         }).allowed,
       ).toBe(false);
     }
+  });
+
+  it("Pelaksana TechDev yang ditugaskan boleh mengubah data TechDev project itu, tetapi hanya itu", () => {
+    const pelaksana = actor("TECHDEV_MEMBER");
+
+    // PRD bab 3.2: pelaksana TechDev mengubah staffing, penugasan developer,
+    // dan informasi repository. Domain lain tetap lihat saja.
+    expect(
+      checkPermission({
+        actor: pelaksana,
+        action: "techdev.edit",
+        project: assignedProject("TECHDEV"),
+        now: NOW,
+      }).allowed,
+    ).toBe(true);
+
+    expect(
+      checkPermission({
+        actor: pelaksana,
+        action: "techdev.edit",
+        project: foreignProject(),
+        now: NOW,
+      }).allowed,
+    ).toBe(false);
   });
 
   it("Entri audit log tidak bisa dihapus oleh jabatan mana pun, termasuk pemegang System Administrator privilege", () => {
