@@ -50,6 +50,7 @@ model User {
   staffingFulfilled  StaffingRequest[]     @relation("StaffingFulfiller")
   referencesAdded    ExternalReference[]
   terminsCreated     Termin[]              @relation("TerminCreatedBy")
+  clientRevisions    ClientRevision[]      @relation("ClientRevisionAuthor")
 
   @@map("users")
 }
@@ -152,10 +153,14 @@ model Project {
   period            String
   sequence          Int
   name              String
-  /// Nama client disimpan sementara sebagai teks. Relasi ke tabel client
-  /// menyusul pada F06 yang dikerjakan Dev B; sampai saat itu kolom ini yang
-  /// dipakai, dan tidak boleh ada salinan master data lain.
+  /// Nama yang tampil di daftar/hub. Diisi dari master client bila project
+  /// merujuk `clientId`, dan ikut diperbarui saat master datanya berubah (F06).
+  /// Kolom teks ini tetap ada supaya project lama tanpa rujukan tidak pecah.
   clientName        String
+  /// Rujukan ke master data client. Kosong pada project yang didaftarkan
+  /// sebelum F06, atau yang masih memakai ketikan nama.
+  clientId          String?
+  client            Client?       @relation(fields: [clientId], references: [id], onDelete: Restrict)
   value             Decimal?      @db.Decimal(18, 2)
   status            ProjectStatus @default(ACTIVE)
   /// Waktu client mengonfirmasi, menjadi titik awal pengukuran SLA penugasan
@@ -186,6 +191,7 @@ model Project {
 
   @@unique([period, sequence])
   @@index([status])
+  @@index([clientId])
   @@map("projects")
 }
 
@@ -448,4 +454,51 @@ model Termin {
   @@unique([projectId, sequence])
   @@index([projectId])
   @@map("termins")
+}
+
+/// Master data client (F06).
+///
+/// Identitasnya stabil. Isi yang sedang berlaku ada di baris ini, sedangkan
+/// setiap perubahan menambah satu baris `client_revisions` yang tidak boleh
+/// diubah atau dihapus, supaya project yang sudah jalan tidak kehilangan
+/// rujukan ke data lama. Nama yang tampil di project mengikuti isi terkini.
+model Client {
+  id      String @id @default(uuid())
+  name    String
+  contact String?
+  address String?
+  npwp    String?
+  /// Nomor revisi yang sedang berlaku, mulai dari 1.
+  revision Int   @default(1)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  revisions ClientRevision[]
+  projects  Project[]
+
+  @@index([name])
+  @@map("clients")
+}
+
+/// Satu potret data client pada suatu saat. Hanya boleh ditambah.
+model ClientRevision {
+  id       String @id @default(uuid())
+  clientId String
+  client   Client @relation(fields: [clientId], references: [id], onDelete: Restrict)
+
+  revision Int
+  name     String
+  contact  String?
+  address  String?
+  npwp     String?
+
+  changedById String
+  changedBy   User   @relation("ClientRevisionAuthor", fields: [changedById], references: [id], onDelete: Restrict)
+
+  createdAt DateTime @default(now())
+
+  @@unique([clientId, revision])
+  @@index([clientId])
+  @@map("client_revisions")
 }

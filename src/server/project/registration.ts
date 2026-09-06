@@ -9,6 +9,7 @@ import { prisma } from "@/server/db";
 const registration = z.object({
   name: z.string().trim().min(1, "Nama project wajib diisi."),
   clientName: z.string().trim().min(1, "Nama client wajib diisi."),
+  clientId: z.string().trim().min(1).optional(),
   period: z
     .string()
     .regex(/^\d{4}$/, "Periode harus empat digit, misalnya 2627."),
@@ -65,6 +66,26 @@ export async function registerProject(params: {
 
   const data = parsed.data;
 
+  let clientName = data.clientName;
+  let clientId: string | null = null;
+
+  if (data.clientId) {
+    const master = await prisma.client.findUnique({
+      where: { id: data.clientId },
+      select: { id: true, name: true },
+    });
+    if (!master) {
+      return {
+        registered: false,
+        reason:
+          "Client yang dipilih tidak ditemukan. Pilih dari daftar master data.",
+        fields: { clientId: "Client tidak ditemukan." },
+      };
+    }
+    clientId = master.id;
+    clientName = master.name;
+  }
+
   // Menaikkan penghitung dan menyimpan project dilakukan dalam satu pernyataan
   // SQL, bukan transaksi interaktif. Satu pernyataan sudah atomik dengan
   // sendirinya, hanya butuh satu perjalanan ke basis data, dan tidak menahan
@@ -82,7 +103,7 @@ export async function registerProject(params: {
       RETURNING "highestIssued"
     )
     INSERT INTO projects (
-      "id", "projectId", "period", "sequence", "name", "clientName",
+      "id", "projectId", "period", "sequence", "name", "clientName", "clientId",
       "value", "status", "registeredById", "createdAt", "updatedAt"
     )
     SELECT
@@ -91,7 +112,8 @@ export async function registerProject(params: {
       ${data.period},
       nomor."highestIssued",
       ${data.name},
-      ${data.clientName},
+      ${clientName},
+      ${clientId},
       ${data.value ?? null}::decimal,
       'ACTIVE'::"ProjectStatus",
       ${params.actor.userId},
@@ -109,7 +131,7 @@ export async function registerProject(params: {
     after: {
       projectId: project.projectId,
       nama: data.name,
-      client: data.clientName,
+      client: clientName,
     },
   });
 
