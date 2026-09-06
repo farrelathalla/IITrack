@@ -91,3 +91,15 @@ export function clientDraftsEqual(
     a.npwp === b.npwp
   );
 }
+
+/**
+ * NPWP 15 digit memakai format resmi DJP. 16 digit (NIK sebagai NPWP)
+ * ditampilkan utuh tanpa titik, karena pecahan resminya belum dipakai di sini.
+ */
+export function formatNpwpDisplay(npwp: string | null | undefined): string {
+  if (!npwp) return "—";
+  if (npwp.length === 15) {
+    return `${npwp.slice(0, 2)}.${npwp.slice(2, 5)}.${npwp.slice(5, 8)}.${npwp.slice(8, 9)}-${npwp.slice(9, 12)}.${npwp.slice(12)}`;
+  }
+  return npwp;
+}

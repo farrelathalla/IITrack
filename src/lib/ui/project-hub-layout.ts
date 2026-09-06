@@ -12,6 +12,7 @@ import type { Action } from "@/lib/auth/types";
 export type PlannedNavKey =
   | "beranda"
   | "project"
+  | "client"
   | "pengurus"
   | "finance_queue";
 
@@ -56,6 +57,14 @@ export const PLANNED_MAIN_NAV: readonly PlannedNavItem[] = [
     requires: "project.view",
     availability: "now",
     note: "Daftar project (F08). Hub detail di /projects/[projectId].",
+  },
+  {
+    key: "client",
+    label: "Client",
+    href: "/clients",
+    requires: "master_data.view",
+    availability: "now",
+    note: "Master data client (F06-T02). Form tambah hanya untuk client.manage.",
   },
   {
     key: "pengurus",

@@ -8,9 +8,9 @@ import {
 } from "@/lib/ui/project-hub-layout";
 
 describe("F08-T02 Rancangan halaman project dan susunan menu utama dikunci sebelum kode halaman.", () => {
-  it("Menu utama memuat Beranda, Project, dan Pengurus untuk fase sekarang", () => {
+  it("Menu utama memuat Beranda, Project, Client, dan Pengurus untuk fase sekarang", () => {
     const keys = plannedNavNow().map((item) => item.key);
-    expect(keys).toEqual(["beranda", "project", "pengurus"]);
+    expect(keys).toEqual(["beranda", "project", "client", "pengurus"]);
   });
 
   it("Antrean Finance dipesan di nav tetapi belum availability now", () => {

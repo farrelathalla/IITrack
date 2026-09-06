@@ -16,6 +16,8 @@ export default async function BerandaPage() {
   const projects = await listProjectsWithPmSla();
   const bolehDaftar =
     session !== null && canSeeAction(session.actor, "project.create");
+  const bolehLihatClient =
+    session !== null && canSeeAction(session.actor, "master_data.view");
 
   return (
     <div className="flex flex-col gap-6">
@@ -30,6 +32,17 @@ export default async function BerandaPage() {
           >
             Project
           </a>
+          {bolehLihatClient ? (
+            <>
+              . Master data client ada di{" "}
+              <a
+                href="/clients"
+                className="font-medium text-plum-900 underline-offset-4 hover:underline"
+              >
+                Client
+              </a>
+            </>
+          ) : null}
           . Ringkasan SLA penugasan PM (F04) muncul di bawah bila datanya sudah
           ada.
           {bolehDaftar ? (

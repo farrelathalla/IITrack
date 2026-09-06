@@ -29,6 +29,11 @@ describe("F03-T04 Menyembunyikan menu dan tombol di luar kewenangan.", () => {
     expect(labels(actor("TECHDEV_MEMBER"))).not.toContain("Pengurus");
   });
 
+  it("Client tampil bersama master_data.view, tersembunyi untuk TechDev Member biasa", () => {
+    expect(labels(actor("PROJECT_MANAGER"))).toContain("Client");
+    expect(labels(actor("TECHDEV_MEMBER"))).not.toContain("Client");
+  });
+
   it("System Admin tanpa master_data.view tetap melihat menu Pengurus lewat member.manage", () => {
     const admin = actor("TECHDEV_MEMBER", {
       roleAssignments: [assignment("TECHDEV_MEMBER", { isSystemAdmin: true })],

@@ -14,7 +14,7 @@ Kontrak mesin (untuk test + implementasi): `src/lib/ui/project-hub-layout.ts`.
 | --- | --- |
 | Hub = **satu layar scroll**, bukan tab per modul | Sesuai ASCII PRD; semua section terlihat tanpa pindah route |
 | Daftar dan detail dipisah route | `/projects` (daftar) → `/projects/[projectId]` (hub) |
-| Nav utama pendek | Beranda · Project · Pengurus · (nanti Antrean Finance) |
+| Nav utama pendek | Beranda · Project · Client · Pengurus · (nanti Antrean Finance) |
 | **Daftarkan project** keluar dari nav permanen | Jadi tombol primer di `/projects` bila `project.create` |
 | Nilai project | Kolom/field hanya jika `project.view_value` |
 | Menu/tombol | Tetap lewat `can()` / `ui-visibility`; server tetap sumber larangan |
@@ -26,8 +26,8 @@ Kontrak mesin (untuk test + implementasi): `src/lib/ui/project-hub-layout.ts`.
 
 ```text
 +----------------------------------------------------------------------------------+
-| IITrack   Beranda   Project   Pengurus                  [nama]  Keluar           |
-|           (selalu)  (view)    (master_data|member.manage)                        |
+| IITrack   Beranda   Project   Client   Pengurus         [nama]  Keluar           |
+|           (selalu)  (view)    (master) (master_data|member.manage)               |
 |                     ↳ nanti: Antrean Finance (finance.view) setelah F15          |
 +----------------------------------------------------------------------------------+
 ```
@@ -40,6 +40,7 @@ Kontrak mesin (untuk test + implementasi): `src/lib/ui/project-hub-layout.ts`.
 | Daftarkan project (nav) | Pindah jadi CTA di `/projects` |
 | Pengurus | Tetap (aturan tampil sama F03-T04) |
 | — | **Project** → `/projects` (baru di #50) |
+| — | **Client** → `/clients` (F06-T02 / #62) |
 
 Slot **Antrean Finance** sudah dipesan di kontrak supaya Sprint 2 tidak mengacak urutan nav lagi.
 
@@ -135,6 +136,8 @@ Jangan menambah kartu dekoratif di luar pola yang sudah ada (border `border-line
 | Tombol pindah tahap | `stage.change` + konteks project (server wajib) |
 | Blok Finance sensitif | `finance.view` / aksi terkait |
 | Nav Pengurus | `master_data.view` ∨ `member.manage` |
+| Nav Client | `master_data.view` |
+| Form tambah client | `client.manage` (server `createClient`) |
 
 ---
 
