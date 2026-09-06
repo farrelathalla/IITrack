@@ -144,7 +144,7 @@ Jangan menambah kartu dekoratif di luar pola yang sudah ada (border `border-line
 ## 7. Di luar wireframe ini
 
 - Implementasi React sungguhan → **#50**
-- Wireframe form registrasi + termin → **#59**
+- Wireframe form registrasi + termin → **#59** (`docs/wireframes/F05-F13-registration-termin.md`)
 - Gate modal Hard Stop → PRD wireframe 3 (F10, Should Have)
 - Antrean Finance penuh → F15
 
