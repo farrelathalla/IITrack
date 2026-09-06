@@ -49,6 +49,7 @@ model User {
   staffingRequested  StaffingRequest[]     @relation("StaffingRequester")
   staffingFulfilled  StaffingRequest[]     @relation("StaffingFulfiller")
   referencesAdded    ExternalReference[]
+  terminsCreated     Termin[]              @relation("TerminCreatedBy")
 
   @@map("users")
 }
@@ -178,6 +179,7 @@ model Project {
   assignments      ProjectAssignment[]
   staffingRequests StaffingRequest[]
   references       ExternalReference[]
+  termins          Termin[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -402,4 +404,48 @@ model ExternalReference {
   @@unique([projectId, url])
   @@index([projectId, kind])
   @@map("external_references")
+}
+
+enum TerminStatus {
+  UNPAID
+  PAID
+}
+
+/// Jadwal termin pembayaran sebuah project (F13).
+///
+/// Setiap baris memuat nomor, persentase, nominal, dan jatuh tempo. Jumlah
+/// persentase seluruh baris sebuah project harus tepat 100, dan termin pertama
+/// (uang muka) 25 sampai 50 persen sesuai IITBOOK. Kedua aturan itu dicek di
+/// `src/lib/termin/scheme.ts` lalu ditegakkan lagi di basis data.
+///
+/// Status lunas diubah proses kuitansi (F20), bukan dari penyimpanan skema.
+/// Pengajuan invoice (F16) menempel ke baris ini nanti; nomor dokumen IITBOOK
+/// tidak memuat indeks termin (#84), jadi relasi invoice tidak dikarang di sini.
+model Termin {
+  id        String  @id @default(uuid())
+  projectId String
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Restrict)
+
+  /// Urutan dalam skema. Satu = uang muka (DP).
+  sequence Int
+
+  /// Persentase dua desimal. Sumber kebenaran skema.
+  percentage Decimal @db.Decimal(5, 2)
+
+  /// Nominal = persentase × nilai project, disimpan supaya F16 tidak menghitung ulang.
+  amount Decimal @db.Decimal(18, 2)
+
+  dueDate DateTime
+
+  status TerminStatus @default(UNPAID)
+
+  createdById String
+  createdBy   User   @relation("TerminCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([projectId, sequence])
+  @@index([projectId])
+  @@map("termins")
 }

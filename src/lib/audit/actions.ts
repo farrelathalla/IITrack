@@ -28,6 +28,7 @@ export const AUDIT_ACTIONS = {
   STAFFING_REQUESTED: "staffing.requested",
   STAFFING_FULFILLED: "staffing.fulfilled",
   REFERENCE_ADDED: "reference.added",
+  TERMIN_SCHEME_SAVED: "termin.scheme_saved",
 } as const;
 
 export type AuditAction = (typeof AUDIT_ACTIONS)[keyof typeof AUDIT_ACTIONS];
