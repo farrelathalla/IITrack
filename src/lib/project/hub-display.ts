@@ -41,21 +41,7 @@ export function stageLabel(stageKey: string | null | undefined): string {
   return findStage(STAGE_CATALOGUE, stageKey)?.label ?? stageKey;
 }
 
-/** Ringkas aksi audit menjadi kalimat pendek untuk panel riwayat hub. */
-export function summarizeAuditAction(action: string): string {
-  switch (action) {
-    case "project.created":
-      return "Project didaftarkan";
-    case "project.id_overridden":
-      return "Project ID ditetapkan ulang";
-    case "project.stage_changed":
-      return "Tahap diganti";
-    case "project.pm_assigned":
-      return "PM ditugaskan";
-    default:
-      return action;
-  }
-}
+export { summarizeAuditAction } from "@/lib/audit/activity";
 
 export function visibleProjectListColumns(
   actor: Actor,

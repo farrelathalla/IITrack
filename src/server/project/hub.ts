@@ -325,6 +325,8 @@ export type ProjectHubPageData = ProjectHubData & {
     actorName: string | null;
     reason: string | null;
     createdAt: Date;
+    before: unknown;
+    after: unknown;
   }>;
 };
 
@@ -339,6 +341,8 @@ export async function getProjectHubByProjectId(
       id: true,
       period: true,
       registeredBy: { select: { name: true } },
+      submissions: { select: { id: true } },
+      staffingRequests: { select: { id: true } },
     },
   });
   if (!found) return null;
@@ -346,17 +350,38 @@ export async function getProjectHubByProjectId(
   const hub = await readProjectHub(actor, found.id, now);
   if (!hub) return null;
 
+  const submissionIds = found.submissions.map((row) => row.id);
+  const staffingIds = found.staffingRequests.map((row) => row.id);
+  const objectFilters = [
+    { objectType: AUDIT_OBJECTS.PROJECT, objectId: found.id },
+    ...(submissionIds.length > 0
+      ? [
+          {
+            objectType: AUDIT_OBJECTS.SUBMISSION,
+            objectId: { in: submissionIds },
+          },
+        ]
+      : []),
+    ...(staffingIds.length > 0
+      ? [
+          {
+            objectType: AUDIT_OBJECTS.STAFFING_REQUEST,
+            objectId: { in: staffingIds },
+          },
+        ]
+      : []),
+  ];
+
   const auditTrail = await prisma.auditLog.findMany({
-    where: {
-      objectType: AUDIT_OBJECTS.PROJECT,
-      objectId: found.id,
-    },
+    where: { OR: objectFilters },
     orderBy: { createdAt: "desc" },
-    take: 30,
+    take: 40,
     select: {
       action: true,
       reason: true,
       createdAt: true,
+      before: true,
+      after: true,
       actor: { select: { name: true } },
     },
   });
@@ -376,6 +401,8 @@ export async function getProjectHubByProjectId(
       actorName: row.actor?.name ?? null,
       reason: row.reason,
       createdAt: row.createdAt,
+      before: row.before,
+      after: row.after,
     })),
   };
 }

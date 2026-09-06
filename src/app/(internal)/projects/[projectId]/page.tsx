@@ -1,14 +1,11 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { ProjectActivityList } from "@/components/project/activity-list";
 import { Alert, StatusBadge } from "@/components/ui";
+import { toActivityItem } from "@/lib/audit/activity";
 import { can } from "@/lib/auth/permissions";
-import {
-  formatDateTimeId,
-  formatProjectValue,
-  stageLabel,
-  summarizeAuditAction,
-} from "@/lib/project/hub-display";
+import { formatProjectValue, stageLabel } from "@/lib/project/hub-display";
 import { STAGE_CATALOGUE } from "@/lib/project/stages";
 import { getAuthenticatedSession } from "@/server/auth/session";
 import { projectContextFor } from "@/server/project/context";
@@ -222,52 +219,9 @@ export default async function ProjectHubPage({ params }: PageProps) {
 
         <section className="flex flex-col gap-3 rounded-card border border-line bg-white p-5">
           <h2 className="text-base">Riwayat aktivitas</h2>
-          {hub.auditTrail.length === 0 ? (
-            <p className="text-slate-500 text-sm">
-              Belum ada jejak pada project ini.
-            </p>
-          ) : (
-            <ul className="flex flex-col gap-3 text-sm">
-              {hub.auditTrail.map((entry) => (
-                <li
-                  key={`${entry.createdAt.toISOString()}-${entry.action}`}
-                  className="border-line border-b pb-2 last:border-0"
-                >
-                  <p className="font-medium text-plum-900">
-                    {summarizeAuditAction(entry.action)}
-                  </p>
-                  <p className="text-slate-500 text-xs">
-                    <span className="angka">
-                      {formatDateTimeId(entry.createdAt)}
-                    </span>
-                    {" · "}
-                    {entry.actorName ?? "Sistem"}
-                    {entry.reason ? ` · ${entry.reason}` : ""}
-                  </p>
-                </li>
-              ))}
-            </ul>
-          )}
-          {hub.stageHistory.length > 0 ? (
-            <div className="mt-2 flex flex-col gap-2 border-line border-t pt-3">
-              <h3 className="text-slate-500 text-xs uppercase tracking-wide">
-                Riwayat tahap
-              </h3>
-              <ul className="flex flex-col gap-2 text-sm">
-                {hub.stageHistory.map((entry) => (
-                  <li key={`${entry.changedAt.toISOString()}-${entry.toStage}`}>
-                    <span className="angka text-xs text-slate-500">
-                      {formatDateTimeId(entry.changedAt)}
-                    </span>
-                    {" · "}
-                    {entry.changedBy}
-                    {": "}
-                    {stageLabel(entry.fromStage)} → {stageLabel(entry.toStage)}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ) : null}
+          <ProjectActivityList
+            items={hub.auditTrail.map((entry) => toActivityItem(entry))}
+          />
         </section>
       </div>
     </div>
