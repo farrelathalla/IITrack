@@ -42,6 +42,8 @@ model User {
   projectsRegistered Project[]             @relation("ProjectRegisteredBy")
   projectsAsPm       Project[]             @relation("ProjectAssignedPm")
   stageChanges       ProjectStageHistory[]
+  submissions        Submission[]
+  approvalSteps      ApprovalStep[]
 
   @@map("users")
 }
@@ -167,6 +169,7 @@ model Project {
   registeredBy   User   @relation("ProjectRegisteredBy", fields: [registeredById], references: [id], onDelete: Restrict)
 
   stageHistory ProjectStageHistory[]
+  submissions  Submission[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -210,4 +213,80 @@ model ProjectStageHistory {
 
   @@index([projectId, createdAt])
   @@map("project_stage_history")
+}
+
+enum SubmissionStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum ApprovalDecision {
+  PENDING
+  APPROVED
+  REJECTED
+  SKIPPED
+}
+
+/// Pengajuan yang harus melewati rantai persetujuan (F17).
+///
+/// Satu bentuk pengajuan dipakai bersama invoice, kuitansi, staffing request,
+/// dan perubahan nilai project, supaya seluruhnya masuk lewat pintu yang sama.
+model Submission {
+  id   String @id @default(uuid())
+  /// Jenis pengajuan, merujuk SubmissionType pada src/lib/approval/chain.ts.
+  type String
+
+  projectId String?
+  project   Project? @relation(fields: [projectId], references: [id], onDelete: Restrict)
+
+  submittedById String
+  submittedBy   User   @relation(fields: [submittedById], references: [id], onDelete: Restrict)
+
+  status           SubmissionStatus @default(PENDING)
+  /// Langkah yang sedang menunggu keputusan. Kosong bila sudah selesai.
+  currentStepOrder Int?
+  /// Bertambah setiap kali pengajuan yang ditolak diperbaiki. Langkah revisi
+  /// lama tidak dihapus, sehingga riwayatnya tetap utuh (F17-AC3).
+  revision         Int              @default(1)
+  /// Isi pengajuan, bentuknya mengikuti jenisnya.
+  payload          Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  steps ApprovalStep[]
+
+  @@index([status])
+  @@index([projectId])
+  @@map("submissions")
+}
+
+/// Satu langkah pada rantai persetujuan sebuah pengajuan.
+///
+/// Setelah diputuskan, barisnya tidak bisa diubah lagi maupun dihapus; larangan
+/// itu ditegakkan trigger basis data.
+model ApprovalStep {
+  id           String     @id @default(uuid())
+  submissionId String
+  submission   Submission @relation(fields: [submissionId], references: [id], onDelete: Restrict)
+
+  order         Int
+  label         String
+  /// Jabatan yang berwenang, disalin dari rantai saat pengajuan dibuat supaya
+  /// riwayat tetap terbaca walaupun rantainya berubah di kemudian hari.
+  eligibleRoles String[]
+
+  decision    ApprovalDecision @default(PENDING)
+  decidedById String?
+  decidedBy   User?            @relation(fields: [decidedById], references: [id], onDelete: Restrict)
+  reason      String?
+  decidedAt   DateTime?
+
+  revision  Int      @default(1)
+  createdAt DateTime @default(now())
+
+  @@unique([submissionId, revision, order])
+  @@index([decision])
+  @@map("approval_steps")
 }

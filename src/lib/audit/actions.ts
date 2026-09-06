@@ -19,6 +19,10 @@ export const AUDIT_ACTIONS = {
   MEMBER_ROLE_PERIOD_OVERRIDDEN: "member.role_period_overridden",
   MEMBER_HANDOVER: "member.handover",
   USER_DEACTIVATED: "user.deactivated",
+  SUBMISSION_CREATED: "submission.created",
+  SUBMISSION_STEP_APPROVED: "submission.step_approved",
+  SUBMISSION_STEP_REJECTED: "submission.step_rejected",
+  SUBMISSION_REVISED: "submission.revised",
 } as const;
 
 export type AuditAction = (typeof AUDIT_ACTIONS)[keyof typeof AUDIT_ACTIONS];
@@ -27,6 +31,7 @@ export const AUDIT_OBJECTS = {
   USER: "user",
   SESSION: "session",
   PROJECT: "project",
+  SUBMISSION: "submission",
 } as const;
 
 export type AuditObjectType =
