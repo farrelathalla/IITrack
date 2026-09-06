@@ -17,7 +17,7 @@ import {
   visibleProjectListColumns,
 } from "@/lib/project/hub-display";
 import { getAuthenticatedSession } from "@/server/auth/session";
-import { listProjectsForHub } from "@/server/project/hub";
+import { readProjectList } from "@/server/project/hub";
 
 export const metadata: Metadata = {
   title: "Project",
@@ -38,7 +38,8 @@ export default async function ProjectListPage() {
   );
   const bolehLihatNilai = columns.some((column) => column.key === "value");
 
-  const projects = await listProjectsForHub();
+  const projects =
+    session === null ? [] : await readProjectList(session.actor, now);
 
   return (
     <div className="flex flex-col gap-6">
@@ -105,7 +106,7 @@ export default async function ProjectListPage() {
                       case "client":
                         return project.clientName;
                       case "pm":
-                        return project.pmName ?? "—";
+                        return project.assignedPm ?? "—";
                       case "stage":
                         return (
                           <StatusBadge status={project.stage ?? "pending"}>

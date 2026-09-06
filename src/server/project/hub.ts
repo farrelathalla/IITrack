@@ -1,63 +1,70 @@
 import { AUDIT_OBJECTS } from "@/lib/audit/actions";
-import { STAGE_CATALOGUE } from "@/lib/project/stages";
+import { activeAssignments } from "@/lib/auth/period";
+import { checkPermission } from "@/lib/auth/permissions";
+import type { Actor, Division } from "@/lib/auth/types";
+import type { ReferenceKind } from "@/lib/project/external-reference";
+import type { StageDefinition } from "@/lib/project/stages";
+import { findStage, STAGE_CATALOGUE } from "@/lib/project/stages";
 import { prisma } from "@/server/db";
 
-/** Baris daftar project untuk `/projects` (F08). */
-export type ProjectListRow = {
-  projectId: string;
-  name: string;
-  clientName: string;
-  pmName: string | null;
-  stage: string | null;
-  updatedAt: Date;
-  value: string | null;
-  status: string;
-};
+/**
+ * Pengambilan isi halaman project (F08-T03).
+ *
+ * Seluruh isi Project Hub diambil dalam satu permintaan bersarang, bukan
+ * belasan permintaan terpisah. Halaman ini dibuka berkali-kali setiap hari, dan
+ * PRD bab 5 menetapkan daftar project harus tampil di bawah tiga detik pada
+ * seratus project.
+ */
+
+/** Bagian klien Prisma yang dipakai di sini, supaya test bisa menyuntikkan penghitung. */
+export type ProjectReader = Pick<typeof prisma, "project">;
 
 /**
- * Seluruh project untuk daftar hub. Nilai dikembalikan sebagai string desimal
- * supaya pemanggil UI tidak bergantung pada tipe Decimal Prisma.
+ * Divisi tempat seseorang berhak mengubah data sebuah project.
+ *
+ * Sengaja bekerja dari baris yang sudah terambil, bukan dari basis data, supaya
+ * halaman ini tetap satu permintaan. Aturannya sama dengan projectContextFor:
+ * penugasan hanya berlaku selama jabatannya masih berlaku.
  */
-export async function listProjectsForHub(): Promise<ProjectListRow[]> {
-  const rows = await prisma.project.findMany({
-    orderBy: { updatedAt: "desc" },
-    select: {
-      projectId: true,
-      name: true,
-      clientName: true,
-      stage: true,
-      updatedAt: true,
-      value: true,
-      status: true,
-      assignedPm: { select: { name: true } },
-    },
-  });
+function divisionsFor(
+  actor: Actor,
+  now: Date,
+  assignedPmId: string | null,
+  assignments: ReadonlyArray<{ division: string; userId: string }>,
+): Division[] {
+  const stillServingIn = new Set(
+    activeAssignments(actor.roleAssignments, now).map((a) => a.division),
+  );
 
-  return rows.map((row) => ({
-    projectId: row.projectId,
-    name: row.name,
-    clientName: row.clientName,
-    pmName: row.assignedPm?.name ?? null,
-    stage: row.stage,
-    updatedAt: row.updatedAt,
-    value: row.value?.toString() ?? null,
-    status: row.status,
-  }));
+  const divisions = new Set<Division>();
+
+  if (assignedPmId === actor.userId && stillServingIn.has("OPERATIONAL")) {
+    divisions.add("OPERATIONAL");
+  }
+
+  for (const assignment of assignments) {
+    if (assignment.userId !== actor.userId) continue;
+    const division = assignment.division as Division;
+    if (stillServingIn.has(division)) divisions.add(division);
+  }
+
+  return [...divisions];
 }
 
-export type ProjectHubData = {
+export interface ProjectHubData {
   id: string;
   projectId: string;
   name: string;
   clientName: string;
-  period: string;
   status: string;
+  /** Kosong bila jabatan pengguna tidak mengizinkan melihat nilai project. */
   value: string | null;
-  stage: string | null;
-  assignedPmName: string | null;
-  registeredByName: string;
-  createdAt: Date;
+  stage: { key: string; label: string } | null;
+  assignedPm: { id: string; name: string } | null;
+  clientConfirmedAt: Date | null;
+  pmAssignedAt: Date | null;
   updatedAt: Date;
+  members: Array<{ name: string; division: string }>;
   stageHistory: Array<{
     fromStage: string | null;
     toStage: string;
@@ -65,35 +72,60 @@ export type ProjectHubData = {
     note: string | null;
     changedAt: Date;
   }>;
-  auditTrail: Array<{
-    action: string;
-    actorName: string | null;
-    reason: string | null;
+  references: Array<{ kind: ReferenceKind; url: string; label: string }>;
+  staffingRequests: Array<{
+    id: string;
+    roleNeeded: string;
+    headcount: number;
+    status: string;
+    requestedAt: Date;
+    fulfilledAt: Date | null;
+  }>;
+  pendingSubmissions: Array<{
+    id: string;
+    type: string;
+    currentStepOrder: number | null;
     createdAt: Date;
   }>;
-  /** Tahap yang dikenal katalog (untuk strip tracker). */
-  knownStages: Array<{ key: string; order: number; label: string }>;
-};
+}
 
-/** Membaca satu project lewat nomor resmi `IIT-….`. */
-export async function getProjectHubByProjectId(
-  projectId: string,
+/**
+ * Seluruh isi halaman sebuah project.
+ *
+ * Mengembalikan `null` bila projectnya tidak ada atau pengguna tidak berhak
+ * melihatnya sama sekali. Nilai project disaring terpisah, karena yang tidak
+ * boleh melihat nilai tetap boleh melihat sisanya (F08-AC2).
+ */
+export async function readProjectHub(
+  actor: Actor,
+  projectDbId: string,
+  now: Date = new Date(),
+  reader: ProjectReader = prisma,
+  catalogue: readonly StageDefinition[] = STAGE_CATALOGUE,
 ): Promise<ProjectHubData | null> {
-  const project = await prisma.project.findUnique({
-    where: { projectId },
+  const project = await reader.project.findUnique({
+    where: { id: projectDbId },
     select: {
       id: true,
       projectId: true,
       name: true,
       clientName: true,
-      period: true,
       status: true,
       value: true,
       stage: true,
-      createdAt: true,
+      clientConfirmedAt: true,
+      pmAssignedAt: true,
       updatedAt: true,
-      assignedPm: { select: { name: true } },
-      registeredBy: { select: { name: true } },
+      assignedPmId: true,
+      assignedPm: { select: { id: true, name: true } },
+      assignments: {
+        where: { endedAt: null },
+        select: {
+          division: true,
+          userId: true,
+          user: { select: { name: true } },
+        },
+      },
       stageHistory: {
         orderBy: { createdAt: "desc" },
         take: 20,
@@ -105,15 +137,219 @@ export async function getProjectHubByProjectId(
           changedBy: { select: { name: true } },
         },
       },
+      references: {
+        orderBy: { createdAt: "asc" },
+        select: { kind: true, url: true, label: true },
+      },
+      staffingRequests: {
+        orderBy: { requestedAt: "desc" },
+        select: {
+          id: true,
+          roleNeeded: true,
+          headcount: true,
+          status: true,
+          requestedAt: true,
+          fulfilledAt: true,
+        },
+      },
+      submissions: {
+        where: { status: "PENDING" },
+        orderBy: { createdAt: "asc" },
+        select: {
+          id: true,
+          type: true,
+          currentStepOrder: true,
+          createdAt: true,
+        },
+      },
     },
   });
 
   if (!project) return null;
 
+  // Konteks izin disusun dari data yang sudah terambil di atas. Memanggil
+  // projectContextFor di sini akan menambah satu permintaan lagi, dan itu
+  // justru yang dihindari task ini.
+  const konteks = {
+    projectId: project.id,
+    assignedDivisions: divisionsFor(
+      actor,
+      now,
+      project.assignedPmId,
+      project.assignments,
+    ),
+  };
+
+  if (
+    !checkPermission({ actor, action: "project.view", project: konteks, now })
+      .allowed
+  ) {
+    return null;
+  }
+
+  const bolehLihatNilai = checkPermission({
+    actor,
+    action: "project.view_value",
+    project: konteks,
+    now,
+  }).allowed;
+
+  const stage = project.stage
+    ? {
+        key: project.stage,
+        label: findStage(catalogue, project.stage)?.label ?? project.stage,
+      }
+    : null;
+
+  return {
+    id: project.id,
+    projectId: project.projectId,
+    name: project.name,
+    clientName: project.clientName,
+    status: project.status,
+    value: bolehLihatNilai ? (project.value?.toString() ?? null) : null,
+    stage,
+    assignedPm: project.assignedPm,
+    clientConfirmedAt: project.clientConfirmedAt,
+    pmAssignedAt: project.pmAssignedAt,
+    updatedAt: project.updatedAt,
+    members: project.assignments.map((a) => ({
+      name: a.user.name,
+      division: a.division,
+    })),
+    stageHistory: project.stageHistory.map((h) => ({
+      fromStage: h.fromStage,
+      toStage: h.toStage,
+      changedBy: h.changedBy.name,
+      note: h.note,
+      changedAt: h.createdAt,
+    })),
+    references: project.references.map((r) => ({
+      kind: r.kind as ReferenceKind,
+      url: r.url,
+      label: r.label,
+    })),
+    staffingRequests: project.staffingRequests,
+    pendingSubmissions: project.submissions,
+  };
+}
+
+export interface ProjectListRow {
+  id: string;
+  projectId: string;
+  name: string;
+  clientName: string;
+  assignedPm: string | null;
+  stage: string | null;
+  /** Kosong bila jabatan pengguna tidak mengizinkan melihat nilai project. */
+  value: string | null;
+  updatedAt: Date;
+}
+
+/**
+ * Daftar project untuk halaman utama.
+ *
+ * Satu permintaan untuk seluruh daftar. Nilai project disaring per baris
+ * berdasarkan penugasan, karena PM boleh melihat nilai project yang
+ * ditugaskan kepadanya tetapi tidak project orang lain.
+ */
+export async function readProjectList(
+  actor: Actor,
+  now: Date = new Date(),
+  reader: ProjectReader = prisma,
+  catalogue: readonly StageDefinition[] = STAGE_CATALOGUE,
+): Promise<ProjectListRow[]> {
+  const rows = await reader.project.findMany({
+    orderBy: { updatedAt: "desc" },
+    select: {
+      id: true,
+      projectId: true,
+      name: true,
+      clientName: true,
+      stage: true,
+      value: true,
+      updatedAt: true,
+      assignedPmId: true,
+      assignedPm: { select: { name: true } },
+      assignments: {
+        where: { endedAt: null, userId: actor.userId },
+        select: { division: true },
+      },
+    },
+  });
+
+  return rows.map((row) => {
+    const assignedDivisions = divisionsFor(
+      actor,
+      now,
+      row.assignedPmId,
+      row.assignments.map((a) => ({ ...a, userId: actor.userId })),
+    );
+
+    const bolehLihatNilai = checkPermission({
+      actor,
+      action: "project.view_value",
+      project: { projectId: row.id, assignedDivisions },
+      now,
+    }).allowed;
+
+    return {
+      id: row.id,
+      projectId: row.projectId,
+      name: row.name,
+      clientName: row.clientName,
+      assignedPm: row.assignedPm?.name ?? null,
+      stage: row.stage
+        ? (findStage(catalogue, row.stage)?.label ?? row.stage)
+        : null,
+      value: bolehLihatNilai ? (row.value?.toString() ?? null) : null,
+      updatedAt: row.updatedAt,
+    };
+  });
+}
+
+/**
+ * Isi halaman hub untuk rute `/projects/[projectId]` (nomor resmi IIT-…).
+ *
+ * `readProjectHub` memakai id basis data dan menjaga satu permintaan bersarang.
+ * Halaman UI masih butuh periode, nama pendaftar, dan jejak audit — itu diambil
+ * di sini supaya F08-T03 tidak pecah.
+ */
+export type ProjectHubPageData = ProjectHubData & {
+  period: string;
+  registeredByName: string;
+  assignedPmName: string | null;
+  knownStages: Array<{ key: string; order: number; label: string }>;
+  auditTrail: Array<{
+    action: string;
+    actorName: string | null;
+    reason: string | null;
+    createdAt: Date;
+  }>;
+};
+
+export async function getProjectHubByProjectId(
+  actor: Actor,
+  projectId: string,
+  now: Date = new Date(),
+): Promise<ProjectHubPageData | null> {
+  const found = await prisma.project.findUnique({
+    where: { projectId },
+    select: {
+      id: true,
+      period: true,
+      registeredBy: { select: { name: true } },
+    },
+  });
+  if (!found) return null;
+
+  const hub = await readProjectHub(actor, found.id, now);
+  if (!hub) return null;
+
   const auditTrail = await prisma.auditLog.findMany({
     where: {
       objectType: AUDIT_OBJECTS.PROJECT,
-      objectId: project.id,
+      objectId: found.id,
     },
     orderBy: { createdAt: "desc" },
     take: 30,
@@ -126,35 +362,20 @@ export async function getProjectHubByProjectId(
   });
 
   return {
-    id: project.id,
-    projectId: project.projectId,
-    name: project.name,
-    clientName: project.clientName,
-    period: project.period,
-    status: project.status,
-    value: project.value?.toString() ?? null,
-    stage: project.stage,
-    assignedPmName: project.assignedPm?.name ?? null,
-    registeredByName: project.registeredBy.name,
-    createdAt: project.createdAt,
-    updatedAt: project.updatedAt,
-    stageHistory: project.stageHistory.map((row) => ({
-      fromStage: row.fromStage,
-      toStage: row.toStage,
-      changedBy: row.changedBy.name,
-      note: row.note,
-      changedAt: row.createdAt,
+    ...hub,
+    period: found.period,
+    registeredByName: found.registeredBy.name,
+    assignedPmName: hub.assignedPm?.name ?? null,
+    knownStages: STAGE_CATALOGUE.map((stage) => ({
+      key: stage.key,
+      order: stage.order,
+      label: stage.label,
     })),
     auditTrail: auditTrail.map((row) => ({
       action: row.action,
       actorName: row.actor?.name ?? null,
       reason: row.reason,
       createdAt: row.createdAt,
-    })),
-    knownStages: STAGE_CATALOGUE.map((stage) => ({
-      key: stage.key,
-      order: stage.order,
-      label: stage.label,
     })),
   };
 }

@@ -24,36 +24,35 @@ export async function generateMetadata({
   return { title: decodeURIComponent(projectId) };
 }
 
+function namesInDivision(
+  members: Array<{ name: string; division: string }>,
+  division: string,
+): string {
+  const names = members
+    .filter((member) => member.division === division)
+    .map((member) => member.name);
+  return names.length > 0 ? names.join(", ") : "Belum ditugaskan";
+}
+
 export default async function ProjectHubPage({ params }: PageProps) {
   const { projectId: rawId } = await params;
   const projectId = decodeURIComponent(rawId);
-  const hub = await getProjectHubByProjectId(projectId);
+  const session = await getAuthenticatedSession();
+  if (!session) notFound();
+
+  const hub = await getProjectHubByProjectId(session.actor, projectId);
   if (!hub) notFound();
 
-  const session = await getAuthenticatedSession();
   const now = new Date();
-  const projectCtx =
-    session !== null
-      ? await projectContextFor(session.actor, hub.id, now)
-      : { projectId: hub.id, assignedDivisions: [] };
-  const bolehLihatNilai =
-    session !== null &&
-    can({
-      actor: session.actor,
-      action: "project.view_value",
-      project: projectCtx,
-      now,
-    });
-  const bolehPindahTahap =
-    session !== null &&
-    can({
-      actor: session.actor,
-      action: "stage.change",
-      project: projectCtx,
-      now,
-    });
+  const projectCtx = await projectContextFor(session.actor, hub.id, now);
+  const bolehPindahTahap = can({
+    actor: session.actor,
+    action: "stage.change",
+    project: projectCtx,
+    now,
+  });
 
-  const nilaiTampil = bolehLihatNilai ? formatProjectValue(hub.value) : null;
+  const nilaiTampil = formatProjectValue(hub.value);
 
   return (
     <div className="flex flex-col gap-8">
@@ -93,13 +92,13 @@ export default async function ProjectHubPage({ params }: PageProps) {
         <h2 className="text-base">Tahap berjalan</h2>
         <p className="text-sm">
           Sekarang:{" "}
-          <StatusBadge status={hub.stage ?? "pending"}>
-            {stageLabel(hub.stage)}
+          <StatusBadge status={hub.stage?.key ?? "pending"}>
+            {hub.stage?.label ?? stageLabel(null)}
           </StatusBadge>
         </p>
         <ol className="flex flex-wrap items-center gap-2 text-slate-500 text-xs">
           {hub.knownStages.map((stage, index) => {
-            const aktif = hub.stage === stage.key;
+            const aktif = hub.stage?.key === stage.key;
             return (
               <li key={stage.key} className="flex items-center gap-2">
                 {index > 0 ? <span aria-hidden>→</span> : null}
@@ -128,13 +127,29 @@ export default async function ProjectHubPage({ params }: PageProps) {
         ) : null}
       </section>
 
-      {/* Pending — kosong dulu */}
+      {/* Pending */}
       <section className="flex flex-col gap-2">
         <h2 className="text-base">Tindakan menunggu</h2>
-        <Alert tone="status">
-          Belum ada tindakan terbuka pada project ini. Override gate dan antrean
-          approval akan muncul di sini bila fiturnya sudah hidup.
-        </Alert>
+        {hub.pendingSubmissions.length === 0 ? (
+          <Alert tone="status">
+            Belum ada tindakan terbuka pada project ini. Override gate dan
+            antrean approval akan muncul di sini bila fiturnya sudah hidup.
+          </Alert>
+        ) : (
+          <ul className="flex flex-col gap-2 text-sm">
+            {hub.pendingSubmissions.map((item) => (
+              <li
+                key={item.id}
+                className="rounded-card border border-line px-3 py-2"
+              >
+                {item.type}
+                {item.currentStepOrder != null
+                  ? ` · langkah ${item.currentStepOrder}`
+                  : ""}
+              </li>
+            ))}
+          </ul>
+        )}
       </section>
 
       {/* Tim + Dokumen */}
@@ -148,11 +163,11 @@ export default async function ProjectHubPage({ params }: PageProps) {
             </div>
             <div className="flex justify-between gap-3">
               <dt className="text-slate-500">Finance</dt>
-              <dd className="text-slate-500">Menyusul F31</dd>
+              <dd>{namesInDivision(hub.members, "FINANCE")}</dd>
             </div>
             <div className="flex justify-between gap-3">
               <dt className="text-slate-500">TechDev</dt>
-              <dd className="text-slate-500">Menyusul F31</dd>
+              <dd>{namesInDivision(hub.members, "TECHDEV")}</dd>
             </div>
             <div className="flex justify-between gap-3">
               <dt className="text-slate-500">Didaftarkan oleh</dt>
@@ -163,11 +178,28 @@ export default async function ProjectHubPage({ params }: PageProps) {
 
         <section className="flex flex-col gap-3 rounded-card border border-line bg-white p-5">
           <h2 className="text-base">Dokumen & tautan</h2>
-          <Alert tone="status">
-            Daftar dokumen (F11) dan tautan Drive/Notion/GitHub (F25) belum
-            tersedia. Section ini sudah disiapkan supaya hub tidak berubah
-            layout nanti.
-          </Alert>
+          {hub.references.length === 0 ? (
+            <Alert tone="status">
+              Daftar dokumen (F11) belum tersedia. Tautan Drive/Notion/GitHub
+              (F25) akan muncul di sini bila sudah diisi.
+            </Alert>
+          ) : (
+            <ul className="flex flex-col gap-2 text-sm">
+              {hub.references.map((ref) => (
+                <li key={`${ref.kind}-${ref.url}`}>
+                  <a
+                    href={ref.url}
+                    className="font-medium text-plum-900 underline-offset-4 hover:underline"
+                    rel="noreferrer"
+                    target="_blank"
+                  >
+                    {ref.label}
+                  </a>
+                  <span className="text-slate-500 text-xs"> · {ref.kind}</span>
+                </li>
+              ))}
+            </ul>
+          )}
         </section>
       </div>
 
@@ -176,8 +208,8 @@ export default async function ProjectHubPage({ params }: PageProps) {
         <section className="flex flex-col gap-3 rounded-card border border-line bg-white p-5">
           <h2 className="text-base">Termin & pembayaran</h2>
           <Alert tone="status">
-            Skema termin (F13) belum ada di basis data. Slot ini mengikuti
-            wireframe F08 agar posisi panel tetap.
+            Skema termin (F13) sudah ada di basis data. Formulir di hub menyusul
+            di #74.
           </Alert>
         </section>
 
