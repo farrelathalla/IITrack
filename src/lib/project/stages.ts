@@ -66,3 +66,31 @@ export function stageAfter(
 
   return later[0] ?? null;
 }
+
+/** Tahap yang boleh dipilih di formulir, tanpa mengarang nama di luar katalog. */
+export function stageTargetsForSelect(
+  catalogue: readonly StageDefinition[],
+  currentKey: string | null,
+): StageDefinition[] {
+  return [...catalogue]
+    .sort((a, b) => a.order - b.order)
+    .filter((stage) => stage.key !== currentKey);
+}
+
+/**
+ * Usulan tahap tujuan: yang berikutnya menurut urutan, atau yang pertama di
+ * katalog bila project belum punya tahap. Mundur tetap bisa dipilih manual.
+ */
+export function suggestedStageTarget(
+  catalogue: readonly StageDefinition[],
+  currentKey: string | null,
+): StageDefinition | null {
+  if (currentKey === null) {
+    return stageTargetsForSelect(catalogue, null)[0] ?? null;
+  }
+  return (
+    stageAfter(catalogue, currentKey) ??
+    stageTargetsForSelect(catalogue, currentKey)[0] ??
+    null
+  );
+}

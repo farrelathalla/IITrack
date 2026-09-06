@@ -9,9 +9,11 @@ import {
   stageLabel,
   summarizeAuditAction,
 } from "@/lib/project/hub-display";
+import { STAGE_CATALOGUE } from "@/lib/project/stages";
 import { getAuthenticatedSession } from "@/server/auth/session";
 import { projectContextFor } from "@/server/project/context";
 import { getProjectHubByProjectId } from "@/server/project/hub";
+import { ChangeStageForm } from "./change-stage-form";
 
 type PageProps = {
   params: Promise<{ projectId: string }>;
@@ -90,12 +92,22 @@ export default async function ProjectHubPage({ params }: PageProps) {
       {/* Tahap */}
       <section className="flex flex-col gap-3 rounded-card border border-line bg-white p-5">
         <h2 className="text-base">Tahap berjalan</h2>
-        <p className="text-sm">
-          Sekarang:{" "}
-          <StatusBadge status={hub.stage?.key ?? "pending"}>
-            {hub.stage?.label ?? stageLabel(null)}
-          </StatusBadge>
-        </p>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <p className="text-sm">
+            Sekarang:{" "}
+            <StatusBadge status={hub.stage?.key ?? "pending"}>
+              {hub.stage?.label ?? stageLabel(null)}
+            </StatusBadge>
+          </p>
+          {bolehPindahTahap ? (
+            <ChangeStageForm
+              key={hub.stage?.key ?? "unset"}
+              projectDbId={hub.id}
+              currentStageKey={hub.stage?.key ?? null}
+              stages={STAGE_CATALOGUE}
+            />
+          ) : null}
+        </div>
         <ol className="flex flex-wrap items-center gap-2 text-slate-500 text-xs">
           {hub.knownStages.map((stage, index) => {
             const aktif = hub.stage?.key === stage.key;
@@ -120,11 +132,6 @@ export default async function ProjectHubPage({ params }: PageProps) {
             </li>
           ) : null}
         </ol>
-        {bolehPindahTahap ? (
-          <p className="text-slate-500 text-sm">
-            Tombol mengajukan perpindahan tahap menyusul di F09-T02 (#66).
-          </p>
-        ) : null}
       </section>
 
       {/* Pending */}
