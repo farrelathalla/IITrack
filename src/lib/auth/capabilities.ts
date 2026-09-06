@@ -53,6 +53,9 @@ export const ROLE_CAPABILITIES: Record<RoleName, RoleCapability> = {
       "finance.edit",
       "finance.approve_final",
       "techdev.view",
+      // Tiap C-Level menugaskan pelaksana di domainnya sendiri (F31-AC1).
+      // Batas domainnya ditegakkan canAssignToDivision, bukan di sini.
+      "project.assign_member",
     ],
     assigned: [],
   },

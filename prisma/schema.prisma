@@ -44,6 +44,8 @@ model User {
   stageChanges       ProjectStageHistory[]
   submissions        Submission[]
   approvalSteps      ApprovalStep[]
+  projectAssignments ProjectAssignment[]   @relation("AssignmentMember")
+  assignmentsMade    ProjectAssignment[]   @relation("AssignmentAssigner")
 
   @@map("users")
 }
@@ -170,6 +172,7 @@ model Project {
 
   stageHistory ProjectStageHistory[]
   submissions  Submission[]
+  assignments  ProjectAssignment[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -289,4 +292,32 @@ model ApprovalStep {
   @@unique([submissionId, revision, order])
   @@index([decision])
   @@map("approval_steps")
+}
+
+/// Penetapan seseorang sebagai pelaksana pada satu project (F31).
+///
+/// Penugasan inilah yang memberi hak edit, bukan pengaturan izin manual. Satu
+/// project bisa punya pelaksana dari tiga divisi sekaligus, dan masing-masing
+/// hanya bisa beraksi di domainnya.
+model ProjectAssignment {
+  id        String  @id @default(uuid())
+  projectId String
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Restrict)
+
+  userId String
+  user   User   @relation("AssignmentMember", fields: [userId], references: [id], onDelete: Restrict)
+
+  division Division
+
+  assignedById String
+  assignedBy   User   @relation("AssignmentAssigner", fields: [assignedById], references: [id], onDelete: Restrict)
+
+  createdAt DateTime  @default(now())
+  /// Terisi ketika penugasan dicabut atau dipindahkan ke orang lain. Barisnya
+  /// tidak pernah dihapus, sehingga riwayat penugasan lama tetap terbaca.
+  endedAt   DateTime?
+
+  @@index([projectId, division])
+  @@index([userId])
+  @@map("project_assignments")
 }

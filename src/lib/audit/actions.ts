@@ -23,6 +23,8 @@ export const AUDIT_ACTIONS = {
   SUBMISSION_STEP_APPROVED: "submission.step_approved",
   SUBMISSION_STEP_REJECTED: "submission.step_rejected",
   SUBMISSION_REVISED: "submission.revised",
+  PROJECT_MEMBER_ASSIGNED: "project.member_assigned",
+  PROJECT_MEMBER_UNASSIGNED: "project.member_unassigned",
 } as const;
 
 export type AuditAction = (typeof AUDIT_ACTIONS)[keyof typeof AUDIT_ACTIONS];

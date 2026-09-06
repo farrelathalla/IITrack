@@ -5,10 +5,13 @@ import { prisma } from "@/server/db";
 /**
  * Menyusun konteks penugasan seseorang pada sebuah project.
  *
- * Untuk saat ini penugasan hanya berupa PM yang ditunjuk COO (F04), sehingga
- * domain yang diberikan baru Operational. Penugasan pelaksana Finance dan
- * TechDev menyusul pada F31; ketika itu tiba, hanya fungsi ini yang berubah
- * dan pemakainya tidak perlu disentuh.
+ * Dua sumber digabung. Penugasan PM (F04) memberi domain Operational kepada PM
+ * yang ditunjuk COO. Penugasan pelaksana (F31) memberi domain sesuai divisinya,
+ * dan satu project bisa punya pelaksana dari tiga divisi sekaligus.
+ *
+ * Penugasan saja tidak cukup: pemegangnya harus masih menjabat di divisi itu
+ * pada saat diperiksa. Tanpa syarat kedua, nama yang masih tercantum sebagai
+ * pelaksana tetap memberi hak edit setelah masa jabatannya habis.
  */
 export async function projectContextFor(
   actor: Actor,
@@ -17,25 +20,39 @@ export async function projectContextFor(
 ): Promise<ProjectContext> {
   const project = await prisma.project.findUnique({
     where: { id: projectDbId },
-    select: { id: true, assignedPmId: true },
+    select: {
+      id: true,
+      assignedPmId: true,
+      assignments: {
+        where: { userId: actor.userId, endedAt: null },
+        select: { division: true },
+      },
+    },
   });
 
   if (!project) {
     return { projectId: projectDbId, assignedDivisions: [] };
   }
 
-  const divisions: Division[] = [];
+  const stillServingIn = new Set(
+    activeAssignments(actor.roleAssignments, now).map(
+      (assignment) => assignment.division,
+    ),
+  );
 
-  if (project.assignedPmId === actor.userId) {
-    // Penugasan hanya berlaku selama jabatannya masih berlaku. Pengurus yang
-    // masa jabatannya habis tidak boleh tetap memegang hak edit hanya karena
-    // namanya masih tercantum sebagai PM.
-    const stillServing = activeAssignments(actor.roleAssignments, now).some(
-      (assignment) => assignment.division === "OPERATIONAL",
-    );
+  const divisions = new Set<Division>();
 
-    if (stillServing) divisions.push("OPERATIONAL");
+  if (
+    project.assignedPmId === actor.userId &&
+    stillServingIn.has("OPERATIONAL")
+  ) {
+    divisions.add("OPERATIONAL");
   }
 
-  return { projectId: project.id, assignedDivisions: divisions };
+  for (const assignment of project.assignments) {
+    const division = assignment.division as Division;
+    if (stillServingIn.has(division)) divisions.add(division);
+  }
+
+  return { projectId: project.id, assignedDivisions: [...divisions] };
 }
