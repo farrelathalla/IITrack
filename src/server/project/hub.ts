@@ -320,6 +320,8 @@ export type ProjectHubPageData = ProjectHubData & {
   registeredByName: string;
   assignedPmName: string | null;
   knownStages: Array<{ key: string; order: number; label: string }>;
+  /** Nilai project dari DB untuk form termin (bukan hasil saringan tampilan). */
+  schemeValue: string | null;
   auditTrail: Array<{
     action: string;
     actorName: string | null;
@@ -327,6 +329,13 @@ export type ProjectHubPageData = ProjectHubData & {
     createdAt: Date;
     before: unknown;
     after: unknown;
+  }>;
+  termins: Array<{
+    sequence: number;
+    percentage: string;
+    amount: string;
+    dueDate: Date;
+    status: string;
   }>;
 };
 
@@ -343,6 +352,7 @@ export async function getProjectHubByProjectId(
       registeredBy: { select: { name: true } },
       submissions: { select: { id: true } },
       staffingRequests: { select: { id: true } },
+      value: true,
     },
   });
   if (!found) return null;
@@ -372,6 +382,18 @@ export async function getProjectHubByProjectId(
       : []),
   ];
 
+  const termins = await prisma.termin.findMany({
+    where: { projectId: found.id },
+    orderBy: { sequence: "asc" },
+    select: {
+      sequence: true,
+      percentage: true,
+      amount: true,
+      dueDate: true,
+      status: true,
+    },
+  });
+
   const auditTrail = await prisma.auditLog.findMany({
     where: { OR: objectFilters },
     orderBy: { createdAt: "desc" },
@@ -396,6 +418,7 @@ export async function getProjectHubByProjectId(
       order: stage.order,
       label: stage.label,
     })),
+    schemeValue: found.value?.toString() ?? null,
     auditTrail: auditTrail.map((row) => ({
       action: row.action,
       actorName: row.actor?.name ?? null,
@@ -403,6 +426,13 @@ export async function getProjectHubByProjectId(
       createdAt: row.createdAt,
       before: row.before,
       after: row.after,
+    })),
+    termins: termins.map((row) => ({
+      sequence: row.sequence,
+      percentage: row.percentage.toString(),
+      amount: row.amount.toString(),
+      dueDate: row.dueDate,
+      status: row.status,
     })),
   };
 }

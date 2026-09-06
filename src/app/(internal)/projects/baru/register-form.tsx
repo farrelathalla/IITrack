@@ -40,16 +40,22 @@ export function RegisterProjectForm({
 
         <div className="flex flex-wrap gap-3">
           <Link
-            href="/projects/baru"
-            className="inline-flex items-center justify-center rounded-card border border-line bg-white px-4 py-2 font-semibold text-plum-900 hover:bg-surface"
+            href={`/projects/${encodeURIComponent(state.projectId)}#termin`}
+            className="inline-flex items-center justify-center rounded-card bg-plum-900 px-4 py-2 font-semibold text-white hover:bg-plum-950"
           >
-            Daftarkan project lain
+            Susun jadwal termin
           </Link>
           <Link
-            href="/beranda"
+            href={`/projects/${encodeURIComponent(state.projectId)}`}
+            className="inline-flex items-center justify-center rounded-card border border-line bg-white px-4 py-2 font-semibold text-plum-900 hover:bg-surface"
+          >
+            Buka Project Hub
+          </Link>
+          <Link
+            href="/projects/baru"
             className="inline-flex items-center justify-center px-2 py-2 font-semibold text-slate-500 underline-offset-4 hover:text-plum-900 hover:underline"
           >
-            Kembali ke beranda
+            Daftarkan project lain
           </Link>
         </div>
       </div>

@@ -11,6 +11,7 @@ import { getAuthenticatedSession } from "@/server/auth/session";
 import { projectContextFor } from "@/server/project/context";
 import { getProjectHubByProjectId } from "@/server/project/hub";
 import { ChangeStageForm } from "./change-stage-form";
+import { TerminPanel } from "./termin-panel";
 
 type PageProps = {
   params: Promise<{ projectId: string }>;
@@ -47,6 +48,12 @@ export default async function ProjectHubPage({ params }: PageProps) {
   const bolehPindahTahap = can({
     actor: session.actor,
     action: "stage.change",
+    project: projectCtx,
+    now,
+  });
+  const bolehEditTermin = can({
+    actor: session.actor,
+    action: "project.edit_operational",
     project: projectCtx,
     now,
   });
@@ -209,13 +216,13 @@ export default async function ProjectHubPage({ params }: PageProps) {
 
       {/* Termin + Riwayat */}
       <div className="grid gap-6 lg:grid-cols-2">
-        <section className="flex flex-col gap-3 rounded-card border border-line bg-white p-5">
-          <h2 className="text-base">Termin & pembayaran</h2>
-          <Alert tone="status">
-            Skema termin (F13) sudah ada di basis data. Formulir di hub menyusul
-            di #74.
-          </Alert>
-        </section>
+        <TerminPanel
+          projectDbId={hub.id}
+          schemeValue={hub.schemeValue}
+          displayValue={hub.value}
+          termins={hub.termins}
+          canEdit={bolehEditTermin}
+        />
 
         <section className="flex flex-col gap-3 rounded-card border border-line bg-white p-5">
           <h2 className="text-base">Riwayat aktivitas</h2>
