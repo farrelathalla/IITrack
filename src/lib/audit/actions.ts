@@ -4,6 +4,15 @@
  * Nama aksi dikumpulkan di satu berkas supaya laporan jejak aktivitas tidak
  * berisi ejaan yang berbeda-beda untuk kejadian yang sama, dan supaya test bisa
  * merujuk konstanta alih-alih menyalin teksnya.
+ *
+ * Setiap konstanta di sini wajib dipanggil lewat `recordAudit` dari proses
+ * server yang bersangkutan. Test F24-AC2 memindai `src/server` supaya
+ * penambahan aksi baru tidak bergantung pada ingatan penulis kode.
+ *
+ * Override gate (F10) dan penandaan P0 belum punya proses server, jadi belum
+ * ada konstantanya. Saat fitur itu ditulis, tambah aksi di sini dan panggil
+ * `recordAudit` dari prosesnya — test F24-AC2 akan gagal jika katalog
+ * bertambah tanpa pemanggilan.
  */
 export const AUDIT_ACTIONS = {
   AUTH_LOGIN_SUCCESS: "auth.login_success",
