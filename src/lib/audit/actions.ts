@@ -25,6 +25,8 @@ export const AUDIT_ACTIONS = {
   SUBMISSION_REVISED: "submission.revised",
   PROJECT_MEMBER_ASSIGNED: "project.member_assigned",
   PROJECT_MEMBER_UNASSIGNED: "project.member_unassigned",
+  STAFFING_REQUESTED: "staffing.requested",
+  STAFFING_FULFILLED: "staffing.fulfilled",
 } as const;
 
 export type AuditAction = (typeof AUDIT_ACTIONS)[keyof typeof AUDIT_ACTIONS];
@@ -34,6 +36,7 @@ export const AUDIT_OBJECTS = {
   SESSION: "session",
   PROJECT: "project",
   SUBMISSION: "submission",
+  STAFFING_REQUEST: "staffing_request",
 } as const;
 
 export type AuditObjectType =
