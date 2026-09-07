@@ -1,9 +1,11 @@
 "use server";
 
+import { parseInvoiceRequestForm } from "@/lib/finance/invoice-form";
 import { findStage, STAGE_CATALOGUE } from "@/lib/project/stages";
 import { parseStaffingRequestForm } from "@/lib/staffing/form";
 import type { TerminDraft } from "@/lib/termin/scheme";
 import { getAuthenticatedSession } from "@/server/auth/session";
+import { requestInvoice } from "@/server/finance/invoice";
 import { changeProjectStage } from "@/server/project/stage";
 import { saveTerminScheme } from "@/server/project/termin";
 import { requestStaffing } from "@/server/techdev/staffing";
@@ -157,6 +159,47 @@ export async function requestStaffingAction(
   return {
     error: null,
     success: "Permintaan tenaga programmer diajukan ke antrean TechDev.",
+    savedAt: Date.now(),
+  };
+}
+
+export interface RequestInvoiceFormState {
+  error: string | null;
+  fields?: Record<string, string>;
+  success?: string | null;
+  savedAt?: number;
+}
+
+export async function requestInvoiceAction(
+  _previous: RequestInvoiceFormState,
+  formData: FormData,
+): Promise<RequestInvoiceFormState> {
+  const session = await getAuthenticatedSession();
+  if (!session) {
+    return { error: "Sesi berakhir. Silakan masuk kembali." };
+  }
+
+  const parsed = parseInvoiceRequestForm({
+    terminId: String(formData.get("terminId") ?? ""),
+    description: String(formData.get("description") ?? ""),
+    notes: String(formData.get("notes") ?? ""),
+  });
+  if (!parsed.ok) {
+    return { error: parsed.reason, fields: parsed.fields };
+  }
+
+  const result = await requestInvoice({
+    actor: session.actor,
+    terminId: parsed.data.terminId,
+    description: parsed.data.description,
+    notes: parsed.data.notes,
+  });
+
+  if (!result.ok) return { error: result.reason };
+
+  return {
+    error: null,
+    success: `Invoice ${result.number} diajukan ke langkah persetujuan pertama.`,
     savedAt: Date.now(),
   };
 }

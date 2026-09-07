@@ -341,6 +341,7 @@ export type ProjectHubPageData = ProjectHubData & {
     after: unknown;
   }>;
   termins: Array<{
+    id: string;
     sequence: number;
     percentage: string;
     amount: string;
@@ -396,6 +397,7 @@ export async function getProjectHubByProjectId(
     where: { projectId: found.id },
     orderBy: { sequence: "asc" },
     select: {
+      id: true,
       sequence: true,
       percentage: true,
       amount: true,
@@ -438,6 +440,7 @@ export async function getProjectHubByProjectId(
       after: row.after,
     })),
     termins: termins.map((row) => ({
+      id: row.id,
       sequence: row.sequence,
       percentage: row.percentage.toString(),
       amount: row.amount.toString(),

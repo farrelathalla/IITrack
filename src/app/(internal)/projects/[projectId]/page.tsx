@@ -5,10 +5,13 @@ import { ProjectActivityList } from "@/components/project/activity-list";
 import { Alert, StatusBadge } from "@/components/ui";
 import { toActivityItem } from "@/lib/audit/activity";
 import { can } from "@/lib/auth/permissions";
+import { canSeeFinanceQueue } from "@/lib/finance/display";
+import { canSeeInvoiceRequestForm } from "@/lib/finance/invoice-form";
 import { formatProjectValue, stageLabel } from "@/lib/project/hub-display";
 import { STAGE_CATALOGUE } from "@/lib/project/stages";
 import { canSeeStaffingQueue } from "@/lib/staffing/display";
 import { getAuthenticatedSession } from "@/server/auth/session";
+import { readProjectInvoices } from "@/server/finance/invoice";
 import { projectContextFor } from "@/server/project/context";
 import { getProjectHubByProjectId } from "@/server/project/hub";
 import { ChangeStageForm } from "./change-stage-form";
@@ -65,7 +68,18 @@ export default async function ProjectHubPage({ params }: PageProps) {
     project: projectCtx,
     now,
   });
+  const bolehAjukanInvoice = canSeeInvoiceRequestForm(
+    session.actor,
+    projectCtx,
+    now,
+  );
   const bolehBukaAntrean = canSeeStaffingQueue(session.actor, now);
+  const bolehBukaAntreanFinance = canSeeFinanceQueue(session.actor, now);
+
+  const daftarInvoice = bolehBukaAntreanFinance
+    ? await readProjectInvoices(session.actor, hub.id, now)
+    : { ok: false as const, reason: "" };
+  const invoices = daftarInvoice.ok ? daftarInvoice.invoices : [];
 
   const nilaiTampil = formatProjectValue(hub.value);
 
@@ -233,10 +247,18 @@ export default async function ProjectHubPage({ params }: PageProps) {
       <div className="grid gap-6 lg:grid-cols-2">
         <TerminPanel
           projectDbId={hub.id}
+          project={{
+            projectId: hub.projectId,
+            name: hub.name,
+            clientName: hub.clientName,
+          }}
           schemeValue={hub.schemeValue}
           displayValue={hub.value}
           termins={hub.termins}
+          invoices={invoices}
           canEdit={bolehEditTermin}
+          canRequestInvoice={bolehAjukanInvoice}
+          canOpenFinanceQueue={bolehBukaAntreanFinance}
         />
 
         <section className="flex flex-col gap-3 rounded-card border border-line bg-white p-5">
