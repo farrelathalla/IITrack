@@ -59,6 +59,7 @@ export async function recordTransferProof(
       projectId: true,
       project: { select: { projectId: true } },
       receipt: { select: { id: true } },
+      submission: { select: { status: true } },
     },
   });
   if (!invoice) return refuse("Invoice yang dimaksud tidak ditemukan.");
@@ -76,6 +77,15 @@ export async function recordTransferProof(
   if (invoice.receipt) {
     return refuse(
       "Invoice ini sudah punya bukti transfer yang tercatat. Perbaiki yang sudah ada, jangan menambah kuitansi kedua.",
+    );
+  }
+
+  // Invoice yang ditolak tidak pernah sah dikirim ke client, jadi tidak ada
+  // tagihan yang bisa dibayar terhadapnya. Yang masih menunggu keputusan tetap
+  // boleh, karena pembayaran client bisa datang sebelum rantainya selesai.
+  if (invoice.submission.status === "REJECTED") {
+    return refuse(
+      "Invoice ini ditolak pada rantai persetujuan, jadi bukti transfer tidak bisa ditempelkan padanya. Perbaiki pengajuannya lebih dulu, atau ajukan invoice baru untuk termin itu.",
     );
   }
 

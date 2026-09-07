@@ -61,12 +61,27 @@ export async function saveTerminScheme(
       amount: true,
       dueDate: true,
       status: true,
+      invoices: { select: { id: true } },
     },
   });
 
   if (existing.some((row) => row.status === "PAID")) {
     return refuse(
       "Skema termin tidak bisa diganti karena ada termin yang sudah lunas. Perubahan setelah pelunasan mengikuti proses kuitansi, bukan penyusunan ulang jadwal.",
+    );
+  }
+
+  // Penyusunan ulang menghapus seluruh baris termin, sedangkan invoice menahan
+  // baris yang ditagihkannya (onDelete: Restrict). Tanpa pemeriksaan ini,
+  // penghapusannya gagal di basis data dan pemanggil menerima error foreign key
+  // mentah, bukan penolakan yang bisa dibaca penggunanya.
+  const ditagihkan = existing
+    .filter((row) => row.invoices.length > 0)
+    .map((row) => row.sequence);
+
+  if (ditagihkan.length > 0) {
+    return refuse(
+      `Skema termin tidak bisa disusun ulang karena termin ${ditagihkan.join(", ")} sudah pernah diajukan invoicenya. Batalkan atau selesaikan pengajuan itu lebih dulu, supaya nilai yang tertulis pada invoice tidak berbeda dengan jadwalnya.`,
     );
   }
 
