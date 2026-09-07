@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { RecordTransferProofForm } from "@/app/(internal)/projects/[projectId]/receipt-form";
+import { ValidateReceiptForm } from "@/app/(internal)/projects/[projectId]/validate-receipt-form";
 import { Alert, StatusBadge } from "@/components/ui";
 import { buildApprovalChain } from "@/lib/approval/chain";
 import { canSeeSubmissionDecision } from "@/lib/finance/decision";
@@ -12,6 +14,10 @@ import {
   financeHoldingDisplay,
   financePaymentLabel,
 } from "@/lib/finance/display";
+import {
+  canSeeReceiptForm,
+  canSeeValidateReceipt,
+} from "@/lib/finance/receipt-form";
 import { formatDateId } from "@/lib/member/ui";
 import {
   formatDateTimeId,
@@ -20,6 +26,7 @@ import {
 import { formatWorkingDuration } from "@/lib/sla/display";
 import { getAuthenticatedSession } from "@/server/auth/session";
 import { readFinanceQueue } from "@/server/finance/queue";
+import { projectContextFor } from "@/server/project/context";
 import { SubmissionDecisionForm } from "./decision-form";
 
 export const metadata: Metadata = {
@@ -47,6 +54,13 @@ export default async function FinanceSubmissionPage({
   if (!item) notFound();
 
   const rantai = buildApprovalChain("INVOICE");
+  const konteks = await projectContextFor(session.actor, item.projectDbId, now);
+  const bolehCatatKuitansi = canSeeReceiptForm(session.actor, konteks, now);
+  const bolehValidasiKuitansi = canSeeValidateReceipt(
+    session.actor,
+    konteks,
+    now,
+  );
 
   return (
     <div className="flex flex-col gap-6">
@@ -149,19 +163,40 @@ export default async function FinanceSubmissionPage({
             </ol>
           ) : null}
           {section.key === "decision" ? (
-            canSeeSubmissionDecision(session.actor, item, now) &&
-            item.holdingLabel ? (
-              <SubmissionDecisionForm
-                submissionId={item.submissionId}
-                holdingLabel={item.holdingLabel}
-              />
-            ) : (
-              <p className="text-slate-500 text-sm">
-                {item.state === "MENUNGGU_PERSETUJUAN"
-                  ? `Keputusan hanya bisa diambil pemegang langkah yang sedang berjalan${item.holdingLabel ? ` (${item.holdingLabel})` : ""}.`
-                  : "Tidak ada keputusan persetujuan pada keadaan ini."}
-              </p>
-            )
+            <div className="flex flex-col gap-4">
+              {canSeeSubmissionDecision(session.actor, item, now) &&
+              item.holdingLabel ? (
+                <SubmissionDecisionForm
+                  submissionId={item.submissionId}
+                  holdingLabel={item.holdingLabel}
+                />
+              ) : (
+                <p className="text-slate-500 text-sm">
+                  {item.state === "MENUNGGU_PERSETUJUAN"
+                    ? `Keputusan hanya bisa diambil pemegang langkah yang sedang berjalan${item.holdingLabel ? ` (${item.holdingLabel})` : ""}.`
+                    : "Tidak ada keputusan persetujuan pada keadaan ini."}
+                </p>
+              )}
+              {bolehCatatKuitansi && item.state === "MENUNGGU_PEMBAYARAN" ? (
+                <RecordTransferProofForm
+                  invoice={{
+                    id: item.invoiceId,
+                    number: item.documentNumber,
+                    amount: item.amount,
+                    projectId: item.projectId,
+                    clientName: item.clientName,
+                  }}
+                />
+              ) : null}
+              {bolehValidasiKuitansi &&
+              item.state === "MENUNGGU_VERIFIKASI" &&
+              item.receiptId ? (
+                <ValidateReceiptForm
+                  receiptId={item.receiptId}
+                  warning={null}
+                />
+              ) : null}
+            </div>
           ) : null}
         </section>
       ))}

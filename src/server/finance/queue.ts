@@ -51,7 +51,7 @@ export async function readFinanceQueue(
       amount: true,
       dueDate: true,
       issuedAt: true,
-      project: { select: { projectId: true } },
+      project: { select: { id: true, projectId: true } },
       submission: {
         select: {
           id: true,
@@ -61,7 +61,7 @@ export async function readFinanceQueue(
           steps: { select: { order: true, label: true, revision: true } },
         },
       },
-      receipt: { select: { status: true } },
+      receipt: { select: { id: true, status: true } },
     },
   });
 
@@ -78,6 +78,8 @@ export async function readFinanceQueue(
       {
         invoiceId: row.id,
         submissionId: row.submission.id,
+        projectDbId: row.project.id,
+        receiptId: row.receipt?.id ?? null,
         documentNumber: row.number,
         projectId: row.project.projectId,
         clientName: row.clientName,

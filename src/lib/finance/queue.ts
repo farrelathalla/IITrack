@@ -29,6 +29,10 @@ export type PaymentQueueStatus = "BELUM" | "MENUNGGU" | "RECORDED" | "LUNAS";
 export interface FinanceQueueSnapshot {
   invoiceId: string;
   submissionId: string;
+  /** UUID project, untuk form kuitansi di rincian. */
+  projectDbId: string;
+  /** Kuitansi yang menempel, kosong sebelum bukti transfer tercatat. */
+  receiptId: string | null;
   documentNumber: string;
   projectId: string;
   clientName: string;
@@ -43,6 +47,8 @@ export interface FinanceQueueSnapshot {
 export interface FinanceQueueItem {
   invoiceId: string;
   submissionId: string;
+  projectDbId: string;
+  receiptId: string | null;
   documentNumber: string;
   projectId: string;
   clientName: string;
@@ -123,6 +129,8 @@ export function composeFinanceQueueItem(
   return {
     invoiceId: snapshot.invoiceId,
     submissionId: snapshot.submissionId,
+    projectDbId: snapshot.projectDbId,
+    receiptId: snapshot.receiptId,
     documentNumber: snapshot.documentNumber,
     projectId: snapshot.projectId,
     clientName: snapshot.clientName,

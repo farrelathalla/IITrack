@@ -16,6 +16,8 @@ function item(bagian: Partial<FinanceQueueItem> = {}): FinanceQueueItem {
   return {
     invoiceId: "inv-1",
     submissionId: "sub-1",
+    projectDbId: "proj-1",
+    receiptId: null,
     documentNumber: "#02-IIT-2627-001",
     projectId: "IIT-2627-001",
     clientName: "PT Contoh Sejahtera",

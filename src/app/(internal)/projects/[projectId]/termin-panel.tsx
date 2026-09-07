@@ -19,7 +19,9 @@ import { invoiceBlockedReason } from "@/lib/finance/invoice-form";
 import { formatProjectValue } from "@/lib/project/hub-display";
 import { toDateInputValue } from "@/lib/termin/live";
 import { RequestInvoiceForm } from "./invoice-form";
+import { RecordTransferProofForm } from "./receipt-form";
 import { TerminSchemeForm } from "./termin-form";
+import { ValidateReceiptForm } from "./validate-receipt-form";
 
 type TerminRow = {
   id: string;
@@ -53,6 +55,17 @@ function statusLabel(status: string): string {
   return status === "PAID" ? "Lunas" : "Belum lunas";
 }
 
+type ReceiptRow = {
+  id: string;
+  number: string;
+  invoiceId: string;
+  invoiceNumber: string;
+  amount: string;
+  status: "RECORDED" | "VALID";
+  warning: string | null;
+  proofUrl: string;
+};
+
 export function TerminPanel({
   projectDbId,
   project,
@@ -60,8 +73,11 @@ export function TerminPanel({
   displayValue,
   termins,
   invoices,
+  receipts,
   canEdit,
   canRequestInvoice,
+  canRecordProof,
+  canValidateReceipt,
   canOpenFinanceQueue,
 }: {
   projectDbId: string;
@@ -70,8 +86,11 @@ export function TerminPanel({
   displayValue: string | null;
   termins: TerminRow[];
   invoices: InvoiceRow[];
+  receipts: ReceiptRow[];
   canEdit: boolean;
   canRequestInvoice: boolean;
+  canRecordProof: boolean;
+  canValidateReceipt: boolean;
   canOpenFinanceQueue: boolean;
 }) {
   const nilaiTampil = formatProjectValue(
@@ -201,6 +220,63 @@ export function TerminPanel({
                     ? ` · menunggu ${row.currentStepLabel}`
                     : ""}
                 </p>
+                {canRecordProof &&
+                row.submissionStatus !== "REJECTED" &&
+                !receipts.some((receipt) => receipt.invoiceId === row.id) ? (
+                  <RecordTransferProofForm
+                    invoice={{
+                      id: row.id,
+                      number: row.number,
+                      amount: row.amount,
+                      projectId: project.projectId,
+                      clientName: project.clientName,
+                    }}
+                  />
+                ) : null}
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+
+      <div className="flex flex-col gap-3 border-line border-t pt-3">
+        <h3 className="font-medium text-plum-900 text-sm">Kuitansi</h3>
+        {receipts.length === 0 ? (
+          <p className="text-slate-500 text-sm">
+            Belum ada bukti transfer pada project ini.
+          </p>
+        ) : (
+          <ul className="flex flex-col gap-2 text-sm">
+            {receipts.map((row) => (
+              <li
+                key={row.id}
+                className="flex flex-col gap-2 rounded-card border border-line px-3 py-2"
+              >
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <span className="angka font-medium">{row.number}</span>
+                  <StatusBadge status={row.status}>
+                    {row.status === "VALID" ? "Valid" : "Tercatat"}
+                  </StatusBadge>
+                </div>
+                <p className="text-slate-500 text-xs">
+                  Invoice {row.invoiceNumber}
+                  {" · "}
+                  {formatProjectValue(row.amount) ?? row.amount}
+                </p>
+                <a
+                  href={row.proofUrl}
+                  className="text-plum-900 text-xs underline-offset-4 hover:underline"
+                  rel="noreferrer"
+                  target="_blank"
+                >
+                  Buka bukti transfer
+                </a>
+                {canValidateReceipt && row.status === "RECORDED" ? (
+                  <ValidateReceiptForm
+                    receiptId={row.id}
+                    warning={row.warning}
+                  />
+                ) : null}
               </li>
             ))}
           </ul>

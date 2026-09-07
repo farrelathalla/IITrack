@@ -7,11 +7,16 @@ import { toActivityItem } from "@/lib/audit/activity";
 import { can } from "@/lib/auth/permissions";
 import { canSeeFinanceQueue } from "@/lib/finance/display";
 import { canSeeInvoiceRequestForm } from "@/lib/finance/invoice-form";
+import {
+  canSeeReceiptForm,
+  canSeeValidateReceipt,
+} from "@/lib/finance/receipt-form";
 import { formatProjectValue, stageLabel } from "@/lib/project/hub-display";
 import { STAGE_CATALOGUE } from "@/lib/project/stages";
 import { canSeeStaffingQueue } from "@/lib/staffing/display";
 import { getAuthenticatedSession } from "@/server/auth/session";
 import { readProjectInvoices } from "@/server/finance/invoice";
+import { readProjectReceipts } from "@/server/finance/receipt";
 import { projectContextFor } from "@/server/project/context";
 import { getProjectHubByProjectId } from "@/server/project/hub";
 import { ChangeStageForm } from "./change-stage-form";
@@ -73,6 +78,12 @@ export default async function ProjectHubPage({ params }: PageProps) {
     projectCtx,
     now,
   );
+  const bolehCatatKuitansi = canSeeReceiptForm(session.actor, projectCtx, now);
+  const bolehValidasiKuitansi = canSeeValidateReceipt(
+    session.actor,
+    projectCtx,
+    now,
+  );
   const bolehBukaAntrean = canSeeStaffingQueue(session.actor, now);
   const bolehBukaAntreanFinance = canSeeFinanceQueue(session.actor, now);
 
@@ -80,6 +91,10 @@ export default async function ProjectHubPage({ params }: PageProps) {
     ? await readProjectInvoices(session.actor, hub.id, now)
     : { ok: false as const, reason: "" };
   const invoices = daftarInvoice.ok ? daftarInvoice.invoices : [];
+  const daftarKuitansi = bolehBukaAntreanFinance
+    ? await readProjectReceipts(session.actor, hub.id, now)
+    : { ok: false as const, reason: "" };
+  const receipts = daftarKuitansi.ok ? daftarKuitansi.receipts : [];
 
   const nilaiTampil = formatProjectValue(hub.value);
 
@@ -256,8 +271,11 @@ export default async function ProjectHubPage({ params }: PageProps) {
           displayValue={hub.value}
           termins={hub.termins}
           invoices={invoices}
+          receipts={receipts}
           canEdit={bolehEditTermin}
           canRequestInvoice={bolehAjukanInvoice}
+          canRecordProof={bolehCatatKuitansi}
+          canValidateReceipt={bolehValidasiKuitansi}
           canOpenFinanceQueue={bolehBukaAntreanFinance}
         />
 
