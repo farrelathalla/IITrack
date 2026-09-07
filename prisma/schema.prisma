@@ -51,6 +51,7 @@ model User {
   referencesAdded    ExternalReference[]
   terminsCreated     Termin[]              @relation("TerminCreatedBy")
   clientRevisions    ClientRevision[]      @relation("ClientRevisionAuthor")
+  invoicesIssued     Invoice[]             @relation("InvoiceIssuedBy")
 
   @@map("users")
 }
@@ -185,6 +186,7 @@ model Project {
   staffingRequests StaffingRequest[]
   references       ExternalReference[]
   termins          Termin[]
+  invoices         Invoice[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -273,6 +275,7 @@ model Submission {
 
   steps           ApprovalStep[]
   staffingRequest StaffingRequest?
+  invoice         Invoice?
 
   @@index([status])
   @@index([projectId])
@@ -448,6 +451,8 @@ model Termin {
   createdById String
   createdBy   User   @relation("TerminCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
 
+  invoices Invoice[]
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -501,4 +506,57 @@ model ClientRevision {
   @@unique([clientId, revision])
   @@index([clientId])
   @@map("client_revisions")
+}
+
+/// Invoice satu termin (F16).
+///
+/// Nilai, jatuh tempo, dan nama client disalin ke barisnya saat pengajuan
+/// dibuat, bukan dibaca ulang saat ditampilkan. Invoice yang sudah masuk rantai
+/// persetujuan harus tetap menunjukkan angka yang dilihat penyetujunya, walaupun
+/// jadwal termin atau master data client berubah sesudahnya.
+model Invoice {
+  id String @id @default(uuid())
+
+  /// Nomor dokumen `#02-[Project ID]` sesuai IITBOOK 3.8.
+  ///
+  /// Sengaja tidak dijadikan unik. IITBOOK menetapkan nomornya dari Project ID,
+  /// sedangkan satu project punya beberapa termin, sehingga dua invoice pada
+  /// project yang sama memang mendapat nomor yang sama. Pembeda apa yang
+  /// dipakai IITBOOK untuk itu belum tertulis di dokumen mana pun dan masih
+  /// ditanyakan pada #84. Menebaknya di sini berarti menerbitkan nomor resmi
+  /// yang tidak bisa dipertanggungjawabkan.
+  number String
+
+  projectId String
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Restrict)
+
+  /// Termin yang ditagih. Satu invoice selalu menagih tepat satu termin.
+  terminId String
+  termin   Termin @relation(fields: [terminId], references: [id], onDelete: Restrict)
+
+  /// Pengajuan pada rantai persetujuan F17. Statusnya tidak disalin ke sini
+  /// supaya keadaan persetujuan hanya punya satu sumber kebenaran.
+  submissionId String     @unique
+  submission   Submission @relation(fields: [submissionId], references: [id], onDelete: Restrict)
+
+  /// Salinan dari project dan termin pada saat pengajuan dibuat.
+  clientName String
+  amount     Decimal  @db.Decimal(18, 2)
+  dueDate    DateTime
+
+  /// Isian yang tetap dilengkapi manusia. Kosong berarti belum diisi, bukan
+  /// gagal terisi otomatis.
+  description String?
+  notes       String?
+
+  issuedById String
+  issuedBy   User   @relation("InvoiceIssuedBy", fields: [issuedById], references: [id], onDelete: Restrict)
+
+  issuedAt  DateTime @default(now())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([projectId])
+  @@index([terminId])
+  @@map("invoices")
 }
