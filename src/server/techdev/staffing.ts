@@ -249,14 +249,24 @@ export async function readStaffingQueue(
       roleNeeded: true,
       headcount: true,
       neededBy: true,
+      technicalNeeds: true,
+      deliverable: true,
       requestedAt: true,
-      project: { select: { projectId: true, name: true, clientName: true } },
+      project: {
+        select: {
+          id: true,
+          projectId: true,
+          name: true,
+          clientName: true,
+        },
+      },
       requestedBy: { select: { name: true } },
     },
   });
 
   return rows.map((row) => ({
     id: row.id,
+    projectDbId: row.project.id,
     projectId: row.project.projectId,
     projectName: row.project.name,
     clientName: row.project.clientName,
@@ -264,6 +274,8 @@ export async function readStaffingQueue(
     roleNeeded: row.roleNeeded,
     headcount: row.headcount,
     neededBy: row.neededBy,
+    technicalNeeds: row.technicalNeeds,
+    deliverable: row.deliverable,
     requestedAt: row.requestedAt,
     waitingWorkingMinutes: workingMinutesBetween(
       row.requestedAt,
@@ -276,4 +288,49 @@ export async function readStaffingQueue(
 /** Izin melihat antrean, dipakai pemanggil sebelum menampilkannya. */
 export function canReadStaffingQueue(actor: Actor, now: Date): boolean {
   return checkPermission({ actor, action: "techdev.view", now }).allowed;
+}
+
+export type TechDevMemberOption = {
+  id: string;
+  name: string;
+  email: string;
+};
+
+/**
+ * Anggota aktif jabatan TechDev Member, untuk kotak pilihan penetapan CTO.
+ *
+ * CTO dan wakilnya tidak ikut karena yang ditetapkan adalah pelaksana
+ * programmer. Ditolak tanpa `staffing.approve` supaya daftar nama tidak bocor
+ * lewat permintaan langsung. Konteks project palsu hanya melewati syarat aksi
+ * bercakupan project; CTO memegang izin ini secara global.
+ */
+export async function listAssignableTechDevMembers(
+  actor: Actor,
+  now: Date = new Date(),
+): Promise<{ ok: true; members: TechDevMemberOption[] } | Refusal> {
+  const izin = checkPermission({
+    actor,
+    action: "staffing.approve",
+    project: { projectId: "*", assignedDivisions: [] },
+    now,
+  });
+  if (!izin.allowed) return refuse(izin.reason);
+
+  const rows = await prisma.user.findMany({
+    where: {
+      status: "ACTIVE",
+      roleAssignments: {
+        some: {
+          role: "TECHDEV_MEMBER",
+          division: "TECHDEV",
+          startDate: { lte: now },
+          OR: [{ endDate: null }, { endDate: { gt: now } }],
+        },
+      },
+    },
+    orderBy: { name: "asc" },
+    select: { id: true, name: true, email: true },
+  });
+
+  return { ok: true, members: rows };
 }

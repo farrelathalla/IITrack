@@ -54,6 +54,10 @@ const KNOWN: Record<string, StatusTone> = {
   berjalan: "running",
   in_progress: "running",
   assigned: "running",
+  submitted: "pending",
+  diajukan: "pending",
+  fulfilled: "success",
+  ditetapkan: "success",
 };
 
 export function normalizeStatusKey(status: string): string {

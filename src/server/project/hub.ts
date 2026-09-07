@@ -80,6 +80,7 @@ export interface ProjectHubData {
     status: string;
     requestedAt: Date;
     fulfilledAt: Date | null;
+    fulfilledByName: string | null;
   }>;
   pendingSubmissions: Array<{
     id: string;
@@ -150,6 +151,7 @@ export async function readProjectHub(
           status: true,
           requestedAt: true,
           fulfilledAt: true,
+          fulfilledBy: { select: { name: true } },
         },
       },
       submissions: {
@@ -229,7 +231,15 @@ export async function readProjectHub(
       url: r.url,
       label: r.label,
     })),
-    staffingRequests: project.staffingRequests,
+    staffingRequests: project.staffingRequests.map((row) => ({
+      id: row.id,
+      roleNeeded: row.roleNeeded,
+      headcount: row.headcount,
+      status: row.status,
+      requestedAt: row.requestedAt,
+      fulfilledAt: row.fulfilledAt,
+      fulfilledByName: row.fulfilledBy?.name ?? null,
+    })),
     pendingSubmissions: project.submissions,
   };
 }

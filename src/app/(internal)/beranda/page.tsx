@@ -2,6 +2,10 @@ import type { Metadata } from "next";
 import { PmAssignmentSla } from "@/components/sla/pm-assignment-sla";
 import { StatusBadge } from "@/components/ui";
 import { canSeeAction } from "@/lib/auth/ui-visibility";
+import {
+  canSeeStaffingQueue,
+  STAFFING_QUEUE_HREF,
+} from "@/lib/staffing/display";
 import { getAuthenticatedSession } from "@/server/auth/session";
 import { listProjectsWithPmSla } from "@/server/project/sla-display";
 
@@ -18,6 +22,8 @@ export default async function BerandaPage() {
     session !== null && canSeeAction(session.actor, "project.create");
   const bolehLihatClient =
     session !== null && canSeeAction(session.actor, "master_data.view");
+  const bolehAntreanStaffing =
+    session !== null && canSeeStaffingQueue(session.actor);
 
   return (
     <div className="flex flex-col gap-6">
@@ -56,6 +62,19 @@ export default async function BerandaPage() {
                 mendaftarkan project baru
               </a>{" "}
               untuk menerbitkan Project ID.
+            </>
+          ) : null}
+          {bolehAntreanStaffing ? (
+            <>
+              {" "}
+              Permintaan programmer yang menunggu penetapan ada di{" "}
+              <a
+                href={STAFFING_QUEUE_HREF}
+                className="font-medium text-plum-900 underline-offset-4 hover:underline"
+              >
+                antrean staffing
+              </a>
+              .
             </>
           ) : null}
         </p>

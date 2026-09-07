@@ -7,10 +7,12 @@ import { toActivityItem } from "@/lib/audit/activity";
 import { can } from "@/lib/auth/permissions";
 import { formatProjectValue, stageLabel } from "@/lib/project/hub-display";
 import { STAGE_CATALOGUE } from "@/lib/project/stages";
+import { canSeeStaffingQueue } from "@/lib/staffing/display";
 import { getAuthenticatedSession } from "@/server/auth/session";
 import { projectContextFor } from "@/server/project/context";
 import { getProjectHubByProjectId } from "@/server/project/hub";
 import { ChangeStageForm } from "./change-stage-form";
+import { StaffingPanel } from "./staffing-panel";
 import { TerminPanel } from "./termin-panel";
 
 type PageProps = {
@@ -57,6 +59,13 @@ export default async function ProjectHubPage({ params }: PageProps) {
     project: projectCtx,
     now,
   });
+  const bolehAjukanStaffing = can({
+    actor: session.actor,
+    action: "staffing.request",
+    project: projectCtx,
+    now,
+  });
+  const bolehBukaAntrean = canSeeStaffingQueue(session.actor, now);
 
   const nilaiTampil = formatProjectValue(hub.value);
 
@@ -185,6 +194,12 @@ export default async function ProjectHubPage({ params }: PageProps) {
               <dd>{hub.registeredByName}</dd>
             </div>
           </dl>
+          <StaffingPanel
+            projectDbId={hub.id}
+            requests={hub.staffingRequests}
+            canRequest={bolehAjukanStaffing}
+            canOpenQueue={bolehBukaAntrean}
+          />
         </section>
 
         <section className="flex flex-col gap-3 rounded-card border border-line bg-white p-5">
