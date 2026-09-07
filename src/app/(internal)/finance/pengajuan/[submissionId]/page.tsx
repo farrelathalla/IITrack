@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Alert, StatusBadge } from "@/components/ui";
 import { buildApprovalChain } from "@/lib/approval/chain";
+import { canSeeSubmissionDecision } from "@/lib/finance/decision";
 import {
   canSeeFinanceQueue,
   FINANCE_QUEUE_HREF,
@@ -19,6 +20,7 @@ import {
 import { formatWorkingDuration } from "@/lib/sla/display";
 import { getAuthenticatedSession } from "@/server/auth/session";
 import { readFinanceQueue } from "@/server/finance/queue";
+import { SubmissionDecisionForm } from "./decision-form";
 
 export const metadata: Metadata = {
   title: "Rincian pengajuan",
@@ -147,11 +149,19 @@ export default async function FinanceSubmissionPage({
             </ol>
           ) : null}
           {section.key === "decision" ? (
-            <p className="text-slate-500 text-sm">
-              Keputusan hanya bisa diambil pemegang langkah yang sedang
-              berjalan. Tombolnya menyusul di halaman ini; penolakan wajib
-              mengisi alasan.
-            </p>
+            canSeeSubmissionDecision(session.actor, item, now) &&
+            item.holdingLabel ? (
+              <SubmissionDecisionForm
+                submissionId={item.submissionId}
+                holdingLabel={item.holdingLabel}
+              />
+            ) : (
+              <p className="text-slate-500 text-sm">
+                {item.state === "MENUNGGU_PERSETUJUAN"
+                  ? `Keputusan hanya bisa diambil pemegang langkah yang sedang berjalan${item.holdingLabel ? ` (${item.holdingLabel})` : ""}.`
+                  : "Tidak ada keputusan persetujuan pada keadaan ini."}
+              </p>
+            )
           ) : null}
         </section>
       ))}
