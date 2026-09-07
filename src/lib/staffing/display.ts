@@ -31,6 +31,31 @@ export interface StaffingRequestField {
   control: "text" | "number" | "date" | "textarea";
 }
 
+export type StaffingFulfillFieldKey = "memberUserIds" | "repositoryUrl";
+
+export interface StaffingFulfillField {
+  key: StaffingFulfillFieldKey;
+  label: string;
+  required: boolean;
+  control: "checkbox" | "url";
+}
+
+/** Penetapan CTO: anggota wajib, repository opsional pada langkah yang sama (F14-AC4). */
+export const STAFFING_FULFILL_FIELDS: readonly StaffingFulfillField[] = [
+  {
+    key: "memberUserIds",
+    label: "Anggota TechDev",
+    required: true,
+    control: "checkbox",
+  },
+  {
+    key: "repositoryUrl",
+    label: "Repository GitHub",
+    required: false,
+    control: "url",
+  },
+];
+
 /** Isian UAT-SDM-001 / F14-AC1. Project ID datang dari hub yang dibuka. */
 export const STAFFING_REQUEST_FIELDS: readonly StaffingRequestField[] = [
   {

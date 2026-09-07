@@ -1,11 +1,13 @@
 "use server";
 
 import { parseInvoiceRequestForm } from "@/lib/finance/invoice-form";
+import { parseReferenceForm } from "@/lib/project/reference-form";
 import { findStage, STAGE_CATALOGUE } from "@/lib/project/stages";
 import { parseStaffingRequestForm } from "@/lib/staffing/form";
 import type { TerminDraft } from "@/lib/termin/scheme";
 import { getAuthenticatedSession } from "@/server/auth/session";
 import { requestInvoice } from "@/server/finance/invoice";
+import { addReference } from "@/server/project/references";
 import { changeProjectStage } from "@/server/project/stage";
 import { saveTerminScheme } from "@/server/project/termin";
 import { requestStaffing } from "@/server/techdev/staffing";
@@ -200,6 +202,47 @@ export async function requestInvoiceAction(
   return {
     error: null,
     success: `Invoice ${result.number} diajukan ke langkah persetujuan pertama.`,
+    savedAt: Date.now(),
+  };
+}
+
+export interface AddReferenceFormState {
+  error: string | null;
+  fields?: Record<string, string>;
+  success?: string | null;
+  savedAt?: number;
+}
+
+export async function addReferenceAction(
+  _previous: AddReferenceFormState,
+  formData: FormData,
+): Promise<AddReferenceFormState> {
+  const session = await getAuthenticatedSession();
+  if (!session) {
+    return { error: "Sesi berakhir. Silakan masuk kembali." };
+  }
+
+  const parsed = parseReferenceForm({
+    projectDbId: String(formData.get("projectDbId") ?? ""),
+    url: String(formData.get("url") ?? ""),
+    label: String(formData.get("label") ?? ""),
+  });
+  if (!parsed.ok) {
+    return { error: parsed.reason, fields: parsed.fields };
+  }
+
+  const result = await addReference({
+    actor: session.actor,
+    projectDbId: parsed.data.projectDbId,
+    url: parsed.data.url,
+    label: parsed.data.label,
+  });
+
+  if (!result.ok) return { error: result.reason };
+
+  return {
+    error: null,
+    success: "Tautan tersimpan di Project Hub.",
     savedAt: Date.now(),
   };
 }

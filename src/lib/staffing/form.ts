@@ -5,6 +5,11 @@
  */
 
 import { parseDateInput } from "@/lib/member/ui";
+import {
+  classifyReferenceUrl,
+  normalizeReferenceUrl,
+  parseGithubRepo,
+} from "@/lib/project/external-reference";
 
 export type StaffingFormFields = {
   roleNeeded: string;
@@ -89,4 +94,31 @@ export function parseStaffingRequestForm(
       deliverable,
     },
   };
+}
+
+/**
+ * Repository opsional pada penetapan CTO (F14-AC4).
+ *
+ * Kosong = tidak menautkan. Isian yang ada harus alamat repository GitHub https.
+ */
+export function parseOptionalGithubRepoUrl(
+  raw: string,
+): { ok: true; url: string | null } | { ok: false; message: string } {
+  const trimmed = raw.trim();
+  if (trimmed.length === 0) {
+    return { ok: true, url: null };
+  }
+
+  const url = normalizeReferenceUrl(trimmed);
+  const github =
+    url && classifyReferenceUrl(url) === "GITHUB_REPO" && parseGithubRepo(url);
+  if (!github || !url) {
+    return {
+      ok: false,
+      message:
+        "Alamat GitHub itu bukan alamat sebuah repository. Pakai alamat berbentuk https://github.com/pemilik/repositori.",
+    };
+  }
+
+  return { ok: true, url };
 }

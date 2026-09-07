@@ -4,11 +4,16 @@ import {
   canSeeStaffingQueue,
   canSeeStaffingRequestForm,
   STAFFING_FORM_PLACEMENT,
+  STAFFING_FULFILL_FIELDS,
   STAFFING_QUEUE_HREF,
   STAFFING_REQUEST_FIELDS,
   staffingStatusLabel,
 } from "@/lib/staffing/display";
-import { parseHeadcount, parseStaffingRequestForm } from "@/lib/staffing/form";
+import {
+  parseHeadcount,
+  parseOptionalGithubRepoUrl,
+  parseStaffingRequestForm,
+} from "@/lib/staffing/form";
 import { plannedNavNow } from "@/lib/ui/project-hub-layout";
 import {
   actor,
@@ -117,6 +122,34 @@ describe("F14-T03 Formulir permintaan programmer dan halaman penugasan CTO.", ()
     if (!isi.ok) return;
     expect(isi.data.headcount).toBe(2);
     expect(isi.data.neededBy.toISOString()).toBe("2026-09-14T17:00:00.000Z");
+  });
+
+  it("F14-AC4, Repository project ditautkan pada langkah yang sama.", () => {
+    expect(STAFFING_FULFILL_FIELDS.map((field) => field.key)).toEqual([
+      "memberUserIds",
+      "repositoryUrl",
+    ]);
+    expect(
+      STAFFING_FULFILL_FIELDS.find((field) => field.key === "repositoryUrl")
+        ?.required,
+    ).toBe(false);
+
+    const kosong = parseOptionalGithubRepoUrl("");
+    expect(kosong.ok).toBe(true);
+    if (!kosong.ok) return;
+    expect(kosong.url).toBeNull();
+
+    const drive = parseOptionalGithubRepoUrl(
+      "https://drive.google.com/file/d/abc",
+    );
+    expect(drive.ok).toBe(false);
+
+    const repo = parseOptionalGithubRepoUrl(
+      "https://github.com/InkubatorIT/IITrack/",
+    );
+    expect(repo.ok).toBe(true);
+    if (!repo.ok) return;
+    expect(repo.url).toBe("https://github.com/InkubatorIT/IITrack");
   });
 
   it("Menu utama pengunjung tidak bertambah item staffing", () => {

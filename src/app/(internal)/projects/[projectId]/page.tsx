@@ -12,6 +12,7 @@ import {
   canSeeValidateReceipt,
 } from "@/lib/finance/receipt-form";
 import { formatProjectValue, stageLabel } from "@/lib/project/hub-display";
+import { canSeeAddReferenceForm } from "@/lib/project/reference-form";
 import { STAGE_CATALOGUE } from "@/lib/project/stages";
 import { canSeeStaffingQueue } from "@/lib/staffing/display";
 import { getAuthenticatedSession } from "@/server/auth/session";
@@ -20,6 +21,7 @@ import { readProjectReceipts } from "@/server/finance/receipt";
 import { projectContextFor } from "@/server/project/context";
 import { getProjectHubByProjectId } from "@/server/project/hub";
 import { ChangeStageForm } from "./change-stage-form";
+import { DocumentsPanel } from "./documents-panel";
 import { StaffingPanel } from "./staffing-panel";
 import { TerminPanel } from "./termin-panel";
 
@@ -80,6 +82,11 @@ export default async function ProjectHubPage({ params }: PageProps) {
   );
   const bolehCatatKuitansi = canSeeReceiptForm(session.actor, projectCtx, now);
   const bolehValidasiKuitansi = canSeeValidateReceipt(
+    session.actor,
+    projectCtx,
+    now,
+  );
+  const bolehTambahTautan = canSeeAddReferenceForm(
     session.actor,
     projectCtx,
     now,
@@ -231,31 +238,11 @@ export default async function ProjectHubPage({ params }: PageProps) {
           />
         </section>
 
-        <section className="flex flex-col gap-3 rounded-card border border-line bg-white p-5">
-          <h2 className="text-base">Dokumen & tautan</h2>
-          {hub.references.length === 0 ? (
-            <Alert tone="status">
-              Daftar dokumen (F11) belum tersedia. Tautan Drive/Notion/GitHub
-              (F25) akan muncul di sini bila sudah diisi.
-            </Alert>
-          ) : (
-            <ul className="flex flex-col gap-2 text-sm">
-              {hub.references.map((ref) => (
-                <li key={`${ref.kind}-${ref.url}`}>
-                  <a
-                    href={ref.url}
-                    className="font-medium text-plum-900 underline-offset-4 hover:underline"
-                    rel="noreferrer"
-                    target="_blank"
-                  >
-                    {ref.label}
-                  </a>
-                  <span className="text-slate-500 text-xs"> · {ref.kind}</span>
-                </li>
-              ))}
-            </ul>
-          )}
-        </section>
+        <DocumentsPanel
+          projectDbId={hub.id}
+          references={hub.references}
+          canAdd={bolehTambahTautan}
+        />
       </div>
 
       {/* Termin + Riwayat */}

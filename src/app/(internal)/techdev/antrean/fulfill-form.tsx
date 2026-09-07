@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useActionState, useEffect } from "react";
-import { Alert, Button } from "@/components/ui";
+import { Alert, Button, TextField } from "@/components/ui";
 import {
   type FulfillStaffingFormState,
   fulfillStaffingAction,
@@ -46,6 +46,14 @@ export function FulfillStaffingForm({
 
       {state.error ? <Alert tone="danger">{state.error}</Alert> : null}
       {state.success ? <Alert tone="success">{state.success}</Alert> : null}
+
+      <TextField
+        label="Repository GitHub"
+        name="repositoryUrl"
+        type="url"
+        error={state.fields?.repositoryUrl}
+        hint="Opsional. Ditautkan ke project pada langkah yang sama, bukan sesudahnya."
+      />
 
       <fieldset className="flex flex-col gap-2">
         <legend className="font-medium text-plum-900 text-sm">

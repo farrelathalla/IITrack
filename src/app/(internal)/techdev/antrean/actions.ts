@@ -1,10 +1,12 @@
 "use server";
 
+import { parseOptionalGithubRepoUrl } from "@/lib/staffing/form";
 import { getAuthenticatedSession } from "@/server/auth/session";
 import { fulfillStaffingRequest } from "@/server/techdev/staffing";
 
 export interface FulfillStaffingFormState {
   error: string | null;
+  fields?: Record<string, string>;
   success?: string | null;
   savedAt?: number;
 }
@@ -28,10 +30,21 @@ export async function fulfillStaffingAction(
     .map((value) => String(value).trim())
     .filter((value) => value.length > 0);
 
+  const repository = parseOptionalGithubRepoUrl(
+    String(formData.get("repositoryUrl") ?? ""),
+  );
+  if (!repository.ok) {
+    return {
+      error: repository.message,
+      fields: { repositoryUrl: repository.message },
+    };
+  }
+
   const result = await fulfillStaffingRequest({
     actor: session.actor,
     requestId,
     memberUserIds,
+    repositoryUrl: repository.url,
   });
 
   if (!result.ok) return { error: result.reason };
