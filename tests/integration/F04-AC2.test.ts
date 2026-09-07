@@ -171,28 +171,22 @@ describe("F04-AC2 Penugasan masuk riwayat dan langsung memberi hak edit Operatio
   });
 
   it("PM yang ditugaskan bisa memindahkan tahap project itu", async () => {
-    const konteks = await projectContextFor(pmA.actor, projectId);
-
     const hasil = await changeProjectStage({
       actor: pmA.actor,
       projectDbId: projectId,
       toStage: "tahap_satu",
       catalogue: CONTOH,
-      assignedDivisions: konteks.assignedDivisions,
     });
 
     expect(hasil.changed).toBe(true);
   });
 
   it("PM yang tidak ditugaskan tidak bisa memindahkan tahap project itu", async () => {
-    const konteks = await projectContextFor(pmB.actor, projectId);
-
     const hasil = await changeProjectStage({
       actor: pmB.actor,
       projectDbId: projectId,
       toStage: "tahap_dua",
       catalogue: CONTOH,
-      assignedDivisions: konteks.assignedDivisions,
     });
 
     expect(hasil.changed).toBe(false);

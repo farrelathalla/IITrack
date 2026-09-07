@@ -1,11 +1,12 @@
 import { AUDIT_ACTIONS, AUDIT_OBJECTS } from "@/lib/audit/actions";
 import { checkPermission } from "@/lib/auth/permissions";
-import type { Actor, Division } from "@/lib/auth/types";
+import type { Actor } from "@/lib/auth/types";
 import { evaluateStageTransition } from "@/lib/project/stage-transition";
 import type { StageDefinition } from "@/lib/project/stages";
 import { findStage, STAGE_CATALOGUE } from "@/lib/project/stages";
 import { recordAudit } from "@/server/audit";
 import { prisma } from "@/server/db";
+import { projectContextFor } from "@/server/project/context";
 
 export type ChangeStageResult =
   | { changed: true; fromStage: string | null; toStage: string }
@@ -18,14 +19,6 @@ export interface ChangeProjectStageInput {
   note?: string | null;
   /** Katalog tahap. Dapat diganti pada pengujian. */
   catalogue?: readonly StageDefinition[];
-  /**
-   * Divisi tempat actor terdaftar sebagai pelaksana pada project ini.
-   *
-   * Sementara diisi pemanggil. Sumber sesungguhnya adalah penugasan project
-   * yang dibangun pada F04 dan F31; sampai keduanya ada, hanya jabatan yang
-   * berwenang secara global seperti COO yang bisa memindahkan tahap.
-   */
-  assignedDivisions?: Division[];
   now?: Date;
 }
 
@@ -50,13 +43,17 @@ export async function changeProjectStage(
     return { changed: false, reason: "Project yang dimaksud tidak ditemukan." };
   }
 
+  // Penugasan dibaca di sini, bukan diterima dari pemanggil. Sebelumnya divisi
+  // pelaksana dikirim sebagai parameter karena F04 dan F31 belum ada; keduanya
+  // sekarang sudah, dan parameter itu berbahaya dibiarkan. Pemanggil yang lupa
+  // mengisinya menolak PM yang sah, sedangkan pemanggil yang mengisinya dari
+  // masukan pengguna melewati pemeriksaan penugasan sepenuhnya.
+  const konteks = await projectContextFor(input.actor, project.id, now);
+
   const izin = checkPermission({
     actor: input.actor,
     action: "stage.change",
-    project: {
-      projectId: project.id,
-      assignedDivisions: input.assignedDivisions ?? [],
-    },
+    project: konteks,
     now,
   });
 

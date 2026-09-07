@@ -4,7 +4,6 @@ import { findStage, STAGE_CATALOGUE } from "@/lib/project/stages";
 import { parseStaffingRequestForm } from "@/lib/staffing/form";
 import type { TerminDraft } from "@/lib/termin/scheme";
 import { getAuthenticatedSession } from "@/server/auth/session";
-import { projectContextFor } from "@/server/project/context";
 import { changeProjectStage } from "@/server/project/stage";
 import { saveTerminScheme } from "@/server/project/termin";
 import { requestStaffing } from "@/server/techdev/staffing";
@@ -35,13 +34,11 @@ export async function changeProjectStageAction(
     return { error: "Pilih tahap tujuan terlebih dahulu." };
   }
 
-  const konteks = await projectContextFor(session.actor, projectDbId);
   const result = await changeProjectStage({
     actor: session.actor,
     projectDbId,
     toStage,
     note: noteRaw.length === 0 ? null : noteRaw,
-    assignedDivisions: konteks.assignedDivisions,
   });
 
   if (!result.changed) return { error: result.reason };
