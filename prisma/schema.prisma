@@ -52,6 +52,8 @@ model User {
   terminsCreated     Termin[]              @relation("TerminCreatedBy")
   clientRevisions    ClientRevision[]      @relation("ClientRevisionAuthor")
   invoicesIssued     Invoice[]             @relation("InvoiceIssuedBy")
+  receiptsRecorded   Receipt[]             @relation("ReceiptRecordedBy")
+  receiptsValidated  Receipt[]             @relation("ReceiptValidatedBy")
 
   @@map("users")
 }
@@ -187,6 +189,7 @@ model Project {
   references       ExternalReference[]
   termins          Termin[]
   invoices         Invoice[]
+  receipts         Receipt[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -552,6 +555,8 @@ model Invoice {
   issuedById String
   issuedBy   User   @relation("InvoiceIssuedBy", fields: [issuedById], references: [id], onDelete: Restrict)
 
+  receipt Receipt?
+
   issuedAt  DateTime @default(now())
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -559,4 +564,68 @@ model Invoice {
   @@index([projectId])
   @@index([terminId])
   @@map("invoices")
+}
+
+enum ReceiptStatus {
+  /// Bukti transfer sudah tercatat, tetapi kuitansinya belum dinyatakan valid.
+  RECORDED
+  /// Kuitansi dinyatakan valid Finance POC. Termin rujukannya ikut lunas.
+  VALID
+}
+
+/// Kuitansi beserta bukti transfernya (F20).
+///
+/// Satu kuitansi selalu menunjuk tepat satu invoice, dan lewat invoice itu
+/// menunjuk termin dan Project ID yang benar. Nilainya dicocokkan terhadap
+/// invoice rujukannya sebelum boleh dinyatakan valid, supaya selisih tertangkap
+/// sebelum dokumennya sampai ke client.
+model Receipt {
+  id String @id @default(uuid())
+
+  /// Nomor dokumen `#01-[Project ID]` sesuai IITBOOK 3.7. Sama seperti invoice,
+  /// sengaja tidak unik selama pembedanya masih ditanyakan pada #84.
+  number String
+
+  /// Satu invoice paling banyak punya satu kuitansi.
+  invoiceId String  @unique
+  invoice   Invoice @relation(fields: [invoiceId], references: [id], onDelete: Restrict)
+
+  /// Disalin dari invoice supaya kuitansi bisa dicari per project tanpa join,
+  /// dan supaya trigger bisa memastikan keduanya tidak pernah menunjuk project
+  /// yang berbeda.
+  projectId String
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Restrict)
+
+  /// Nilai yang benar-benar diterima menurut bukti transfer, bukan salinan
+  /// nilai invoice. Justru perbedaan keduanya yang harus tertangkap.
+  amount Decimal  @db.Decimal(18, 2)
+  /// Tanggal transfer menurut buktinya.
+  paidAt DateTime
+
+  /// Tautan bukti transfer. IITrack menyimpan alamatnya, bukan berkasnya,
+  /// mengikuti cara yang sama dengan tautan rujukan pada F25.
+  proofUrl  String
+  proofNote String?
+
+  status ReceiptStatus @default(RECORDED)
+
+  /// Penjelasan tertulis atas selisih terhadap invoice. Wajib terisi sebelum
+  /// kuitansi yang nilainya berbeda boleh dinyatakan valid; ditegakkan trigger,
+  /// bukan hanya diperiksa aplikasi.
+  resolution String?
+
+  recordedById String
+  recordedBy   User   @relation("ReceiptRecordedBy", fields: [recordedById], references: [id], onDelete: Restrict)
+  recordedAt   DateTime @default(now())
+
+  validatedById String?
+  validatedBy   User?     @relation("ReceiptValidatedBy", fields: [validatedById], references: [id], onDelete: Restrict)
+  validatedAt   DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([projectId])
+  @@index([status])
+  @@map("receipts")
 }

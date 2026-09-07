@@ -39,6 +39,9 @@ export const AUDIT_ACTIONS = {
   REFERENCE_ADDED: "reference.added",
   TERMIN_SCHEME_SAVED: "termin.scheme_saved",
   INVOICE_REQUESTED: "invoice.requested",
+  RECEIPT_RECORDED: "receipt.recorded",
+  RECEIPT_VALIDATED: "receipt.validated",
+  TERMIN_MARKED_PAID: "termin.marked_paid",
   CLIENT_CREATED: "client.created",
   CLIENT_UPDATED: "client.updated",
 } as const;
@@ -53,6 +56,8 @@ export const AUDIT_OBJECTS = {
   STAFFING_REQUEST: "staffing_request",
   CLIENT: "client",
   INVOICE: "invoice",
+  RECEIPT: "receipt",
+  TERMIN: "termin",
 } as const;
 
 export type AuditObjectType =
