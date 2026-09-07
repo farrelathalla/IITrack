@@ -177,7 +177,9 @@ describe("F31-AC2 Penugasan langsung memberi hak edit tanpa pengaturan manual.",
       }).allowed,
     ).toBe(false);
   });
+});
 
+describe("F31-AC5 Yang bukan pelaksana tetap bisa melihat informasi inti.", () => {
   it("UAT-ASSIGN-005, yang bukan pelaksana tetap bisa melihat informasi inti project", async () => {
     const konteks = await projectContextFor(officerLain.actor, projectId);
 

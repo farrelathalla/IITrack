@@ -101,7 +101,10 @@ describe("F13-AC1 Termin memuat nomor, persentase atau nominal, dan jatuh tempo.
   });
 });
 
-describe("F13-AC2 Sistem menolak skema yang jumlah persentasenya bukan seratus.", () => {
+// PRD F13-AC2 memuat dua larangan dalam satu kalimat. Keduanya diuji
+// terpisah di sini, jadi dua describe berbagi judul acceptance criteria
+// yang sama; itu disengaja, bukan salin tempel.
+describe("F13-AC2 Sistem menolak skema yang jumlah persentasenya bukan seratus, dan menolak termin pertama di luar rentang 25 sampai 50 persen.", () => {
   it("UAT-TERM-002, jumlah 90 persen ditolak", () => {
     const hasil = skema([
       { sequence: 1, percentage: "30", dueDate: JATUH_TEMPO },
@@ -141,7 +144,7 @@ describe("F13-AC2 Sistem menolak skema yang jumlah persentasenya bukan seratus."
   });
 });
 
-describe("F13-AC3 Sistem menolak termin pertama di luar rentang 25 sampai 50 persen.", () => {
+describe("F13-AC2 Sistem menolak skema yang jumlah persentasenya bukan seratus, dan menolak termin pertama di luar rentang 25 sampai 50 persen.", () => {
   it("Uang muka 25 persen dan 50 persen masih di dalam batas IITBOOK", () => {
     const bawah = skema([
       { sequence: 1, percentage: "25", dueDate: JATUH_TEMPO },

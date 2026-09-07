@@ -14,6 +14,7 @@ import {
 import { recordAudit } from "@/server/audit";
 import { prisma } from "@/server/db";
 import { assignMember } from "@/server/project/members";
+import { addReference } from "@/server/project/references";
 
 export type Refusal = {
   ok: false;
@@ -123,6 +124,13 @@ export interface FulfillStaffingInput {
   requestId: string;
   /** Anggota TechDev yang ditetapkan. Boleh lebih sedikit dari yang diminta. */
   memberUserIds: string[];
+  /**
+   * Repository project, ditautkan pada langkah yang sama (F14-AC4).
+   *
+   * Opsional karena tidak setiap penetapan membuat repository baru. Yang sudah
+   * pernah ditautkan tidak dianggap kegagalan.
+   */
+  repositoryUrl?: string | null;
   workingHours?: WorkingHoursConfig;
   now?: Date;
 }
@@ -136,9 +144,15 @@ export interface StaffingResponseTime {
 /**
  * CTO menetapkan anggota untuk sebuah permintaan.
  *
- * Satu langkah menyelesaikan tiga hal sekaligus: menyetujui pengajuan pada
- * rantai F17, menugaskan anggota sebagai pelaksana TechDev project, dan
- * menstempel waktu penetapan untuk perhitungan lama tanggapan.
+ * Satu langkah menyelesaikan empat hal sekaligus: menyetujui pengajuan pada
+ * rantai F17, menugaskan anggota sebagai pelaksana TechDev project, menautkan
+ * repository projectnya bila disebutkan, dan menstempel waktu penetapan untuk
+ * perhitungan lama tanggapan.
+ *
+ * Repository ditautkan di sini, bukan sebagai langkah terpisah sesudahnya,
+ * karena PRD F14 memintanya pada langkah yang sama. Penautannya tetap lewat
+ * addReference milik F25, jadi pemeriksaan bentuk alamat dan kewenangannya
+ * tidak ditulis dua kali.
  */
 export async function fulfillStaffingRequest(
   input: FulfillStaffingInput,
@@ -190,6 +204,21 @@ export async function fulfillStaffingRequest(
     // ditolak karena wewenang atau divisi tetap dilaporkan.
     if (!hasil.ok && !hasil.reason.includes("sudah ditugaskan")) {
       return refuse(hasil.reason);
+    }
+  }
+
+  if (input.repositoryUrl) {
+    const tautan = await addReference({
+      actor: input.actor,
+      projectDbId: request.projectId,
+      url: input.repositoryUrl,
+      label: "Repository project",
+      now,
+    });
+
+    // Repository yang sudah pernah ditautkan bukan kegagalan penetapan.
+    if (!tautan.ok && !tautan.reason.includes("sudah")) {
+      return refuse(tautan.reason);
     }
   }
 

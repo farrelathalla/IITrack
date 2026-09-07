@@ -268,3 +268,52 @@ describe("F14-AC3 Setelah CTO menetapkan anggota, PM melihat status Ditetapkan, 
     expect(ditetapkan?.after).toMatchObject({ lamaTanggapanMenitKerja: 240 });
   });
 });
+
+describe("F14-AC4 Repository project ditautkan pada langkah yang sama.", () => {
+  it("Repository yang disebut CTO saat menetapkan anggota langsung tertaut ke project", async () => {
+    const permintaan = await requestStaffing({
+      actor: pm.actor,
+      projectDbId: projectId,
+      ...ISI,
+      now: DIAJUKAN,
+    });
+    if (!permintaan.ok) throw new Error(permintaan.reason);
+
+    const hasil = await fulfillStaffingRequest({
+      actor: cto.actor,
+      requestId: permintaan.requestId,
+      memberUserIds: [dev1.userId],
+      repositoryUrl: "https://github.com/inkubator-it/proyek-staffing",
+      now: DITETAPKAN,
+    });
+
+    expect(hasil.ok).toBe(true);
+
+    const rujukan = await testDb.externalReference.findFirst({
+      where: { projectId, kind: "GITHUB_REPO" },
+      select: { url: true, projectId: true },
+    });
+
+    expect(rujukan?.projectId).toBe(projectId);
+    expect(rujukan?.url).toContain("github.com/inkubator-it/proyek-staffing");
+  });
+
+  it("Penetapan tanpa menyebut repository tetap berhasil", async () => {
+    const permintaan = await requestStaffing({
+      actor: pm.actor,
+      projectDbId: projectId,
+      ...ISI,
+      now: DIAJUKAN,
+    });
+    if (!permintaan.ok) throw new Error(permintaan.reason);
+
+    const hasil = await fulfillStaffingRequest({
+      actor: cto.actor,
+      requestId: permintaan.requestId,
+      memberUserIds: [dev2.userId],
+      now: DITETAPKAN,
+    });
+
+    expect(hasil.ok).toBe(true);
+  });
+});

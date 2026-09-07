@@ -130,7 +130,10 @@ describe("F13-AC1 Termin memuat nomor, persentase atau nominal, dan jatuh tempo.
   });
 });
 
-describe("F13-AC2 Sistem menolak skema yang jumlah persentasenya bukan seratus.", () => {
+// PRD F13-AC2 memuat dua larangan dalam satu kalimat. Keduanya diuji
+// terpisah di sini, jadi dua describe berbagi judul acceptance criteria
+// yang sama; itu disengaja, bukan salin tempel.
+describe("F13-AC2 Sistem menolak skema yang jumlah persentasenya bukan seratus, dan menolak termin pertama di luar rentang 25 sampai 50 persen.", () => {
   it("UAT-TERM-002, jumlah bukan 100 ditolak dan baris lama tidak berubah", async () => {
     const sebelum = await testDb.termin.count({ where: { projectId } });
 
@@ -169,7 +172,7 @@ describe("F13-AC2 Sistem menolak skema yang jumlah persentasenya bukan seratus."
   });
 });
 
-describe("F13-AC3 Sistem menolak termin pertama di luar rentang 25 sampai 50 persen.", () => {
+describe("F13-AC2 Sistem menolak skema yang jumlah persentasenya bukan seratus, dan menolak termin pertama di luar rentang 25 sampai 50 persen.", () => {
   it("Uang muka di luar 25–50 ditolak aplikasi", async () => {
     const hasil = await saveTerminScheme({
       actor: pm.actor,

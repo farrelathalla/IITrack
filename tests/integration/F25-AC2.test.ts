@@ -219,3 +219,43 @@ describe("F25-AC2 Repository yang tertaut bisa dibuka dari Project Hub.", () => 
     expect(hasil.ok).toBe(false);
   });
 });
+
+describe("F25-AC3 Data inti project tetap konsisten di konteks Operational, Finance, dan TechDev, tanpa salinan master data yang berbeda.", () => {
+  it("Nama client yang dibaca tiga konteks berasal dari satu baris yang sama", async () => {
+    const project = await testDb.project.findUniqueOrThrow({
+      where: { id: projectA },
+      select: {
+        projectId: true,
+        clientId: true,
+        clientName: true,
+        client: { select: { name: true } },
+      },
+    });
+
+    // Kolom teks pada project adalah tampilan dari master client, bukan
+    // salinan yang berdiri sendiri. Kalau keduanya boleh berbeda, Operational
+    // dan Finance bisa membaca nama client yang tidak sama.
+    if (project.clientId) {
+      expect(project.clientName).toBe(project.client?.name);
+    }
+
+    expect(project.projectId).toMatch(/^IIT-\d{4}-\d{3}$/);
+  });
+
+  it("Tautan rujukan menempel pada satu Project ID, tidak disalin per divisi", async () => {
+    const rujukan = await testDb.externalReference.findMany({
+      where: { projectId: projectA },
+      select: { projectId: true, url: true },
+    });
+
+    expect(rujukan.length).toBeGreaterThan(0);
+    for (const baris of rujukan) {
+      expect(baris.projectId).toBe(projectA);
+    }
+
+    // Satu alamat hanya boleh tersimpan sekali per project, jadi tidak ada
+    // dua versi rujukan yang sama untuk divisi yang berbeda.
+    const alamat = rujukan.map((baris) => baris.url);
+    expect(new Set(alamat).size).toBe(alamat.length);
+  });
+});

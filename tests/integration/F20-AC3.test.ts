@@ -196,3 +196,23 @@ describe("F20-AC3 Setelah proses selesai, termin berstatus lunas.", () => {
     expect(hasil.ok).toBe(false);
   });
 });
+
+describe("F13-AC3 Status termin berubah menjadi lunas setelah proses kuitansi selesai.", () => {
+  it("Termin yang kuitansinya sudah valid berstatus lunas", async () => {
+    const termin = await testDb.termin.findUniqueOrThrow({
+      where: { id: terminDpId },
+      select: { status: true },
+    });
+
+    expect(termin.status).toBe("PAID");
+  });
+
+  it("Termin yang kuitansinya belum ada tetap tertagih", async () => {
+    const termin = await testDb.termin.findUniqueOrThrow({
+      where: { id: terminPelunasanId },
+      select: { status: true },
+    });
+
+    expect(termin.status).toBe("UNPAID");
+  });
+});
