@@ -14,7 +14,7 @@ import {
 } from "../support/database";
 
 const PREFIX = "f05-ac3-";
-const PERIOD = "9903";
+const PERIOD = "8803";
 
 let pm: Awaited<ReturnType<typeof actorFrom>>;
 let coo: Awaited<ReturnType<typeof actorFrom>>;
@@ -110,7 +110,7 @@ describe("F05-AC3 COO atau Vice COO bisa menetapkan nomor manual, dan penetapan 
     const hasil = await overrideProjectId({
       actor: coo.actor,
       projectDbId: project.id,
-      newProjectId: "IIT-9903-7",
+      newProjectId: `IIT-${PERIOD}-7`,
       reason: "Uji format.",
     });
 

@@ -27,18 +27,35 @@ export function uniqueEmail(prefix: string): string {
 /**
  * Periode empat digit yang berbeda tiap eksekusi.
  *
- * Dipakai test yang menghasilkan riwayat tahap. Riwayat itu tidak bisa dihapus
- * karena larangannya ditegakkan trigger, dan projectnya pun ikut tidak bisa
- * dihapus karena dirujuk riwayat, jadi test memakai ruang nomor sendiri
- * alih-alih membersihkan bekasnya.
+ * Dipakai test yang menghasilkan riwayat tahap, pengajuan, atau jejak lain yang
+ * tidak bisa dihapus. Ruangnya 9xxx, terpisah dari periode tetap tes F05 (88xx)
+ * yang memang dibersihkan ulang setiap jalan.
  */
 export function uniquePeriod(): string {
   return `9${String(Math.floor(Math.random() * 1000)).padStart(3, "0")}`;
 }
 
-/** Menghapus project sebuah periode. Project tidak tersentuh larangan append-only. */
+/**
+ * Menghapus project sebuah periode beserta anak yang boleh dihapus.
+ *
+ * Termin, tautan, dan penugasan menahan hapus project (Restrict) tetapi tidak
+ * dilindungi trigger append-only. Riwayat tahap, langkah approval, dan jejak
+ * audit tetap tidak disentuh: test yang menulis itu memakai uniquePeriod().
+ */
 export async function cleanUpProjects(period: string): Promise<void> {
-  await testDb.project.deleteMany({ where: { period } });
+  const projects = await testDb.project.findMany({
+    where: { period },
+    select: { id: true },
+  });
+  const ids = projects.map((row) => row.id);
+  if (ids.length === 0) return;
+
+  await testDb.$transaction([
+    testDb.termin.deleteMany({ where: { projectId: { in: ids } } }),
+    testDb.externalReference.deleteMany({ where: { projectId: { in: ids } } }),
+    testDb.projectAssignment.deleteMany({ where: { projectId: { in: ids } } }),
+    testDb.project.deleteMany({ where: { period } }),
+  ]);
 }
 
 /** Mengosongkan penghitung nomor sebuah periode agar test mulai dari nol. */

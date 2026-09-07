@@ -9,7 +9,7 @@ import {
 } from "../support/database";
 
 const PREFIX = "f05-ac2-";
-const PERIOD = "9902";
+const PERIOD = "8802";
 
 let pm: Awaited<ReturnType<typeof actorFrom>>;
 
