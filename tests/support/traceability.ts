@@ -239,16 +239,12 @@ export const TRACEABILITY: readonly TracedCriterion[] = [
     criterion:
       "Antrean menampilkan nomor dokumen, Project ID, client, nominal, jatuh tempo, status approval dan pembayaran, approver yang sedang memegang, serta lama menunggu.",
     uat: "UAT-FIN-001, UAT-FIN-002",
-    pending:
-      "Antrean Finance (F15) belum dibangun. F15-T01 di-assign kepada Dev B dan belum dikerjakan; lihat Operational-IIT-Workspace/IITrack#75 dan #88.",
   },
   {
     id: "F15-AC2",
     criterion:
       "PM dan Finance sama-sama bisa melihat sebuah pengajuan sedang menunggu siapa dan sejak kapan.",
     uat: "UAT-FIN-001, UAT-FIN-002",
-    pending:
-      "Antrean Finance (F15) belum dibangun. F15-T01 di-assign kepada Dev B dan belum dikerjakan; lihat Operational-IIT-Workspace/IITrack#75 dan #88.",
   },
   {
     id: "F20-AC1",
