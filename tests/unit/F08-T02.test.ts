@@ -8,16 +8,22 @@ import {
 } from "@/lib/ui/project-hub-layout";
 
 describe("F08-T02 Rancangan halaman project dan susunan menu utama dikunci sebelum kode halaman.", () => {
-  it("Menu utama memuat Beranda, Project, Client, dan Pengurus untuk fase sekarang", () => {
+  it("Menu utama memuat Beranda, Project, Client, Pengurus, dan Antrean Finance", () => {
     const keys = plannedNavNow().map((item) => item.key);
-    expect(keys).toEqual(["beranda", "project", "client", "pengurus"]);
+    expect(keys).toEqual([
+      "beranda",
+      "project",
+      "client",
+      "pengurus",
+      "finance_queue",
+    ]);
   });
 
-  it("Antrean Finance dipesan di nav tetapi belum availability now", () => {
+  it("Antrean Finance memakai slot nav yang dipesan F08, availability now sejak F15-T02", () => {
     const finance = PLANNED_MAIN_NAV.find(
       (item) => item.key === "finance_queue",
     );
-    expect(finance?.availability).toBe("later");
+    expect(finance?.availability).toBe("now");
     expect(finance?.href).toBe("/finance/antrean");
   });
 

@@ -5,16 +5,19 @@
  * (#77) dan tombol setuju/tolak di F17-T04 (#85). Perubahan layout harus lewat
  * review dokumen `docs/wireframes/F15-finance-queue.md` dulu.
  *
- * Slot nav `finance_queue` sudah dipesan F08-T02. Wireframe ini tidak mengubah
- * `availability`-nya menjadi `now` — itu terjadi saat halaman #77 hidup.
+ * Slot nav `finance_queue` dipesan F08-T02 dan diisi `now` oleh F15-T02 (#77).
  */
 
 import { can } from "@/lib/auth/permissions";
 import type { Actor } from "@/lib/auth/types";
 import type { TerminChainState } from "@/lib/finance/chain";
-import type { FinanceQueueItem } from "@/lib/finance/queue";
+import type {
+  FinanceQueueItem,
+  InvoiceQueueStatus,
+  PaymentQueueStatus,
+} from "@/lib/finance/queue";
 
-/** Rute antrean. Sudah terpesan di `PLANNED_MAIN_NAV`, belum availability now. */
+/** Rute antrean. Sama dengan href nav `finance_queue`. */
 export const FINANCE_QUEUE_HREF = "/finance/antrean";
 
 /** Rincian satu pengajuan. Tombol setuju/tolak mengisi halaman ini di #85. */
@@ -164,6 +167,82 @@ export const FINANCE_SUBMISSION_DECISION_PLACEMENT = {
   route: FINANCE_SUBMISSION_DETAIL_ROUTE,
   rejectReasonRequired: true,
 } as const;
+
+function firstQueryValue(
+  value: string | string[] | undefined,
+): string | undefined {
+  return Array.isArray(value) ? value[0] : value;
+}
+
+/**
+ * Membaca penyaring dari query string. Nilai yang tidak dikenal jatuh ke semua,
+ * supaya tautan usang tidak mengosongkan antrean diam-diam.
+ */
+export function parseFinanceQueueSearchParams(input: {
+  jenis?: string | string[];
+  status?: string | string[];
+}): {
+  kind: FinanceQueueKindFilter;
+  status: FinanceQueueStatusFilter;
+} {
+  const jenis = firstQueryValue(input.jenis);
+  const status = firstQueryValue(input.status);
+  const kind = FINANCE_QUEUE_KIND_FILTERS.some(
+    (option) => option.value === jenis,
+  )
+    ? (jenis as FinanceQueueKindFilter)
+    : "all";
+  const statusFilter = FINANCE_QUEUE_STATUS_FILTERS.some(
+    (option) => option.value === status,
+  )
+    ? (status as FinanceQueueStatusFilter)
+    : "all";
+  return { kind, status: statusFilter };
+}
+
+export function filterFinanceQueueItems<
+  T extends Pick<FinanceQueueItem, "state">,
+>(
+  items: readonly T[],
+  filters: {
+    kind: FinanceQueueKindFilter;
+    status: FinanceQueueStatusFilter;
+  },
+): T[] {
+  return items.filter((item) => matchesFinanceQueueFilters(item, filters));
+}
+
+export function financeApprovalLabel(status: InvoiceQueueStatus): string {
+  switch (status) {
+    case "PENDING":
+      return "Menunggu";
+    case "APPROVED":
+      return "Disetujui";
+    case "REJECTED":
+      return "Ditolak";
+  }
+}
+
+export function financePaymentLabel(status: PaymentQueueStatus): string {
+  switch (status) {
+    case "BELUM":
+      return "Belum dibayar";
+    case "MENUNGGU":
+      return "Menunggu pembayaran";
+    case "RECORDED":
+      return "Bukti tercatat";
+    case "LUNAS":
+      return "Lunas";
+  }
+}
+
+export function financeHoldingDisplay(
+  item: Pick<FinanceQueueItem, "holdingLabel" | "state">,
+): string {
+  if (item.holdingLabel) return item.holdingLabel;
+  if (item.state === "MENUNGGU_PEMBAYARAN") return "Pembayaran";
+  return "—";
+}
 
 /** Pintu tampilan antrean sama dengan izin bacanya di server: `finance.view`. */
 export function canSeeFinanceQueue(

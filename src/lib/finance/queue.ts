@@ -28,6 +28,7 @@ export type PaymentQueueStatus = "BELUM" | "MENUNGGU" | "RECORDED" | "LUNAS";
 
 export interface FinanceQueueSnapshot {
   invoiceId: string;
+  submissionId: string;
   documentNumber: string;
   projectId: string;
   clientName: string;
@@ -41,6 +42,7 @@ export interface FinanceQueueSnapshot {
 
 export interface FinanceQueueItem {
   invoiceId: string;
+  submissionId: string;
   documentNumber: string;
   projectId: string;
   clientName: string;
@@ -120,6 +122,7 @@ export function composeFinanceQueueItem(
 
   return {
     invoiceId: snapshot.invoiceId,
+    submissionId: snapshot.submissionId,
     documentNumber: snapshot.documentNumber,
     projectId: snapshot.projectId,
     clientName: snapshot.clientName,

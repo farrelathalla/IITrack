@@ -37,6 +37,7 @@ describe("F14-T03 Formulir permintaan programmer dan halaman penugasan CTO.", ()
       "project",
       "client",
       "pengurus",
+      "finance_queue",
     ]);
     expect(
       plannedNavNow().some((item) => item.href === STAFFING_QUEUE_HREF),
@@ -119,7 +120,14 @@ describe("F14-T03 Formulir permintaan programmer dan halaman penugasan CTO.", ()
   });
 
   it("Menu utama pengunjung tidak bertambah item staffing", () => {
-    const labels = visibleMainNav(actor("CTO"), NOW).map((item) => item.label);
-    expect(labels).toEqual(["Beranda", "Project", "Client", "Pengurus"]);
+    const nav = visibleMainNav(actor("CTO"), NOW);
+    expect(nav.map((item) => item.label)).toEqual([
+      "Beranda",
+      "Project",
+      "Client",
+      "Pengurus",
+      "Antrean Finance",
+    ]);
+    expect(nav.some((item) => item.href === STAFFING_QUEUE_HREF)).toBe(false);
   });
 });

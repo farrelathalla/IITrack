@@ -54,6 +54,7 @@ export async function readFinanceQueue(
       project: { select: { projectId: true } },
       submission: {
         select: {
+          id: true,
           status: true,
           currentStepOrder: true,
           revision: true,
@@ -76,6 +77,7 @@ export async function readFinanceQueue(
     const item = composeFinanceQueueItem(
       {
         invoiceId: row.id,
+        submissionId: row.submission.id,
         documentNumber: row.number,
         projectId: row.project.projectId,
         clientName: row.clientName,

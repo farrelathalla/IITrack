@@ -78,17 +78,18 @@ describe("F15-T03 Rancangan halaman antrean dan halaman rincian pengajuan dikunc
     ).toBe(true);
   });
 
-  it("Slot nav Antrean Finance tetap later sampai halaman #77 hidup", () => {
+  it("Slot nav Antrean Finance terisi now setelah halaman #77 hidup", () => {
     const finance = PLANNED_MAIN_NAV.find(
       (item) => item.key === "finance_queue",
     );
     expect(finance?.href).toBe(FINANCE_QUEUE_HREF);
-    expect(finance?.availability).toBe("later");
+    expect(finance?.availability).toBe("now");
     expect(plannedNavNow().map((item) => item.key)).toEqual([
       "beranda",
       "project",
       "client",
       "pengurus",
+      "finance_queue",
     ]);
   });
 

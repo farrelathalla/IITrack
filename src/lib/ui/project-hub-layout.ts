@@ -78,8 +78,8 @@ export const PLANNED_MAIN_NAV: readonly PlannedNavItem[] = [
     label: "Antrean Finance",
     href: "/finance/antrean",
     requires: "finance.view",
-    availability: "later",
-    note: "Muncul setelah F15; slot sudah dipesan agar nav tidak digeser ulang.",
+    availability: "now",
+    note: "Hidup sejak F15-T02. Izin tampilan finance.view, sama dengan server.",
   },
 ] as const;
 

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { PmAssignmentSla } from "@/components/sla/pm-assignment-sla";
 import { StatusBadge } from "@/components/ui";
 import { canSeeAction } from "@/lib/auth/ui-visibility";
+import { canSeeFinanceQueue, FINANCE_QUEUE_HREF } from "@/lib/finance/display";
 import {
   canSeeStaffingQueue,
   STAFFING_QUEUE_HREF,
@@ -24,6 +25,8 @@ export default async function BerandaPage() {
     session !== null && canSeeAction(session.actor, "master_data.view");
   const bolehAntreanStaffing =
     session !== null && canSeeStaffingQueue(session.actor);
+  const bolehAntreanFinance =
+    session !== null && canSeeFinanceQueue(session.actor);
 
   return (
     <div className="flex flex-col gap-6">
@@ -62,6 +65,19 @@ export default async function BerandaPage() {
                 mendaftarkan project baru
               </a>{" "}
               untuk menerbitkan Project ID.
+            </>
+          ) : null}
+          {bolehAntreanFinance ? (
+            <>
+              {" "}
+              Pengajuan invoice dan kuitansi yang menunggu ada di{" "}
+              <a
+                href={FINANCE_QUEUE_HREF}
+                className="font-medium text-plum-900 underline-offset-4 hover:underline"
+              >
+                antrean Finance
+              </a>
+              .
             </>
           ) : null}
           {bolehAntreanStaffing ? (
