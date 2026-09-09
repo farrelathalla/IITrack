@@ -10,8 +10,12 @@ import { defineConfig } from "vitest/config";
  * kerja di README, sehingga hasil larinya bisa dirujuk langsung dari dokumen
  * UAT tanpa penerjemahan.
  *
- * Lokal: jalankan `bunx prisma dev`, salin DATABASE_URL ke .env, lalu
+ * Lokal: arahkan DATABASE_URL ke PostgreSQL sungguhan, lalu
  * `bun run test:integration`. CI menyediakan Postgres sebagai service.
+ *
+ * `bunx prisma dev` tidak cukup di sini. Postgres bawaannya berjalan di atas
+ * PGlite dan mati begitu kena `RAISE EXCEPTION` dari trigger, padahal beberapa
+ * aturan memang ditegakkan trigger. Lihat docs/technical-handover.md.
  */
 export default defineConfig({
   test: {

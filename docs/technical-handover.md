@@ -99,11 +99,21 @@ bun install
 cp .env.example .env
 ```
 
-Jalankan Postgres bawaan Prisma, lalu salin `DATABASE_URL` yang dicetaknya ke
-`.env`. Perintah ini terus berjalan; biarkan terminalnya terbuka.
+Pasang PostgreSQL, lalu buat pengguna dan basis datanya. Versi 17 ke atas sudah
+diuji; CI memakai 17 dan pengembangan lokal pernah dijalankan di 18.6.
 
 ```sh
-bunx prisma dev
+sudo apt install -y postgresql
+```
+
+```sh
+sudo -u postgres psql -c "CREATE USER iitrack WITH PASSWORD 'iitrack' CREATEDB;" -c "CREATE DATABASE iitrack OWNER iitrack;"
+```
+
+Isi `DATABASE_URL` di `.env` dengan pengguna dan basis data tersebut:
+
+```
+DATABASE_URL="postgresql://iitrack:iitrack@localhost:5432/iitrack"
 ```
 
 Isi juga `SESSION_SECRET` di `.env`:
@@ -126,6 +136,23 @@ periode 2026/2027 dengan kata sandi `iitrack-dev-2627`: `coo@iit.test`,
 `cfo@iit.test`, `cto@iit.test`, `pm@iit.test`, dan `admin@iit.test` yang
 memegang System Administrator privilege. Akun ini hanya untuk pengembangan dan
 tidak boleh ikut ke lingkungan mana pun yang dipakai orang sungguhan.
+
+### Kenapa bukan `bunx prisma dev`
+
+Prisma menyediakan `bunx prisma dev` sebagai Postgres sekali jalan, dan untuk
+menjalankan aplikasinya saja perintah itu cukup. Untuk test, tidak.
+
+`prisma dev` menjalankan PGlite, yaitu Postgres yang dikompilasi ke WebAssembly,
+dan servernya mati begitu menerima `RAISE EXCEPTION` dari trigger. Repositori ini
+memakai trigger semacam itu untuk aturan yang harus ditegakkan basis data,
+misalnya penolakan total persentase termin yang bukan 100 pada migrasi
+`20260906040000_add_termin`. Test F13 sengaja memicunya, servernya tumbang, dan
+seluruh berkas test sesudahnya gagal dengan pesan `Can't reach database server`.
+
+Gejalanya menyesatkan karena terlihat seperti kode yang rusak. Yang rusak adalah
+basis datanya. Suite yang sama lulus utuh di PostgreSQL asli, dan CI hijau dengan
+`postgres:17`. Menurunkan `connection_limit` tidak menolong, begitu juga
+menjalankan Vitest tanpa isolasi.
 
 ## 3. Variabel lingkungan
 
@@ -226,11 +253,12 @@ pelaksana yang lain.
 
 | Gejala | Sebab yang paling sering | Tindakan |
 |---|---|---|
-| `DATABASE_URL belum diisi` saat start | `.env` belum dibuat, atau `bunx prisma dev` belum jalan | Salin `.env.example` ke `.env`, jalankan `bunx prisma dev`, salin URL yang dicetaknya |
+| `DATABASE_URL belum diisi` saat start | `.env` belum dibuat | Salin `.env.example` ke `.env`, isi `DATABASE_URL` seperti pada bab 2 |
 | `SESSION_SECRET belum diisi atau terlalu pendek` | Nilainya kosong atau di bawah 32 karakter | Isi dengan hasil `openssl rand -base64 32` |
 | Impor `@/generated/prisma/client` tidak ditemukan | Klien Prisma belum dibangkitkan setelah clone atau ganti branch | `bun run db:generate` |
 | Typecheck gagal pada field yang baru ditambahkan ke skema | Klien Prisma masih versi lama | `bun run db:generate` |
-| Test integrasi gagal seluruhnya di baris koneksi | Postgres tidak hidup, atau `DATABASE_URL` menunjuk basis data lain | Pastikan `bunx prisma dev` berjalan, lalu `bun run db:deploy` |
+| Test integrasi gagal seluruhnya di baris koneksi | Postgres tidak hidup, atau `DATABASE_URL` menunjuk basis data lain | `sudo systemctl start postgresql`, pastikan port 5432 mendengar, lalu `bun run db:deploy` |
+| Test integrasi lulus beberapa berkas lalu sisanya `Can't reach database server` | Basis datanya PGlite dari `bunx prisma dev`, bukan Postgres asli | Ikuti bab 2; alasannya ada di "Kenapa bukan `bunx prisma dev`" |
 | Test integrasi gagal karena data sisa | Basis data lokal memuat sisa eksekusi lama pada periode tetap | Jalankan ulang; bila menetap, terapkan ulang migrasi pada basis data kosong |
 | `UPDATE`/`DELETE` pada `audit_logs` ditolak | Trigger append-only, dan ini memang perilaku yang benar | Jangan cari jalan pintas; perbaiki kodenya agar tidak mengubah jejak |
 | Semua orang tiba-tiba diminta masuk ulang | `SESSION_SECRET` berganti | Kembalikan nilai lamanya bila pergantiannya tidak disengaja |

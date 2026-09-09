@@ -31,15 +31,27 @@ bun install
 cp .env.example .env
 ```
 
-Untuk basis data lokal, jalankan instance Postgres bawaan Prisma lalu salin URL
-yang dicetaknya ke `DATABASE_URL`:
+Untuk basis data lokal, pasang PostgreSQL lalu buat pengguna dan basis datanya:
 
 ```sh
-bunx prisma dev
+sudo apt install -y postgresql
 ```
 
-Perintah itu mencetak `DATABASE_URL`; salin ke `.env`. Lalu bangkitkan klien
-Prisma, terapkan skema, isi data contoh, dan jalankan aplikasi:
+```sh
+sudo -u postgres psql -c "CREATE USER iitrack WITH PASSWORD 'iitrack' CREATEDB;" -c "CREATE DATABASE iitrack OWNER iitrack;"
+```
+
+Isi `DATABASE_URL` di `.env` dengan
+`postgresql://iitrack:iitrack@localhost:5432/iitrack`, lalu isi `SESSION_SECRET`
+dengan hasil `openssl rand -base64 32`.
+
+`bunx prisma dev` sengaja tidak dipakai. Postgres bawaannya berjalan di atas
+PGlite dan mati begitu kena `RAISE EXCEPTION` dari trigger, sehingga test
+integrasi berhenti di tengah jalan. Alasan lengkapnya ada di
+[`docs/technical-handover.md`](docs/technical-handover.md).
+
+Lalu bangkitkan klien Prisma, terapkan skema, isi data contoh, dan jalankan
+aplikasi:
 
 ```sh
 bun run db:generate
