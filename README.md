@@ -53,6 +53,9 @@ Data contoh berisi lima akun untuk periode 2026/2027 dengan kata sandi
 `pm@iit.test`, dan `admin@iit.test` yang memegang System Administrator
 privilege.
 
+Penjelasan arsitektur, variabel lingkungan, aturan migrasi, penanganan masalah,
+dan jalur eskalasi ada di [`docs/technical-handover.md`](docs/technical-handover.md).
+
 ## Perintah
 
 | Perintah | Kegunaan |
@@ -71,6 +74,7 @@ privilege.
 ## Struktur
 
 ```
+docs/                  Serah terima teknis dan rancangan halaman
 prisma/schema.prisma   Skema basis data
 prisma.config.ts       Konfigurasi Prisma: lokasi skema, migrasi, dan URL
 src/app/               Halaman dan route (App Router)
