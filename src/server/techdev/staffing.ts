@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { buildApprovalChain, isEligibleApprover } from "@/lib/approval/chain";
 import { AUDIT_ACTIONS, AUDIT_OBJECTS } from "@/lib/audit/actions";
 import { checkPermission } from "@/lib/auth/permissions";
 import type { Actor } from "@/lib/auth/types";
@@ -179,16 +180,14 @@ export async function fulfillStaffingRequest(
     return refuse("Permintaan ini sudah selesai diproses sebelumnya.");
   }
 
-  // Menyetujui pengajuannya sekaligus menegakkan kewenangan: rantai
-  // STAFFING_REQUEST hanya bisa diputuskan CTO atau Vice CTO.
-  if (request.submissionId) {
-    const keputusan = await decideSubmission({
-      actor: input.actor,
-      submissionId: request.submissionId,
-      decision: "APPROVED",
-      now,
-    });
-    if (!keputusan.ok) return refuse(keputusan.reason);
+  // Kewenangan diperiksa lebih dulu tanpa mengubah apa pun. Rantai
+  // STAFFING_REQUEST hanya boleh diputuskan CTO atau Vice CTO, dan pemeriksaan
+  // itu tidak boleh menunggu sampai ada baris yang terlanjur ditulis.
+  const langkahCto = buildApprovalChain("STAFFING_REQUEST")[0];
+  if (!isEligibleApprover(input.actor, langkahCto, now)) {
+    return refuse(
+      `Penetapan tenaga programmer menunggu keputusan ${langkahCto.label}, dan jabatan Anda tidak termasuk di dalamnya.`,
+    );
   }
 
   for (const userId of input.memberUserIds) {
@@ -202,7 +201,7 @@ export async function fulfillStaffingRequest(
 
     // Anggota yang sudah ditugaskan sebelumnya tidak dianggap kegagalan; yang
     // ditolak karena wewenang atau divisi tetap dilaporkan.
-    if (!hasil.ok && !hasil.reason.includes("sudah ditugaskan")) {
+    if (!hasil.ok && hasil.code !== "ALREADY_ASSIGNED") {
       return refuse(hasil.reason);
     }
   }
@@ -217,9 +216,25 @@ export async function fulfillStaffingRequest(
     });
 
     // Repository yang sudah pernah ditautkan bukan kegagalan penetapan.
-    if (!tautan.ok && !tautan.reason.includes("sudah")) {
+    if (!tautan.ok && tautan.code !== "ALREADY_LINKED") {
       return refuse(tautan.reason);
     }
+  }
+
+  // Pengajuannya disetujui paling akhir, setelah seluruh penugasan dan
+  // penautan berhasil. Sebelumnya persetujuan dilakukan lebih dulu, sehingga
+  // satu penugasan yang gagal di tengah meninggalkan pengajuan yang sudah
+  // disetujui tetapi permintaannya masih SUBMITTED. Percobaan berikutnya lalu
+  // ditolak decideSubmission karena pengajuannya bukan PENDING lagi, dan
+  // permintaan itu tidak pernah bisa diselesaikan siapa pun.
+  if (request.submissionId) {
+    const keputusan = await decideSubmission({
+      actor: input.actor,
+      submissionId: request.submissionId,
+      decision: "APPROVED",
+      now,
+    });
+    if (!keputusan.ok) return refuse(keputusan.reason);
   }
 
   await prisma.staffingRequest.update({

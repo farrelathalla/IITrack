@@ -11,6 +11,17 @@ export const SCHEME_TOTAL_BASIS_POINTS = 10_000;
 export const DP_MIN_BASIS_POINTS = 2_500;
 export const DP_MAX_BASIS_POINTS = 5_000;
 
+/**
+ * Batas jumlah baris dalam satu skema.
+ *
+ * Uang muka menempati sekurangnya 25 persen, jadi sisanya tidak mungkin pecah
+ * menjadi ratusan termin yang masuk akal. Batas ini ada supaya jumlah baris
+ * yang diminta tidak menentukan berapa banyak yang dikerjakan server: tanpa
+ * batas, permintaan yang mengaku berisi puluhan juta baris tetap dibangun satu
+ * per satu sebelum aturan isinya sempat diperiksa.
+ */
+export const MAX_TERMIN_ROWS = 60;
+
 export interface TerminDraft {
   sequence: number;
   percentage?: string | number | null;
@@ -115,6 +126,12 @@ export function validateTerminScheme(input: {
   if (input.drafts.length === 0) {
     return invalid(
       "Skema termin kosong tidak bisa disimpan. Isi paling tidak dua termin, karena uang muka harus 25 sampai 50 persen.",
+    );
+  }
+
+  if (input.drafts.length > MAX_TERMIN_ROWS) {
+    return invalid(
+      `Satu skema termin paling banyak ${MAX_TERMIN_ROWS} baris. Pecah pembayaran yang lebih rinci di luar jadwal termin.`,
     );
   }
 

@@ -317,3 +317,79 @@ describe("F14-AC4 Repository project ditautkan pada langkah yang sama.", () => {
     expect(hasil.ok).toBe(true);
   });
 });
+
+describe("F14-AC3 Setelah CTO menetapkan anggota, PM melihat status Ditetapkan, dan pelaku serta waktunya tercatat.", () => {
+  /**
+   * Regresi. Penetapan yang gagal di tengah dulu meninggalkan pengajuan yang
+   * sudah disetujui sementara permintaannya masih SUBMITTED, dan percobaan
+   * berikutnya ditolak karena pengajuannya bukan PENDING lagi. Permintaan itu
+   * lalu tidak pernah bisa diselesaikan siapa pun.
+   */
+  it("Penetapan yang gagal di tengah tidak mengunci permintaannya", async () => {
+    const permintaan = await requestStaffing({
+      actor: pm.actor,
+      projectDbId: projectId,
+      ...ISI,
+      now: DIAJUKAN,
+    });
+    if (!permintaan.ok) throw new Error(permintaan.reason);
+
+    // PM bukan anggota TechDev, jadi penugasannya ditolak pada anggota kedua.
+    const gagal = await fulfillStaffingRequest({
+      actor: cto.actor,
+      requestId: permintaan.requestId,
+      memberUserIds: [dev1.userId, pm.userId],
+      now: DITETAPKAN,
+    });
+    expect(gagal.ok).toBe(false);
+
+    // Pengajuannya belum tersentuh, jadi masih menunggu keputusan.
+    const tertahan = await testDb.staffingRequest.findUniqueOrThrow({
+      where: { id: permintaan.requestId },
+      include: { submission: true },
+    });
+    expect(tertahan.status).toBe("SUBMITTED");
+    expect(tertahan.submission?.status).toBe("PENDING");
+
+    // Percobaan ulang tanpa anggota yang keliru harus bisa diselesaikan.
+    const ulang = await fulfillStaffingRequest({
+      actor: cto.actor,
+      requestId: permintaan.requestId,
+      memberUserIds: [dev1.userId],
+      now: DITETAPKAN,
+    });
+    expect(ulang.ok).toBe(true);
+
+    const selesai = await testDb.staffingRequest.findUniqueOrThrow({
+      where: { id: permintaan.requestId },
+      include: { submission: true },
+    });
+    expect(selesai.status).toBe("FULFILLED");
+    expect(selesai.submission?.status).toBe("APPROVED");
+  });
+
+  it("Jabatan yang tidak berwenang ditolak sebelum ada baris yang ditulis", async () => {
+    const permintaan = await requestStaffing({
+      actor: pm.actor,
+      projectDbId: projectId,
+      ...ISI,
+      now: DIAJUKAN,
+    });
+    if (!permintaan.ok) throw new Error(permintaan.reason);
+
+    const hasil = await fulfillStaffingRequest({
+      actor: pm.actor,
+      requestId: permintaan.requestId,
+      memberUserIds: [dev2.userId],
+      now: DITETAPKAN,
+    });
+    expect(hasil.ok).toBe(false);
+
+    const tersimpan = await testDb.staffingRequest.findUniqueOrThrow({
+      where: { id: permintaan.requestId },
+      include: { submission: true },
+    });
+    expect(tersimpan.status).toBe("SUBMITTED");
+    expect(tersimpan.submission?.status).toBe("PENDING");
+  });
+});

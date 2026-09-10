@@ -6,10 +6,20 @@ import { canAssignToDivision } from "@/lib/project/assignment-rules";
 import { recordAudit } from "@/server/audit";
 import { prisma } from "@/server/db";
 
-export type Refusal = { ok: false; reason: string };
+/**
+ * Penanda mesin untuk penolakan yang pemanggilnya perlu bedakan.
+ *
+ * `reason` ditulis untuk dibaca pengguna dan wajar diperhalus sewaktu-waktu,
+ * jadi pemanggil tidak boleh mengenali sebuah penolakan dari potongan
+ * kalimatnya. Penanda ini yang dipakai, dan mengubah kalimatnya tidak lagi
+ * mengubah perilaku pemanggil.
+ */
+export type MemberRefusalCode = "ALREADY_ASSIGNED";
 
-function refuse(reason: string): Refusal {
-  return { ok: false, reason };
+export type Refusal = { ok: false; reason: string; code?: MemberRefusalCode };
+
+function refuse(reason: string, code?: MemberRefusalCode): Refusal {
+  return code ? { ok: false, reason, code } : { ok: false, reason };
 }
 
 export interface AssignMemberInput {
@@ -107,6 +117,7 @@ export async function assignMember(
   if (sudahAda) {
     return refuse(
       `${target.name} sudah ditugaskan pada divisi ini di project tersebut.`,
+      "ALREADY_ASSIGNED",
     );
   }
 

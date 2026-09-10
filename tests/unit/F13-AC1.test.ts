@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { validateTerminScheme } from "@/lib/termin/scheme";
+import { MAX_TERMIN_ROWS, validateTerminScheme } from "@/lib/termin/scheme";
 
 const JATUH_TEMPO = new Date("2026-10-01T00:00:00.000Z");
 const JATUH_TEMPO_DUA = new Date("2026-11-01T00:00:00.000Z");
@@ -132,6 +132,22 @@ describe("F13-AC2 Sistem menolak skema yang jumlah persentasenya bukan seratus, 
 
   it("Skema kosong ditolak, bukan dianggap lolos karena tidak ada yang dijumlahkan", () => {
     expect(skema([]).valid).toBe(false);
+  });
+
+  it("Skema yang barisnya melebihi batas ditolak sebelum isinya dihitung", () => {
+    const kebanyakan = Array.from(
+      { length: MAX_TERMIN_ROWS + 1 },
+      (_, index) => ({
+        sequence: index + 1,
+        percentage: "1",
+        dueDate: JATUH_TEMPO,
+      }),
+    );
+
+    const hasil = skema(kebanyakan);
+    expect(hasil.valid).toBe(false);
+    if (hasil.valid) return;
+    expect(hasil.reason).toContain(String(MAX_TERMIN_ROWS));
   });
 
   it("Persentase nol atau di atas 100 pada satu baris ditolak", () => {

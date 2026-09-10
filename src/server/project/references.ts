@@ -11,10 +11,21 @@ import { recordAudit } from "@/server/audit";
 import { prisma } from "@/server/db";
 import { projectContextFor } from "@/server/project/context";
 
-export type Refusal = { ok: false; reason: string };
+/**
+ * Penanda mesin untuk penolakan yang pemanggilnya perlu bedakan, dengan alasan
+ * yang sama seperti pada `members.ts`: kalimat penolakan ditulis untuk pengguna
+ * dan boleh berubah, penanda ini tidak.
+ */
+export type ReferenceRefusalCode = "ALREADY_LINKED";
 
-function refuse(reason: string): Refusal {
-  return { ok: false, reason };
+export type Refusal = {
+  ok: false;
+  reason: string;
+  code?: ReferenceRefusalCode;
+};
+
+function refuse(reason: string, code?: ReferenceRefusalCode): Refusal {
+  return code ? { ok: false, reason, code } : { ok: false, reason };
 }
 
 /**
@@ -89,7 +100,10 @@ export async function addReference(
     select: { id: true },
   });
   if (sudahAda) {
-    return refuse("Tautan ini sudah tersimpan pada project tersebut.");
+    return refuse(
+      "Tautan ini sudah tersimpan pada project tersebut.",
+      "ALREADY_LINKED",
+    );
   }
 
   const created = await prisma.externalReference.create({

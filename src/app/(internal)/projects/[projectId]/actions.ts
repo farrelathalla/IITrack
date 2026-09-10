@@ -5,6 +5,7 @@ import { parseReferenceForm } from "@/lib/project/reference-form";
 import { findStage, STAGE_CATALOGUE } from "@/lib/project/stages";
 import { parseStaffingRequestForm } from "@/lib/staffing/form";
 import type { TerminDraft } from "@/lib/termin/scheme";
+import { MAX_TERMIN_ROWS } from "@/lib/termin/scheme";
 import { getAuthenticatedSession } from "@/server/auth/session";
 import { requestInvoice } from "@/server/finance/invoice";
 import { addReference } from "@/server/project/references";
@@ -69,6 +70,16 @@ function draftsFromForm(formData: FormData): TerminDraft[] | { error: string } {
     return {
       error:
         "Skema termin kosong tidak bisa disimpan. Isi paling tidak dua termin, karena uang muka harus 25 sampai 50 persen.",
+    };
+  }
+
+  // Jumlah baris berasal dari permintaan, sedangkan izin baru diperiksa di
+  // dalam saveTerminScheme. Tanpa batas di sini, siapa pun yang sudah masuk
+  // bisa meminta puluhan juta baris dan seluruhnya dibangun lebih dulu,
+  // sebelum ada yang memeriksa bahwa ia tidak berhak mengubah project itu.
+  if (rowCount > MAX_TERMIN_ROWS) {
+    return {
+      error: `Satu skema termin paling banyak ${MAX_TERMIN_ROWS} baris.`,
     };
   }
 

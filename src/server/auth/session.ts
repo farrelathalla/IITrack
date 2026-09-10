@@ -35,6 +35,27 @@ function hashToken(token: string): string {
     .digest("base64url");
 }
 
+type CookieStore = Awaited<ReturnType<typeof cookies>>;
+
+/**
+ * Menghapus cookie sesi, dan diam bila konteksnya memang tidak boleh menulis.
+ *
+ * `inspectSession` dipanggil dari Server Action maupun dari render Server
+ * Component. Yang pertama boleh mengubah cookie, yang kedua tidak: Next
+ * melempar "Cookies can only be modified in a Server Action or Route Handler".
+ * Melempar di sana berarti setiap halaman membalas 500, termasuk halaman masuk,
+ * sehingga pengguna yang sesinya baru dicabut tidak punya jalan kembali selain
+ * menghapus cookie perambannya sendiri.
+ */
+function forgetSessionCookie(store: CookieStore): void {
+  try {
+    store.delete(COOKIE_NAME);
+  } catch {
+    // Konteks render. Sesinya sudah dicabut di basis data, jadi cookie yang
+    // tertinggal hanya akan dinilai ulang dan ditolak lagi.
+  }
+}
+
 export interface AuthenticatedSession {
   sessionId: string;
   actor: Actor;
@@ -148,9 +169,14 @@ export async function inspectSession(): Promise<SessionInspection> {
       });
     }
 
-    // Hapus cookie supaya permintaan berikutnya tidak menafsirkan ulang sesi
-    // yang sudah dicabut sebagai "sesi berakhir" generik (F02-T03).
-    store.delete(COOKIE_NAME);
+    // Cookie dihapus bila konteksnya memang boleh menulis cookie. Pemeriksaan
+    // ini dipanggil juga dari render Server Component, dan di sana Next
+    // melarang perubahan cookie: percobaannya melempar, halaman berubah
+    // menjadi galat 500, dan pengguna yang masa jabatannya habis justru
+    // terkunci dari halaman masuk. Pencabutan yang sesungguhnya sudah terjadi
+    // di basis data beberapa baris di atas, jadi cookie yang tertinggal tidak
+    // memberi akses apa pun; ia hanya akan dinilai ulang dan ditolak lagi.
+    forgetSessionCookie(store);
 
     return {
       kind: "ended",
