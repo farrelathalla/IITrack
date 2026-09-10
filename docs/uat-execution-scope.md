@@ -194,6 +194,9 @@ sandi di atas hanya untuk pengembangan lokal.
 Bukti yang berupa berkas biner, misalnya tangkapan layar dan rekaman, disimpan
 di folder Drive project, bukan di repositori. Struktur folder yang dipakai:
 
+Hasil pengujian otomatis, angka performa, dan defect log yang sudah ada
+tersimpan di [`qa-record.md`](qa-record.md).
+
 ```
 IITrack UAT 2026/
 ├─ 01-hasil/            Lembar hasil per test case, satu berkas per kelompok
