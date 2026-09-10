@@ -34,16 +34,25 @@ export type SubmissionDecisionParseResult =
   | { ok: true; data: ParsedSubmissionDecision }
   | { ok: false; reason: string; fields: Record<string, string> };
 
-/** Langkah invoice yang sedang menunggu keputusan, atau kosong. */
+/**
+ * Langkah invoice yang sedang menunggu keputusan, atau kosong.
+ *
+ * Dicocokkan memakai nomor langkah, bukan namanya. Nama langkah disalin ke
+ * baris basis data saat pengajuan dibuat, sedangkan rantai di kode bisa
+ * berubah namanya; pemetaan langkah kedua ke "POC dokumentasi" bahkan masih
+ * menunggu DEP-02. Kalau dicocokkan dari nama, penggantian kata satu kali saja
+ * membuat tombol setuju dan tolak hilang dari seluruh pengajuan yang terlanjur
+ * menunggu, tanpa penyetujunya tahu sebabnya.
+ */
 export function currentInvoiceApprovalStep(
-  item: Pick<FinanceQueueItem, "state" | "holdingLabel">,
+  item: Pick<FinanceQueueItem, "state" | "currentStepOrder">,
 ): ApprovalStepSpec | null {
-  if (item.state !== "MENUNGGU_PERSETUJUAN" || !item.holdingLabel) {
+  if (item.state !== "MENUNGGU_PERSETUJUAN" || item.currentStepOrder === null) {
     return null;
   }
   return (
     buildApprovalChain("INVOICE").find(
-      (step) => step.label === item.holdingLabel,
+      (step) => step.order === item.currentStepOrder,
     ) ?? null
   );
 }
@@ -57,7 +66,7 @@ export function currentInvoiceApprovalStep(
  */
 export function canSeeSubmissionDecision(
   actor: Actor,
-  item: Pick<FinanceQueueItem, "state" | "holdingLabel">,
+  item: Pick<FinanceQueueItem, "state" | "currentStepOrder">,
   now: Date = new Date(),
 ): boolean {
   const langkah = currentInvoiceApprovalStep(item);

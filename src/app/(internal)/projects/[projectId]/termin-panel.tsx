@@ -71,6 +71,7 @@ export function TerminPanel({
   project,
   schemeValue,
   displayValue,
+  valueHidden,
   termins,
   invoices,
   receipts,
@@ -84,6 +85,7 @@ export function TerminPanel({
   project: { projectId: string; name: string; clientName: string };
   schemeValue: string | null;
   displayValue: string | null;
+  valueHidden: boolean;
   termins: TerminRow[];
   invoices: InvoiceRow[];
   receipts: ReceiptRow[];
@@ -93,9 +95,10 @@ export function TerminPanel({
   canValidateReceipt: boolean;
   canOpenFinanceQueue: boolean;
 }) {
-  const nilaiTampil = formatProjectValue(
-    displayValue ?? (canEdit ? schemeValue : null),
-  );
+  // Tanpa jalan pintas untuk yang boleh mengubah. Hak mengubah termin tidak
+  // sama dengan hak melihat nilai project, dan yang menentukan tampil atau
+  // tidak hanya displayValue, yang sudah ditapis project.view_value.
+  const nilaiTampil = formatProjectValue(displayValue);
   const adaYangLunas = termins.some((row) => row.status === "PAID");
   const nilaiAda = schemeValue !== null && schemeValue !== "";
   const invoiceOptions: InvoiceTerminOption[] = termins.map((row) => ({
@@ -129,7 +132,15 @@ export function TerminPanel({
         </p>
       ) : null}
 
-      {!nilaiAda ? (
+      {!nilaiAda && valueHidden ? (
+        <Alert tone="status">
+          Jabatan Anda tidak berwenang melihat nilai project, jadi jadwal termin
+          hanya bisa dibaca dari sini. Minta PM yang ditugaskan untuk
+          menyusunnya.
+        </Alert>
+      ) : null}
+
+      {!nilaiAda && !valueHidden ? (
         <Alert tone="status">
           Nilai project belum diisi, jadi skema termin belum bisa dihitung
           maupun disimpan.

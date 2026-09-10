@@ -29,6 +29,7 @@ function snapshot(
     invoiceStatus: "PENDING",
     receiptStatus: null,
     currentStepLabel: "Finance POC",
+    currentStepOrder: 1,
     issuedAt: DIAJUKAN,
     ...bagian,
   };
@@ -52,6 +53,7 @@ describe("F15-AC1 Antrean menampilkan nomor dokumen, Project ID, client, nominal
       paymentStatus: "BELUM",
       state: "MENUNGGU_PERSETUJUAN",
       holdingLabel: "Finance POC",
+      currentStepOrder: 1,
       waitingSince: DIAJUKAN,
       waitingWorkingMinutes: 240,
     });
@@ -66,7 +68,11 @@ describe("F15-AC1 Antrean menampilkan nomor dokumen, Project ID, client, nominal
 
   it("Setelah disetujui, yang ditunggu adalah pembayaran, bukan approver", () => {
     const baris = composeFinanceQueueItem(
-      snapshot({ invoiceStatus: "APPROVED", currentStepLabel: null }),
+      snapshot({
+        invoiceStatus: "APPROVED",
+        currentStepLabel: null,
+        currentStepOrder: null,
+      }),
       EMPAT_JAM,
     );
 

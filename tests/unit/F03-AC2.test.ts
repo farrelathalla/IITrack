@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { checkPermission } from "@/lib/auth/permissions";
 import type { Action } from "@/lib/auth/types";
+import { canReadMemberList } from "@/lib/member/access";
 import {
   actor,
   assignedProject,
@@ -10,6 +11,21 @@ import {
 } from "../support/factories";
 
 describe("F03-AC2 Menyembunyikan tombol saja tidak cukup: permintaan langsung ke server tetap ditolak.", () => {
+  /**
+   * Regresi. Menu Pengurus memang disembunyikan dari anggota TechDev biasa,
+   * tetapi aturan itu dulu hanya berlaku pada menunya. Pembaca daftar
+   * pengurusnya sendiri tidak menerima actor sama sekali, sehingga permintaan
+   * langsung ke halamannya tetap dilayani beserta surel seluruh pengurus dan
+   * penanda pemegang System Administrator privilege.
+   */
+  it("Daftar pengurus menolak pembaca yang menunya sendiri disembunyikan", () => {
+    expect(canReadMemberList(actor("TECHDEV_MEMBER"), NOW)).toBe(false);
+
+    for (const jabatan of ["COO", "CFO", "OFFICER_OPERATIONAL"] as const) {
+      expect(canReadMemberList(actor(jabatan), NOW)).toBe(true);
+    }
+  });
+
   it("Keputusan izin tidak bergantung pada tampilan, sehingga aksi yang tombolnya disembunyikan tetap ditolak saat dipanggil langsung", () => {
     const decision = checkPermission({
       actor: actor("OFFICER_OPERATIONAL"),

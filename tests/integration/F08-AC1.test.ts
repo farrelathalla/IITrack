@@ -1,8 +1,14 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { can } from "@/lib/auth/permissions";
 import type { StageDefinition } from "@/lib/project/stages";
 import { assignProjectManager } from "@/server/project/assignment";
+import { projectContextFor } from "@/server/project/context";
 import type { ProjectReader } from "@/server/project/hub";
-import { readProjectHub, readProjectList } from "@/server/project/hub";
+import {
+  getProjectHubByProjectId,
+  readProjectHub,
+  readProjectList,
+} from "@/server/project/hub";
 import { assignMember } from "@/server/project/members";
 import { addReference } from "@/server/project/references";
 import { registerProject } from "@/server/project/registration";
@@ -195,6 +201,51 @@ describe("F08-AC2 Nilai project hanya muncul kalau jabatan pengguna mengizinkan.
     expect(hub).not.toBeNull();
     expect(hub?.name).toBe("Project Hub");
     expect(hub?.value).toBeNull();
+  });
+
+  /**
+   * Regresi. Halaman project mengirim nilai project sekali lagi sebagai
+   * schemeValue, bahan hitung formulir termin, dan yang itu dulu tidak ditapis
+   * izin. Officer Operational yang ditugaskan boleh mengubah termin tetapi
+   * tidak punya project.view_value, sehingga nilai projectnya ikut terkirim
+   * dan tampil di halaman.
+   */
+  it("Officer Operational yang ditugaskan tidak menerima nilai project lewat schemeValue", async () => {
+    const officer = await actorFrom(
+      uniqueEmail(`${PREFIX}officer-`),
+      "OFFICER_OPERATIONAL",
+      "OPERATIONAL",
+    );
+
+    const penugasan = await assignMember({
+      actor: coo.actor,
+      projectDbId: projectId,
+      userId: officer.userId,
+      division: "OPERATIONAL",
+    });
+    if (!penugasan.ok) throw new Error(penugasan.reason);
+
+    // Penugasannya memang memberi hak ubah, jadi yang diuji bukan ketiadaan
+    // hak, melainkan batas antara hak mengubah dan hak melihat nilai.
+    expect(
+      can({
+        actor: officer.actor,
+        action: "project.edit_operational",
+        project: await projectContextFor(officer.actor, projectId),
+        now: new Date(),
+      }),
+    ).toBe(true);
+
+    const nomor = await testDb.project.findUniqueOrThrow({
+      where: { id: projectId },
+      select: { projectId: true },
+    });
+
+    const hub = await getProjectHubByProjectId(officer.actor, nomor.projectId);
+
+    expect(hub).not.toBeNull();
+    expect(hub?.value).toBeNull();
+    expect(hub?.schemeValue).toBeNull();
   });
 
   it("Tata letak tetap utuh ketika kolom nilai tidak ada sama sekali", async () => {

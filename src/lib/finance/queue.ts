@@ -41,6 +41,8 @@ export interface FinanceQueueSnapshot {
   invoiceStatus: InvoiceQueueStatus;
   receiptStatus: ReceiptQueueStatus | null;
   currentStepLabel: string | null;
+  /** Nomor langkah yang sedang menunggu, kosong bila rantainya sudah selesai. */
+  currentStepOrder: number | null;
   issuedAt: Date;
 }
 
@@ -59,6 +61,11 @@ export interface FinanceQueueItem {
   state: TerminChainState;
   /** Jabatan yang sedang memegang, kosong bila yang ditunggu adalah pembayaran. */
   holdingLabel: string | null;
+  /**
+   * Nomor langkah yang sedang menunggu. Dipakai untuk mencocokkan baris ini ke
+   * rantai persetujuan tanpa bergantung pada nama langkahnya.
+   */
+  currentStepOrder: number | null;
   waitingSince: Date;
   waitingWorkingMinutes: number;
 }
@@ -143,6 +150,7 @@ export function composeFinanceQueueItem(
     ),
     state,
     holdingLabel: holdingLabelOf(state, snapshot.currentStepLabel),
+    currentStepOrder: snapshot.currentStepOrder,
     waitingSince: snapshot.issuedAt,
     waitingWorkingMinutes: workingMinutesBetween(
       snapshot.issuedAt,

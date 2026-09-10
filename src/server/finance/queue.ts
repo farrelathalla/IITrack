@@ -88,6 +88,7 @@ export async function readFinanceQueue(
         invoiceStatus: row.submission.status,
         receiptStatus: row.receipt?.status ?? null,
         currentStepLabel,
+        currentStepOrder: row.submission.currentStepOrder,
         issuedAt: row.issuedAt,
       },
       now,
