@@ -5,12 +5,19 @@ import { ProjectActivityList } from "@/components/project/activity-list";
 import { Alert, StatusBadge } from "@/components/ui";
 import { toActivityItem } from "@/lib/audit/activity";
 import { can } from "@/lib/auth/permissions";
+import type { Division } from "@/lib/auth/types";
 import { canSeeFinanceQueue } from "@/lib/finance/display";
 import { canSeeInvoiceRequestForm } from "@/lib/finance/invoice-form";
 import {
   canSeeReceiptForm,
   canSeeValidateReceipt,
 } from "@/lib/finance/receipt-form";
+import {
+  assignableDivisionsFor,
+  canSeeAssignMemberForm,
+  canSeeEndAssignment,
+  divisionLabel,
+} from "@/lib/project/assignment-display";
 import { formatProjectValue, stageLabel } from "@/lib/project/hub-display";
 import { canSeeAddReferenceForm } from "@/lib/project/reference-form";
 import { STAGE_CATALOGUE } from "@/lib/project/stages";
@@ -20,8 +27,11 @@ import { readProjectInvoices } from "@/server/finance/invoice";
 import { readProjectReceipts } from "@/server/finance/receipt";
 import { projectContextFor } from "@/server/project/context";
 import { getProjectHubByProjectId } from "@/server/project/hub";
+import { listAssignableMembers } from "@/server/project/members";
+import { AssignMemberForm } from "./assign-member-form";
 import { ChangeStageForm } from "./change-stage-form";
 import { DocumentsPanel } from "./documents-panel";
+import { EndAssignmentButton } from "./end-assignment-button";
 import { StaffingPanel } from "./staffing-panel";
 import { TerminPanel } from "./termin-panel";
 
@@ -36,15 +46,7 @@ export async function generateMetadata({
   return { title: decodeURIComponent(projectId) };
 }
 
-function namesInDivision(
-  members: Array<{ name: string; division: string }>,
-  division: string,
-): string {
-  const names = members
-    .filter((member) => member.division === division)
-    .map((member) => member.name);
-  return names.length > 0 ? names.join(", ") : "Belum ditugaskan";
-}
+const TEAM_DIVISIONS: Division[] = ["OPERATIONAL", "FINANCE", "TECHDEV"];
 
 export default async function ProjectHubPage({ params }: PageProps) {
   const { projectId: rawId } = await params;
@@ -93,6 +95,25 @@ export default async function ProjectHubPage({ params }: PageProps) {
   );
   const bolehBukaAntrean = canSeeStaffingQueue(session.actor, now);
   const bolehBukaAntreanFinance = canSeeFinanceQueue(session.actor, now);
+  const bolehTugaskan = canSeeAssignMemberForm(session.actor, now);
+  const divisiBisaDitugaskan = assignableDivisionsFor(session.actor, now);
+
+  const candidatesByDivision = {
+    OPERATIONAL: [] as Array<{ id: string; name: string; email: string }>,
+    FINANCE: [] as Array<{ id: string; name: string; email: string }>,
+    TECHDEV: [] as Array<{ id: string; name: string; email: string }>,
+  };
+  if (bolehTugaskan) {
+    for (const division of divisiBisaDitugaskan) {
+      const listed = await listAssignableMembers(
+        session.actor,
+        hub.id,
+        division,
+        now,
+      );
+      if (listed.ok) candidatesByDivision[division] = listed.members;
+    }
+  }
 
   const daftarInvoice = bolehBukaAntreanFinance
     ? await readProjectInvoices(session.actor, hub.id, now)
@@ -217,19 +238,60 @@ export default async function ProjectHubPage({ params }: PageProps) {
               <dt className="text-slate-500">Operational (PM)</dt>
               <dd>{hub.assignedPmName ?? "Belum ditugaskan"}</dd>
             </div>
-            <div className="flex justify-between gap-3">
-              <dt className="text-slate-500">Finance</dt>
-              <dd>{namesInDivision(hub.members, "FINANCE")}</dd>
-            </div>
-            <div className="flex justify-between gap-3">
-              <dt className="text-slate-500">TechDev</dt>
-              <dd>{namesInDivision(hub.members, "TECHDEV")}</dd>
-            </div>
+            {TEAM_DIVISIONS.map((division) => {
+              const rows = hub.members.filter(
+                (member) => member.division === division,
+              );
+              return (
+                <div key={division} className="flex flex-col gap-2">
+                  <div className="flex justify-between gap-3">
+                    <dt className="text-slate-500">
+                      {divisionLabel(division)}
+                      {division === "OPERATIONAL" ? " (pelaksana)" : ""}
+                    </dt>
+                    <dd>
+                      {rows.length > 0
+                        ? rows.map((row) => row.name).join(", ")
+                        : "Belum ditugaskan"}
+                    </dd>
+                  </div>
+                  {rows.map((row) =>
+                    canSeeEndAssignment(
+                      session.actor,
+                      row.division as Division,
+                      now,
+                    ) ? (
+                      <div
+                        key={row.assignmentId}
+                        className="flex items-center justify-between gap-2 rounded-card border border-line px-3 py-2 text-sm"
+                      >
+                        <span>
+                          {row.name}
+                          <span className="ml-2 text-slate-500 text-xs">
+                            {divisionLabel(row.division as Division)}
+                          </span>
+                        </span>
+                        <EndAssignmentButton assignmentId={row.assignmentId} />
+                      </div>
+                    ) : null,
+                  )}
+                </div>
+              );
+            })}
             <div className="flex justify-between gap-3">
               <dt className="text-slate-500">Didaftarkan oleh</dt>
               <dd>{hub.registeredByName}</dd>
             </div>
           </dl>
+
+          {bolehTugaskan ? (
+            <AssignMemberForm
+              projectDbId={hub.id}
+              divisions={divisiBisaDitugaskan}
+              candidatesByDivision={candidatesByDivision}
+            />
+          ) : null}
+
           <StaffingPanel
             projectDbId={hub.id}
             requests={hub.staffingRequests}
