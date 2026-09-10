@@ -1,6 +1,7 @@
 "use server";
 
 import { parseInvoiceRequestForm } from "@/lib/finance/invoice-form";
+import { parseAssignmentForm } from "@/lib/project/assignment-form";
 import { parseReferenceForm } from "@/lib/project/reference-form";
 import { findStage, STAGE_CATALOGUE } from "@/lib/project/stages";
 import { parseStaffingRequestForm } from "@/lib/staffing/form";
@@ -8,6 +9,7 @@ import type { TerminDraft } from "@/lib/termin/scheme";
 import { MAX_TERMIN_ROWS } from "@/lib/termin/scheme";
 import { getAuthenticatedSession } from "@/server/auth/session";
 import { requestInvoice } from "@/server/finance/invoice";
+import { assignMember, endAssignment } from "@/server/project/members";
 import { addReference } from "@/server/project/references";
 import { changeProjectStage } from "@/server/project/stage";
 import { saveTerminScheme } from "@/server/project/termin";
@@ -254,6 +256,81 @@ export async function addReferenceAction(
   return {
     error: null,
     success: "Tautan tersimpan di Project Hub.",
+    savedAt: Date.now(),
+  };
+}
+
+export interface AssignMemberFormState {
+  error: string | null;
+  fields?: Record<string, string>;
+  success?: string | null;
+  savedAt?: number;
+}
+
+export async function assignMemberAction(
+  _previous: AssignMemberFormState,
+  formData: FormData,
+): Promise<AssignMemberFormState> {
+  const session = await getAuthenticatedSession();
+  if (!session) {
+    return { error: "Sesi berakhir. Silakan masuk kembali." };
+  }
+
+  const parsed = parseAssignmentForm({
+    projectDbId: String(formData.get("projectDbId") ?? ""),
+    division: String(formData.get("division") ?? ""),
+    userId: String(formData.get("userId") ?? ""),
+  });
+  if (!parsed.ok) {
+    return { error: parsed.reason, fields: parsed.fields };
+  }
+
+  const result = await assignMember({
+    actor: session.actor,
+    projectDbId: parsed.data.projectDbId,
+    userId: parsed.data.userId,
+    division: parsed.data.division,
+  });
+
+  if (!result.ok) return { error: result.reason };
+
+  return {
+    error: null,
+    success: "Pelaksana ditugaskan pada project ini.",
+    savedAt: Date.now(),
+  };
+}
+
+export interface EndAssignmentFormState {
+  error: string | null;
+  success?: string | null;
+  savedAt?: number;
+}
+
+export async function endAssignmentAction(
+  _previous: EndAssignmentFormState,
+  formData: FormData,
+): Promise<EndAssignmentFormState> {
+  const session = await getAuthenticatedSession();
+  if (!session) {
+    return { error: "Sesi berakhir. Silakan masuk kembali." };
+  }
+
+  const assignmentId = String(formData.get("assignmentId") ?? "").trim();
+  if (!assignmentId) {
+    return { error: "Penugasan yang dimaksud tidak ditemukan." };
+  }
+
+  const result = await endAssignment({
+    actor: session.actor,
+    assignmentId,
+  });
+
+  if (!result.ok) return { error: result.reason };
+
+  return {
+    error: null,
+    success: "Penugasan diakhiri. Riwayat lamanya tetap tersimpan.",
     savedAt: Date.now(),
   };
 }

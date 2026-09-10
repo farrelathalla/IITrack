@@ -64,7 +64,12 @@ export interface ProjectHubData {
   clientConfirmedAt: Date | null;
   pmAssignedAt: Date | null;
   updatedAt: Date;
-  members: Array<{ name: string; division: string }>;
+  members: Array<{
+    assignmentId: string;
+    userId: string;
+    name: string;
+    division: string;
+  }>;
   stageHistory: Array<{
     fromStage: string | null;
     toStage: string;
@@ -122,6 +127,7 @@ export async function readProjectHub(
       assignments: {
         where: { endedAt: null },
         select: {
+          id: true,
           division: true,
           userId: true,
           user: { select: { name: true } },
@@ -216,6 +222,8 @@ export async function readProjectHub(
     pmAssignedAt: project.pmAssignedAt,
     updatedAt: project.updatedAt,
     members: project.assignments.map((a) => ({
+      assignmentId: a.id,
+      userId: a.userId,
       name: a.user.name,
       division: a.division,
     })),

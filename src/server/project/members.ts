@@ -205,3 +205,67 @@ export async function endAssignment(
 
   return { ok: true };
 }
+
+export type AssignableMemberOption = {
+  id: string;
+  name: string;
+  email: string;
+};
+
+/**
+ * Daftar pengurus aktif di satu divisi yang bisa dipilih di form F31-T02.
+ *
+ * Hanya untuk yang berwenang menugaskan divisi itu. Yang sudah ditugaskan
+ * aktif pada project yang sama (divisi yang sama) tidak ikut, supaya pilihan
+ * tidak mengulang penolakan ALREADY_ASSIGNED.
+ */
+export async function listAssignableMembers(
+  actor: Actor,
+  projectDbId: string,
+  division: Division,
+  now: Date = new Date(),
+): Promise<{ ok: true; members: AssignableMemberOption[] } | Refusal> {
+  const izin = checkPermission({
+    actor,
+    action: "project.assign_member",
+    project: { projectId: projectDbId, assignedDivisions: [] },
+    now,
+  });
+  if (!izin.allowed) return refuse(izin.reason);
+
+  if (!canAssignToDivision(actor, division, now)) {
+    return refuse(
+      `Anda hanya bisa menugaskan pelaksana di divisi yang Anda pimpin, dan ${division} bukan salah satunya.`,
+    );
+  }
+
+  const sudah = await prisma.projectAssignment.findMany({
+    where: {
+      projectId: projectDbId,
+      division,
+      endedAt: null,
+    },
+    select: { userId: true },
+  });
+  const sudahIds = new Set(sudah.map((row) => row.userId));
+
+  const rows = await prisma.user.findMany({
+    where: {
+      status: "ACTIVE",
+      roleAssignments: {
+        some: {
+          division,
+          startDate: { lte: now },
+          OR: [{ endDate: null }, { endDate: { gt: now } }],
+        },
+      },
+    },
+    orderBy: { name: "asc" },
+    select: { id: true, name: true, email: true },
+  });
+
+  return {
+    ok: true,
+    members: rows.filter((row) => !sudahIds.has(row.id)),
+  };
+}

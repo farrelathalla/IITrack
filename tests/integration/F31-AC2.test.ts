@@ -272,3 +272,46 @@ describe("F31-AC3 Pemindahan penugasan memindahkan hak edit tanpa mengubah jabat
     expect(dicabut).toBeGreaterThanOrEqual(1);
   });
 });
+
+describe("F31-T02 daftar pilihan pemilih anggota", () => {
+  it("COO hanya melihat kandidat Operational yang belum ditugaskan", async () => {
+    const { listAssignableMembers } = await import(
+      "@/server/project/members"
+    );
+
+    const listed = await listAssignableMembers(
+      coo.actor,
+      projectId,
+      "OPERATIONAL",
+    );
+    expect(listed.ok).toBe(true);
+    if (!listed.ok) return;
+
+    // officerLain sudah ditugaskan di tes sebelumnya; officer dicabut lalu
+    // ditugaskan lagi / diganti — pastikan yang aktif tidak muncul dua kali.
+    const ids = new Set(listed.members.map((m) => m.id));
+    expect(ids.has(officerLain.userId)).toBe(false);
+
+    const lintas = await listAssignableMembers(
+      coo.actor,
+      projectId,
+      "FINANCE",
+    );
+    expect(lintas.ok).toBe(false);
+  });
+
+  it("Hub mengembalikan assignmentId supaya UI bisa mengakhiri penugasan", async () => {
+    const { getProjectHubByProjectId } = await import(
+      "@/server/project/hub"
+    );
+    const nomor = await testDb.project.findUniqueOrThrow({
+      where: { id: projectId },
+      select: { projectId: true },
+    });
+    const hub = await getProjectHubByProjectId(coo.actor, nomor.projectId);
+    expect(hub).not.toBeNull();
+    expect(hub?.members.length).toBeGreaterThan(0);
+    expect(hub?.members.every((m) => m.assignmentId.length > 0)).toBe(true);
+    expect(hub?.members.every((m) => m.userId.length > 0)).toBe(true);
+  });
+});
