@@ -65,6 +65,9 @@ Data contoh berisi lima akun untuk periode 2026/2027 dengan kata sandi
 `pm@iit.test`, dan `admin@iit.test` yang memegang System Administrator
 privilege.
 
+Lingkup eksekusi UAT, akun uji, dan folder bukti ada di
+[`docs/uat-execution-scope.md`](docs/uat-execution-scope.md).
+
 Penjelasan arsitektur, variabel lingkungan, aturan migrasi, penanganan masalah,
 dan jalur eskalasi ada di [`docs/technical-handover.md`](docs/technical-handover.md).
 
