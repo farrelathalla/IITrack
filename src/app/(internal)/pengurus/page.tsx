@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { notFound } from "next/navigation";
 import {
   Alert,
   StatusBadge,
@@ -23,11 +24,17 @@ export const metadata: Metadata = {
 
 export default async function PengurusPage() {
   const session = await getAuthenticatedSession();
-  const bolehKelola =
-    session !== null &&
-    canSeeAction(session.actor, "user.manage_role_assignment");
+  if (!session) notFound();
 
-  const members = await listMembersWithRoles();
+  const bolehKelola = canSeeAction(
+    session.actor,
+    "user.manage_role_assignment",
+  );
+
+  // Daftarnya memuat surel dan pemegang System Administrator privilege, jadi
+  // halamannya menghilang bagi yang tidak berwenang, bukan tampil tanpa isi.
+  const members = await listMembersWithRoles(session.actor);
+  if (!members) notFound();
   const activeUsers = members
     .filter((member) => member.status === "ACTIVE")
     .map((member) => ({

@@ -330,8 +330,13 @@ export type ProjectHubPageData = ProjectHubData & {
   registeredByName: string;
   assignedPmName: string | null;
   knownStages: Array<{ key: string; order: number; label: string }>;
-  /** Nilai project dari DB untuk form termin (bukan hasil saringan tampilan). */
+  /** Nilai project untuk form termin, ditapis izin yang sama dengan `value`. */
   schemeValue: string | null;
+  /**
+   * Nilai projectnya ada, tetapi pembaca ini tidak boleh melihatnya. Membedakan
+   * "belum diisi" dari "tidak boleh dilihat", tanpa menyebut angkanya.
+   */
+  valueHidden: boolean;
   auditTrail: Array<{
     action: string;
     actorName: string | null;
@@ -430,7 +435,14 @@ export async function getProjectHubByProjectId(
       order: stage.order,
       label: stage.label,
     })),
-    schemeValue: found.value?.toString() ?? null,
+    // Mengikuti `hub.value`, yang sudah ditapis project.view_value. Sebelumnya
+    // nilai ini dikirim apa adanya sebagai bahan hitung formulir termin,
+    // sehingga jabatan yang boleh mengubah termin tetapi tidak boleh melihat
+    // nilai project, yaitu Officer Operational yang ditugaskan, ikut
+    // menerimanya. Menyalin dari hub.value, bukan memeriksa izin sekali lagi,
+    // supaya penapisannya tidak bisa berbeda dengan yang dipakai `value`.
+    schemeValue: hub.value,
+    valueHidden: found.value !== null && hub.value === null,
     auditTrail: auditTrail.map((row) => ({
       action: row.action,
       actorName: row.actor?.name ?? null,

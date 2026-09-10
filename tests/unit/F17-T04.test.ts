@@ -27,6 +27,7 @@ function item(bagian: Partial<FinanceQueueItem> = {}): FinanceQueueItem {
     paymentStatus: "BELUM",
     state: "MENUNGGU_PERSETUJUAN",
     holdingLabel: "Finance POC",
+    currentStepOrder: 1,
     waitingSince: MASUK,
     waitingWorkingMinutes: 240,
     ...bagian,
@@ -57,7 +58,7 @@ describe("F17-T04 Membuat halaman rincian pengajuan beserta tombol setuju dan to
     expect(
       canSeeSubmissionDecision(
         actor("CFO"),
-        item({ holdingLabel: "CFO atau Vice CFO" }),
+        item({ holdingLabel: "CFO atau Vice CFO", currentStepOrder: 3 }),
         NOW,
       ),
     ).toBe(true);
@@ -105,6 +106,7 @@ describe("F17-T04 Membuat halaman rincian pengajuan beserta tombol setuju dan to
         item({
           state: "MENUNGGU_PEMBAYARAN",
           holdingLabel: null,
+          currentStepOrder: null,
           approvalStatus: "APPROVED",
           paymentStatus: "MENUNGGU",
         }),
@@ -117,6 +119,7 @@ describe("F17-T04 Membuat halaman rincian pengajuan beserta tombol setuju dan to
         item({
           state: "MENUNGGU_VERIFIKASI",
           holdingLabel: "Finance POC",
+          currentStepOrder: 1,
           approvalStatus: "APPROVED",
           paymentStatus: "RECORDED",
         }),

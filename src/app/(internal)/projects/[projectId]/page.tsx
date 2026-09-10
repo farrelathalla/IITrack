@@ -256,6 +256,7 @@ export default async function ProjectHubPage({ params }: PageProps) {
           }}
           schemeValue={hub.schemeValue}
           displayValue={hub.value}
+          valueHidden={hub.valueHidden}
           termins={hub.termins}
           invoices={invoices}
           receipts={receipts}
