@@ -1,20 +1,24 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+/*
+ * Sans serif geometris humanis, satu keluarga huruf untuk judul dan badan
+ * sekaligus (Design Brief bab 3).
+ */
+const plusJakarta = Plus_Jakarta_Sans({
+  variable: "--font-plus-jakarta",
   subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
+  display: "swap",
 });
 
 export const metadata: Metadata = {
-  title: "Inkubator IT — Next.js",
-  description: "Next.js + Tailwind + Bun starter template by Inkubator IT.",
+  title: {
+    default: "IITrack",
+    template: "%s — IITrack",
+  },
+  description:
+    "Sistem alur kerja lintas divisi Inkubator IT HMIF ITB. Satu project, satu Project ID.",
 };
 
 export default function RootLayout({
@@ -23,12 +27,10 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-      >
-        {children}
-      </body>
+    // Variabel font menempel di <html>, bukan <body>, karena Tailwind
+    // meresolusi --font-sans pada elemen akar.
+    <html lang="id" className={plusJakarta.variable}>
+      <body className="antialiased">{children}</body>
     </html>
   );
 }

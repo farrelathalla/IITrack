@@ -1,152 +1,131 @@
-## Inkubator IT — Next.js Template
+# IITrack
 
-Standardized Next.js frontend template for projects in the Inkubator IT GitHub organization. Built and maintained by the DevOps team to unify stack choices, local development, containerization, and deployment conventions across client projects.
+Sistem alur kerja lintas divisi Inkubator IT HMIF ITB. IITrack mencatat project
+dari saat COO menugaskan PM sampai project ditutup: satu project punya satu
+Project ID, dan seluruh dokumen, termin, pengajuan, serta penugasan menempel
+pada nomor tersebut.
 
-### Tech stack
-- **Runtime**: Bun (scripts, tooling)
-- **Framework**: Next.js 15 (App Router, Turbopack)
-- **Language**: TypeScript
-- **UI**: Tailwind CSS v4
-- **Icons**: lucide-react
-- **Quality**: Biome (lint & format)
-- **Containerization**: Docker (Next.js standalone, Bun runtime)
+Dokumen acuan: `IIT-PRD-IITRACK-2026` (lingkup dan requirement),
+`IIT-PCH-OPS26/27` (estimasi dan timeline), `IIT-UAT-OPS26/27` (kriteria
+penerimaan).
 
-### Project structure
-```
-.
-├─ src/
-│  ├─ app/                # App Router (layouts, pages, styles)
-│  │  ├─ globals.css      # Tailwind v4 + theme tokens
-│  │  ├─ layout.tsx       # Root layout
-│  │  └─ page.tsx         # Example landing page
-│  └─ lib/
-│     └─ utils.ts         # Shared utilities (e.g., cn)
-├─ public/                # Static assets served as-is
-│  ├─ logo-iit.png
-│  ├─ next-white.svg
-│  └─ ...
-├─ next.config.ts         # Next.js config (output: standalone)
-├─ .env.example           # Environment variables example
-├─ postcss.config.mjs     # Tailwind v4 via PostCSS
-├─ components.json        # UI components registry (shadcn config)
-├─ biome.json             # Biome config (lint/format)
-├─ tsconfig.json          # TypeScript config (alias `@` → `src`)
-├─ package.json           # Scripts and deps
-└─ Dockerfile             # Multi-stage build (Bun build → Bun runtime)
-```
+## Tech stack
 
-### Prerequisites
-- **Bun** installed (`bun --version`)
-- **Docker** (optional, for container builds)
+Mengikuti template Next.js Inkubator IT, ditambah dua hal yang diminta dokumen
+proyek: Prisma karena backend dan frontend berada di satu repositori, dan Vitest
+karena aturan izin, gate, dan approval wajib bisa diuji tanpa menjalankan basis
+data maupun peramban (PRD bab 3.9).
 
-### Getting started (local development)
-1) Create a new repository from this template in the Inkubator IT organization.
-2) Clone your new repository.
-3) Copy `.env.example` to `.env.local` (or `.env`) and fill in values.
-    - `NEXT_PUBLIC_API_URL` is the URL of the API.
-4) Install dependencies:
+- **Runtime**: Bun
+- **Framework**: Next.js (App Router, Turbopack)
+- **Bahasa**: TypeScript
+- **UI**: Tailwind CSS v4, shadcn/ui, lucide-react
+- **Basis data**: PostgreSQL via Prisma
+- **Test**: Vitest
+- **Kualitas**: Biome
+
+## Menjalankan secara lokal
+
 ```sh
 bun install
+cp .env.example .env
 ```
-5) Start the dev server (Turbopack):
+
+Untuk basis data lokal, pasang PostgreSQL lalu buat pengguna dan basis datanya:
+
 ```sh
+sudo apt install -y postgresql
+```
+
+```sh
+sudo -u postgres psql -c "CREATE USER iitrack WITH PASSWORD 'iitrack' CREATEDB;" -c "CREATE DATABASE iitrack OWNER iitrack;"
+```
+
+Isi `DATABASE_URL` di `.env` dengan
+`postgresql://iitrack:iitrack@localhost:5432/iitrack`, lalu isi `SESSION_SECRET`
+dengan hasil `openssl rand -base64 32`.
+
+`bunx prisma dev` sengaja tidak dipakai. Postgres bawaannya berjalan di atas
+PGlite dan mati begitu kena `RAISE EXCEPTION` dari trigger, sehingga test
+integrasi berhenti di tengah jalan. Alasan lengkapnya ada di
+[`docs/technical-handover.md`](docs/technical-handover.md).
+
+Lalu bangkitkan klien Prisma, terapkan skema, isi data contoh, dan jalankan
+aplikasi:
+
+```sh
+bun run db:generate
+bun run db:deploy
+bun run db:seed
 bun run dev
 ```
-6) Open `http://localhost:3000`.
-7) Edit `src/app/page.tsx` to try HMR.
 
-### Environment variables
-Next.js loads env files automatically. Server-side variables are always available via `process.env`. To expose a variable to the browser, prefix it with `NEXT_PUBLIC_`.
+Data contoh berisi lima akun untuk periode 2026/2027 dengan kata sandi
+`iitrack-dev-2627`: `coo@iit.test`, `cfo@iit.test`, `cto@iit.test`,
+`pm@iit.test`, dan `admin@iit.test` yang memegang System Administrator
+privilege.
 
-- Place env files at the project root: `.env.local`, `.env.development`, `.env.production`, etc.
-- Use `NEXT_PUBLIC_*` for variables needed on the client.
+Penjelasan arsitektur, variabel lingkungan, aturan migrasi, penanganan masalah,
+dan jalur eskalasi ada di [`docs/technical-handover.md`](docs/technical-handover.md).
 
-Example `.env.local`:
-```env
-NEXT_PUBLIC_API_URL="http://localhost:3001"
+## Perintah
+
+| Perintah | Kegunaan |
+|---|---|
+| `bun run dev` | Menjalankan server pengembangan |
+| `bun run test` | Menjalankan test unit, tanpa basis data |
+| `bun run test:integration` | Menjalankan test integrasi, perlu Postgres hidup |
+| `bun run test:all` | Menjalankan keduanya |
+| `bun run test:watch` | Menjalankan test unit secara berkelanjutan |
+| `bun run typecheck` | Memeriksa tipe tanpa membangun |
+| `bun run lint` | Memeriksa lint dan format |
+| `bun run db:migrate` | Membuat migrasi baru dari perubahan skema |
+| `bun run db:deploy` | Menerapkan migrasi yang sudah ada |
+| `bun run db:seed` | Mengisi data contoh untuk pengembangan |
+
+## Struktur
+
+```
+docs/                  Serah terima teknis dan rancangan halaman
+prisma/schema.prisma   Skema basis data
+prisma.config.ts       Konfigurasi Prisma: lokasi skema, migrasi, dan URL
+src/app/               Halaman dan route (App Router)
+src/lib/               Logika murni tanpa basis data, diuji sebagai unit
+src/server/            Kode khusus server: akses basis data, sesi, penjaga izin
+tests/unit/            Test aturan bisnis, tanpa basis data dan peramban
+tests/integration/     Test yang menyentuh basis data, konfigurasi terpisah
+tests/e2e/             Skenario alur penuh, dinamai mengikuti ID test case UAT
 ```
 
-Use in server code (RSC/route handlers):
-```ts
-const apiUrl = process.env.NEXT_PUBLIC_API_URL;
-```
+`src/lib` sengaja tidak boleh mengimpor Prisma maupun modul Next.js. Aturan izin,
+gate, dan approval dipanggil setiap request dan diuji puluhan kali per hari, jadi
+keduanya harus bisa dijalankan tanpa menyalakan apa pun.
 
-Use in client code (or shared code executed on the client):
-```ts
-const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
-```
+## Konvensi kerja
 
-### Scripts
-- **dev**: `next dev --turbopack`
-- **build**: `next build --turbopack`
-- **start**: `next start`
-- **lint**: `biome check`
-- **lint:fix**: `biome check --write`
-- **format**: `biome format --write`
+Mengikuti Development Workflow & Guidelines Inkubator IT dan PRD bab 3.9.
 
-Run examples:
-```sh
-bun run dev
-bun run build && bun run start
-bun run lint
-```
+**Branch.** Satu branch untuk satu task. `feature/nama-fitur`,
+`fix/nama-masalah`, `refactor/nama-bagian`, `chore/nama-task`. Tidak ada yang
+dikerjakan langsung di `main`.
 
-### Aliases
-TypeScript paths are configured for cleaner imports:
+**Commit.** `type: description` dengan type `feat`, `fix`, `refactor`, `docs`,
+`test`, `chore`, atau `style`. Satu commit mewakili satu perubahan yang jelas.
 
-- **Alias**: `@` → `./src`
+**Test.** Test ditulis lebih dulu dan terbukti pernah gagal sebelum kodenya
+ditulis. Nama berkas test memuat ID fitur dan nomor acceptance criteria,
+misalnya `F03-AC1.test.ts`. Judul test menyalin kalimat acceptance criteria pada
+PRD bab 4 apa adanya. Berkas test alur penuh dinamai mengikuti ID test case UAT,
+misalnya `UAT-E2E-001`.
 
-Example:
-```ts
-import { cn } from "@/lib/utils";
-```
+**Review.** Tim hanya berdua, jadi review dilakukan silang. Tidak ada pull
+request yang digabung tanpa review dari pelaksana yang lain, dan pipeline harus
+hijau lebih dulu.
 
-### Styling
-- Tailwind CSS v4 is preconfigured via `@import "tailwindcss"` in `src/app/globals.css`.
-- Light/dark design tokens are provided; apply `.dark` on `<html>` or any parent node to switch.
-- Includes `tw-animate-css` for simple animations.
+**Izin.** Pemeriksaan izin dilakukan di lapisan server. Menyembunyikan tombol
+pada tampilan tidak dianggap memenuhi requirement; permintaan langsung ke server
+tetap harus ditolak. Pesan penolakan ditulis dalam bahasa pengguna, bukan kode
+kesalahan.
 
-### Run with Docker
-This repo provides a multi-stage Dockerfile using Bun for both build and runtime, leveraging Next.js `output: "standalone"`.
-
-Build the production image:
-```sh
-docker build -t inkubatorit/nextjs-template .
-```
-Run the container:
-```sh
-docker run --rm -p 3000:3000 \
-  -e NODE_ENV=production \
-  -e NEXT_TELEMETRY_DISABLED=1 \
-  inkubatorit/nextjs-template
-```
-Open `http://localhost:3000`.
-
-Pass environment variables as needed (server-side only) using `-e` or an env file.
-
-### Code quality
-Run Biome locally before commits:
-```sh
-bun run lint
-bun run format
-```
-
-### Deployment notes
-- Production build emits a standalone server in `.next/standalone` and static assets in `.next/static`.
-- Dockerfile copies `public/`, `.next/standalone`, and `.next/static`, then runs `server.js` with Bun in a minimal image.
-- Telemetry is disabled in the image via `NEXT_TELEMETRY_DISABLED=1`. Remove or change if you prefer.
-- If hosting behind a sub-path or CDN, configure `basePath`/`assetPrefix` in `next.config.ts` and ensure links and asset URLs respect them.
-
-### Troubleshooting
-- If native deps fail on Alpine (musl), add `libc6-compat` in the `deps` stage (see Dockerfile comment).
-- Tailwind not applying? Ensure classes are in files under `src/` and the dev server was restarted after dependency changes.
-- Type errors from path aliases? Verify `tsconfig.json` has `"@/*": ["./src/*"]` and the dev server was restarted.
-
-### Contributing
-Maintained by the **Inkubator IT DevOps** team. Contributions are welcome via Pull Requests. For significant changes, please open an Issue first for discussion.
-
-### Support
-For questions or support, contact the Inkubator IT DevOps team.
-
-### License
-Copyright (c) Inkubator IT. All rights reserved.
+**Jejak aktivitas.** Sejak Sprint 1, setiap aksi kritis wajib memanggil fungsi
+pencatat jejak beserta testnya.
