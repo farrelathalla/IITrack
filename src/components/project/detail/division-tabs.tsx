@@ -1,6 +1,6 @@
 "use client";
 
-import { UserCog } from "lucide-react";
+import { Code2, FolderKanban, UserCog, Wallet } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { STAGE_TONE } from "@/components/project/tones";
 import { Avatar } from "@/components/ui/avatar";
@@ -368,10 +368,14 @@ function FinanceTab({
   );
 }
 
-const TABS: { key: DivisionTab; label: string; icon: string }[] = [
-  { key: "pm", label: "Project Manager", icon: "🗂" },
-  { key: "tech", label: "Technology Dev", icon: "💻" },
-  { key: "finance", label: "Finance", icon: "💰" },
+const TABS: {
+  key: DivisionTab;
+  label: string;
+  icon: typeof Wallet;
+}[] = [
+  { key: "pm", label: "Project Manager", icon: FolderKanban },
+  { key: "tech", label: "Technology Dev", icon: Code2 },
+  { key: "finance", label: "Finance", icon: Wallet },
 ];
 
 /** Tampilan Divisi: data yang sama dari sudut pandang tiap divisi (PRD bab 8.3). */
@@ -419,7 +423,7 @@ export function DivisionTabs({
                   : "border-transparent text-muted hover:text-ink",
               )}
             >
-              <span aria-hidden="true">{t.icon}</span>
+              <t.icon className="size-4" aria-hidden="true" />
               {t.label}
             </button>
           ))}

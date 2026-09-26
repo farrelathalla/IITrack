@@ -1,3 +1,15 @@
+import {
+  ArrowUp,
+  Check,
+  CircleCheck,
+  Dot,
+  FolderOpen,
+  Hourglass,
+  type LucideIcon,
+  PlayCircle,
+  Plus,
+  X,
+} from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ProjectCard } from "@/components/project/project-card";
@@ -31,18 +43,18 @@ import {
 
 export const metadata: Metadata = { title: "Dashboard" };
 
-const RESULT_ICON: Record<string, { cls: string; icon: string }> = {
+const RESULT_ICON: Record<string, { cls: string; icon: LucideIcon }> = {
   APPROVED: {
     cls: "border-success-line bg-success-bg text-success-text",
-    icon: "✓",
+    icon: Check,
   },
   REJECTED: {
     cls: "border-danger-line bg-danger-bg text-danger-text",
-    icon: "✗",
+    icon: X,
   },
-  UPDATED: { cls: "border-plum-200 bg-plum-50 text-plum-500", icon: "·" },
-  SUBMITTED: { cls: "border-plum-200 bg-plum-50 text-plum-600", icon: "↑" },
-  CREATED: { cls: "border-plum-200 bg-plum-50 text-plum-600", icon: "+" },
+  UPDATED: { cls: "border-plum-200 bg-plum-50 text-plum-500", icon: Dot },
+  SUBMITTED: { cls: "border-plum-200 bg-plum-50 text-plum-600", icon: ArrowUp },
+  CREATED: { cls: "border-plum-200 bg-plum-50 text-plum-600", icon: Plus },
 };
 
 export default async function DashboardPage() {
@@ -96,14 +108,14 @@ export default async function DashboardPage() {
       label: "Semua Project",
       value: counts.all,
       sub: "di seluruh organisasi",
-      icon: "📁",
+      icon: FolderOpen,
       accent: "text-ink",
     },
     {
       label: "Project Aktif",
       value: items.length,
       sub: "sedang berjalan",
-      icon: "▶",
+      icon: PlayCircle,
       accent: "text-plum-600",
     },
     {
@@ -112,14 +124,14 @@ export default async function DashboardPage() {
         i.stages.some((s) => s.status === "waiting-approval"),
       ).length,
       sub: "butuh tindakan",
-      icon: "⏳",
+      icon: Hourglass,
       accent: "text-warning-dot",
     },
     {
       label: "Project Selesai",
       value: completedThisYear,
       sub: `tahun ${yearInWib(now)}`,
-      icon: "✓",
+      icon: CircleCheck,
       accent: "text-success-text",
     },
   ];
@@ -157,7 +169,7 @@ export default async function DashboardPage() {
                 </span>
                 <Link
                   href={`/projects/${item.project.code}?tab=${assignment.role === "PM" ? "pm" : assignment.role === "DEVELOPER" ? "tech" : "finance"}`}
-                  className="rounded-lg bg-plum-600 px-3 py-1 font-semibold text-white hover:bg-plum-700"
+                  className="pressable rounded-lg bg-plum-600 px-3 py-1 font-semibold text-white hover:bg-plum-700"
                 >
                   Ganti
                 </Link>
@@ -205,9 +217,10 @@ export default async function DashboardPage() {
           >
             <div className="mb-2 flex items-start justify-between">
               <p className="font-medium text-muted text-xs">{stat.label}</p>
-              <span aria-hidden="true" className="text-base leading-none">
-                {stat.icon}
-              </span>
+              <stat.icon
+                aria-hidden="true"
+                className={cn("size-4", stat.accent)}
+              />
             </div>
             <p className={cn("font-bold text-3xl", stat.accent)}>
               {stat.value}
@@ -267,7 +280,10 @@ export default async function DashboardPage() {
                       </p>
                     </div>
                     <div className="flex shrink-0 items-center gap-1.5">
-                      <Avatar name={deadline.responsible.name} />
+                      <Avatar
+                        name={deadline.responsible.name}
+                        group={!deadline.responsible.userId}
+                      />
                       <span className="text-muted text-xs">
                         {deadline.responsible.name.split(" ")[0]}
                       </span>
@@ -294,6 +310,7 @@ export default async function DashboardPage() {
             ) : (
               activity.map((row) => {
                 const icon = RESULT_ICON[row.result] ?? RESULT_ICON.UPDATED;
+                const Icon = icon.icon;
                 return (
                   <div
                     key={row.id}
@@ -305,7 +322,11 @@ export default async function DashboardPage() {
                         icon.cls,
                       )}
                     >
-                      {icon.icon}
+                      <Icon
+                        className="size-3.5"
+                        strokeWidth={2.5}
+                        aria-hidden="true"
+                      />
                     </div>
                     <div className="min-w-0 flex-1">
                       <p className="text-ink text-xs leading-relaxed">

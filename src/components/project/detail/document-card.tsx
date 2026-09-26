@@ -119,7 +119,7 @@ export function DocumentCard({
             href={doc.url}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-1.5 rounded-lg border border-plum-200 px-3 py-1.5 font-semibold text-plum-600 text-xs hover:bg-plum-50"
+            className="pressable inline-flex items-center gap-1.5 rounded-lg border border-plum-200 px-3 py-1.5 font-semibold text-plum-600 text-xs hover:bg-plum-50"
           >
             <ExternalLink className="size-3.5" />
             Buka Dokumen

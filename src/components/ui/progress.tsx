@@ -15,7 +15,7 @@ export function StageProgress({
     <div className={cn("flex items-center gap-2", className)}>
       <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-line">
         <div
-          className="h-full rounded-full bg-plum-600 transition-all"
+          className="h-full rounded-full bg-plum-600 transition-[width] duration-300 ease-(--ease-out)"
           style={{ width: `${percent}%` }}
         />
       </div>

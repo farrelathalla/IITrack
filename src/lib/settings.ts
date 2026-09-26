@@ -13,17 +13,13 @@ export type SettingsSection =
   | "access"
   | "system";
 
-export const SETTINGS_SECTIONS: {
-  id: SettingsSection;
-  label: string;
-  icon: string;
-}[] = [
-  { id: "profile", label: "Profil", icon: "👤" },
-  { id: "users", label: "Users & Roles", icon: "👥" },
-  { id: "permissions", label: "Role Permissions", icon: "🔐" },
-  { id: "workflow", label: "Workflow & Approver", icon: "⚙️" },
-  { id: "access", label: "Project Access", icon: "🗂" },
-  { id: "system", label: "System", icon: "🖥️" },
+export const SETTINGS_SECTIONS: { id: SettingsSection; label: string }[] = [
+  { id: "profile", label: "Profil" },
+  { id: "users", label: "Users & Roles" },
+  { id: "permissions", label: "Role Permissions" },
+  { id: "workflow", label: "Workflow & Approver" },
+  { id: "access", label: "Project Access" },
+  { id: "system", label: "System" },
 ];
 
 export function visibleSections(role: RoleName | null): SettingsSection[] {

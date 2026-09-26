@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronRight, Plus, Trash2 } from "lucide-react";
+import { Check, ChevronRight, Plus, Trash2 } from "lucide-react";
 import { useState } from "react";
 import {
   saveTermsAction,
@@ -526,7 +526,12 @@ export function TermsEditor({
               pct === 100 ? "text-success-text" : "text-danger-text",
             )}
           >
-            Total persentase: {pct}% {pct === 100 ? "✓" : "(harus 100%)"}
+            Total persentase: {pct}%{" "}
+            {pct === 100 ? (
+              <Check className="inline size-3.5" aria-hidden="true" />
+            ) : (
+              "(harus 100%)"
+            )}
           </p>
         </div>
         <p className="text-[11px] text-subtle">

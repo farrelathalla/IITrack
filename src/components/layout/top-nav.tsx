@@ -69,7 +69,7 @@ function ProjectSearch() {
         className="w-64 rounded-lg border border-line bg-surface py-1.5 pr-4 pl-9 text-sm transition-colors placeholder:text-subtle focus:border-plum-600 focus:bg-white focus:outline-none"
       />
       {open && query.trim() ? (
-        <div className="absolute top-10 right-0 z-50 w-80 overflow-hidden rounded-xl border border-line bg-white shadow-lg">
+        <div className="pop-in absolute top-10 right-0 z-50 w-80 overflow-hidden rounded-xl border border-line bg-white shadow-lg">
           {hits.length === 0 ? (
             <p className="px-4 py-3 text-subtle text-xs">
               {pending ? "Mencari…" : "Tidak ada project yang cocok."}
@@ -131,7 +131,7 @@ function NotificationBell({
         ) : null}
       </button>
       {open ? (
-        <div className="absolute top-10 right-0 z-50 w-80 overflow-hidden rounded-xl border border-line bg-white shadow-lg">
+        <div className="pop-in absolute top-10 right-0 z-50 w-80 overflow-hidden rounded-xl border border-line bg-white shadow-lg">
           <div className="flex items-center justify-between border-line border-b px-4 py-3">
             <span className="font-semibold text-ink text-sm">Notifikasi</span>
             <Link

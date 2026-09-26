@@ -96,7 +96,7 @@ export function PersonPicker({
       {open ? (
         <div
           id={listId}
-          className="absolute top-full z-30 mt-1 w-full overflow-hidden rounded-xl border border-line bg-white shadow-lg"
+          className="pop-in-left absolute top-full z-30 mt-1 w-full overflow-hidden rounded-xl border border-line bg-white shadow-lg"
         >
           <div className="relative border-line border-b p-2">
             <Search className="-translate-y-1/2 absolute top-1/2 left-4 size-3.5 text-subtle" />

@@ -44,12 +44,12 @@ export function ActivityDrawer({
         type="button"
         aria-label="Tutup riwayat"
         onClick={onClose}
-        className="flex-1 bg-ink/30"
+        className="fade-in flex-1 bg-ink/30"
       />
       <aside
         role="dialog"
         aria-label="Riwayat Aktivitas"
-        className="flex h-full w-[440px] flex-col bg-white shadow-2xl"
+        className="drawer-in flex h-full w-[440px] flex-col bg-white shadow-2xl"
       >
         <div className="flex items-center justify-between border-line border-b px-5 py-4">
           <div>

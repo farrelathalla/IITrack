@@ -25,7 +25,7 @@ export function ProjectCard({ item }: { item: ProjectListItem }) {
   return (
     <Link
       href={`/projects/${project.code}`}
-      className="group block rounded-xl border border-line bg-white shadow-sm transition-all hover:border-plum-200 hover:shadow-md"
+      className="group block rounded-xl border border-line bg-white shadow-sm transition-[border-color,box-shadow] duration-200 ease-(--ease-out) hover:border-plum-200 hover:shadow-md"
     >
       <div
         className={cn(
@@ -113,7 +113,10 @@ export function ProjectCard({ item }: { item: ProjectListItem }) {
             <span className="text-[10px] text-subtle">
               Penanggung jawab saat ini:
             </span>
-            <Avatar name={next.responsible.name} />
+            <Avatar
+              name={next.responsible.name}
+              group={!next.responsible.userId}
+            />
             <span className="font-medium text-[11px] text-muted">
               {next.responsible.name}
             </span>
