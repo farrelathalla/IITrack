@@ -15,8 +15,11 @@ export const testDb = prisma;
  */
 export const RUN = `${Date.now().toString(36)}${Math.floor(Math.random() * 1e4)}`;
 
+let counter = 0;
+
 export function uniqueEmail(prefix: string): string {
-  return `${prefix}.${RUN}@iit.test`;
+  counter += 1;
+  return `${prefix}.${RUN}.${counter}@iit.test`;
 }
 
 /**

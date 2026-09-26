@@ -10,87 +10,112 @@ sendiri dalam waktu kurang dari tiga puluh menit, tanpa bertanya kepada siapa
 pun. Bila ternyata lebih lama, yang keliru adalah dokumen ini, bukan pembacanya;
 perbaiki bagiannya pada PR yang sama dengan perbaikan yang Anda temukan.
 
-Acuan: `IIT-PRD-IITRACK-2026` (lingkup dan requirement), `IIT-PCH-OPS26/27`
-(estimasi dan timeline), `IIT-UAT-OPS26/27` (kriteria penerimaan). Bila dokumen
-ini berbeda dengan ketiganya, ketiganya yang berlaku.
+Acuan: `IIT-PRD-IITRACK-DEV-2026` (PRD revisi 24 September 2026, acuan MVP)
+dan prototipe Figma Make IITRACK (acuan tampilan). Bila dokumen ini berbeda
+dengan PRD, PRD yang berlaku.
 
 ## 1. Arsitektur
 
 IITrack adalah satu aplikasi Next.js App Router; backend dan frontend berada di
 repositori dan proses yang sama. Tidak ada API terpisah: halaman memanggil
-Server Action dan fungsi server langsung.
-
-Kodenya dibagi tiga lapis, dan pembagiannya bukan selera penataan berkas
-melainkan syarat pengujian pada PRD bab 3.9.
+Server Action, dan Server Action memanggil fungsi di `src/server`.
 
 | Lapis | Isi | Boleh mengimpor |
 |---|---|---|
-| `src/app/` | Halaman, layout, form, Server Action | `src/lib`, `src/server` |
-| `src/server/` | Akses basis data, sesi, penjaga izin, pencatat jejak | `src/lib`, Prisma |
-| `src/lib/` | Aturan bisnis murni: izin, rantai approval, skema termin, penomoran | tidak Prisma, tidak modul Next.js |
+| `src/app/` | Halaman, layout, Server Action tipis | `src/lib`, `src/server`, `src/components` |
+| `src/components/` | Komponen tampilan | `src/lib`, tipe dari `src/server` |
+| `src/server/` | Akses basis data, sesi, mutasi, query, notifikasi, riwayat | `src/lib`, Prisma |
+| `src/lib/` | Aturan bisnis murni | tidak Prisma, tidak modul Next.js |
 
-`src/lib` sengaja tidak boleh menyentuh Prisma maupun Next.js. Aturan izin,
-approval, dan gate dipanggil pada setiap request dan diuji puluhan kali sehari,
-jadi keduanya harus bisa dijalankan tanpa menyalakan basis data maupun peramban.
-Ketika sebuah aturan mulai membutuhkan basis data, yang dipindah adalah
-pengambilan datanya ke `src/server`, bukan aturannya ke bawah.
+`src/lib` sengaja tidak menyentuh Prisma maupun Next.js supaya aturannya diuji
+tanpa menyalakan apa pun. Isinya:
 
-### Perjalanan satu permintaan
+| Berkas | Isi | PRD |
+|---|---|---|
+| `auth/access.ts` | Matriks hak akses per aksi, visibilitas nominal dan tautan | 2.4 |
+| `auth/roles.ts` | Jabatan, divisi, kelompok C-Level, jabatan yang boleh ditugaskan | 2.1–2.2 |
+| `project/catalog.ts` | Sembilan stage dan jenis dokumen | 4.1, 4.3 |
+| `project/stages.ts` | Status tiap stage dari potret project | 4.1–4.2 |
+| `project/status.ts` | Status project, deadline terdekat, next action, penanggung jawab | 8.1, 9 |
+| `project/closure.ts` | Closure Checklist, syarat disbursement, Status Final | 4.12, 5.5 |
+| `finance/terms.ts` | Validasi skema termin dan alur status per termin | 4.6, 5 |
+| `time.ts` | Tanggal WIB; waktu disimpan UTC | 13 |
 
-1. Halaman atau Server Action memanggil fungsi di `src/server`.
-2. Fungsi itu memuat `Actor` dari sesi (`src/server/auth/session.ts`) dan, bila
-   aksinya melekat pada sebuah project, menyusun `ProjectContext` lewat
-   `projectContextFor` (`src/server/project/context.ts`).
-3. `checkPermission` (`src/lib/auth/permissions.ts`) memutuskan boleh atau
-   tidak, lalu mengembalikan alasan dalam bahasa pengguna bila ditolak.
-4. Bila lolos, perubahan ditulis, dan aksi kritis memanggil `recordAudit`
-   (`src/server/audit.ts`).
+### Potret project dan status turunan
+
+Status stage, status project, deadline, dan next action **tidak disimpan**.
+Server memuat satu `ProjectSnapshot` (`src/server/project/snapshot.ts`), lalu
+semua status dihitung dari potret itu oleh `src/lib`. Satu-satunya pengecualian
+adalah waktu selesai stage (`project_stages.completedAt`): dicatat permanen
+begitu syaratnya pertama kali terpenuhi, supaya penggantian developer atau
+Finance POC di kemudian hari tidak mengunci ulang stage sesudahnya.
+`syncStageCompletion` mencatatnya, menulis riwayat "Stage n selesai", dan
+memberi tahu PM bahwa stage berikutnya terbuka. Stage yang selesai karena waktu
+(garansi berakhir) dicatat saat project dibuka.
+
+### Perjalanan satu perubahan
+
+1. Server Action (`src/app/(internal)/projects/[code]/actions.ts`) mengambil
+   `Actor` dari sesi dengan `requireActionUser`.
+2. Fungsi domain di `src/server/project/*.ts` memanggil `mutateProject`, yang
+   memuat potret, memeriksa `canOnProject` (`src/lib/auth/access.ts`), lalu
+   menjalankan perubahan di dalam satu transaksi.
+3. Perubahan yang wajib dicatat memanggil `recordActivity` di transaksi yang
+   sama, dan notifikasi dikirim lewat `notify`/`notifyRoles`.
+4. Setelah perubahan, `syncStageCompletion` mencatat stage yang baru selesai.
+5. Penolakan dilempar sebagai `ActionError` berpesan Bahasa Indonesia dan
+   dikembalikan ke tampilan sebagai `ActionResult`.
 
 Tiga hal yang tidak boleh dilanggar saat menambah fitur:
 
-- **Izin diperiksa di server.** Menyembunyikan tombol tidak dianggap memenuhi
-  requirement. Permintaan langsung ke server tetap harus ditolak (F03-AC2).
+- **Izin diperiksa di server.** Menyembunyikan tombol tidak memenuhi
+  requirement; test integrasi memanggil fungsi server langsung sebagai pengguna
+  yang tidak berhak dan mengharapkan penolakan.
 - **Tidak ada fitur yang memeriksa izin dengan caranya sendiri.** Semua lewat
-  `checkPermission` dan daftar `Action` di `src/lib/auth/types.ts`.
-- **Aksi kritis meninggalkan jejak.** Nama aksinya didaftarkan di
-  `src/lib/audit/actions.ts`; test F24-AC2 memindai `src/server` dan gagal bila
-  ada konstanta yang tidak pernah dipanggil.
+  `canOnProject`/`canGlobally` dan daftar aksinya di `src/lib/auth/access.ts`.
+- **Data terlarang tidak dikirim ke peramban.** `loadProjectView`
+  (`src/server/project/view.ts`) menghapus nominal, tautan MoU, dan tautan
+  Kontrak Programmer yang tidak boleh dilihat pengguna itu sebelum dikirim.
 
 ### Hak akses
 
-Izin menempel pada penetapan jabatan beserta masa berlakunya, bukan pada
-orangnya, sehingga akses berhenti sendiri ketika kepengurusan berganti. Hak
-ubah lahir dari kombinasi jabatan dan penugasan project: seluruh pengurus dapat
-melihat informasi inti project, tetapi hanya pelaksana yang ditugaskan di
-divisinya yang dapat mengubah. Tidak ada pengaturan izin manual per project.
-Matriksnya ada di `src/lib/auth/capabilities.ts`, menyalin Tabel 1 PRD bab 3.5.
+Akses = jabatan × penugasan (PRD bab 1.1). Jabatan menempel pada periode
+(`role_assignments` → `periods`), sehingga akses berhenti sendiri pada akhir
+periode. Hak edit pada project lahir dari penugasan (`project_assignments`):
+PM oleh COO/VCOO, developer oleh CTO/VCTO, Finance POC oleh CFO/VCFO. Penugasan
+yang orangnya sudah tidak memegang jabatan yang sesuai (dicabut, periode habis,
+atau naik jabatan) tidak lagi memberi hak edit dan membuat project ditandai
+"Perlu Penugasan Ulang".
 
-System Administrator bukan divisi keempat, melainkan privilege administratif
-yang menempel pada penetapan jabatan anggota TechDev tertentu. Pemegangnya
-mengurus akun dan jabatan, dan tidak boleh menyetujui pengajuan bisnis,
-mengubah data Finance, maupun menghapus jejak aktivitas.
+Super Admin adalah jabatan tersendiri. Ia mengelola akun, jabatan, periode, dan
+pengaturan, bisa melihat project tanpa nominal, tetapi tidak bisa mengubah data
+project, menugaskan orang, atau menyetujui pengajuan.
+
+Keputusan pengajuan mengikuti aturan "keputusan pertama yang berlaku": baris
+`submissions` hanya diperbarui selama masih `PENDING`, dan partial unique index
+`submissions_single_pending` menjamin satu pengajuan menunggu per dokumen.
 
 ### Basis data
 
-PostgreSQL lewat Prisma, dengan adapter `@prisma/adapter-pg`. Klien Prisma
-dihasilkan ke `src/generated/prisma` dan **tidak ikut di-commit**; harus
-dibangkitkan ulang dengan `bun run db:generate` setiap kali repositori baru
-di-clone atau skemanya berubah.
+PostgreSQL lewat Prisma dengan adapter `@prisma/adapter-pg`. Klien Prisma
+dihasilkan ke `src/generated/prisma` dan **tidak di-commit**; bangkitkan ulang
+dengan `bun run db:generate` setiap kali clone atau skema berubah.
 
-Dua aturan ditegakkan basis data, bukan disiplin kode, karena keduanya harus
-berlaku juga bagi orang yang mengakses basis datanya langsung:
+Aturan yang ditegakkan basis data, bukan disiplin kode:
 
-- **`audit_logs` hanya bisa ditambah.** Trigger `audit_logs_no_update` dan
-  `audit_logs_no_delete` menolak UPDATE dan DELETE dari siapa pun. Ini juga
-  sebabnya data test tidak dibersihkan dengan menghapus jejaknya.
-- **Nomor project tidak pernah kembar.** Penerbitannya berurutan tanpa lompatan
-  dan dijaga constraint, termasuk untuk project yang dibatalkan.
+- **`activity_logs` hanya bisa ditambah.** Trigger `activity_logs_no_update`
+  dan `activity_logs_no_delete` menolak UPDATE dan DELETE dari siapa pun.
+- **Project ID tidak pernah kembar.** Diterbitkan dari
+  `project_number_counters` di transaksi yang sama dengan pembuatan project.
+- **Satu PM dan satu Finance POC aktif per project**, dan satu pengajuan
+  menunggu per dokumen (partial unique index).
+- **Persentase termin 0–100, nominal tidak negatif, target selesai tidak
+  sebelum target mulai** (CHECK constraint). Total 100% dicek aplikasi.
 
 ## 2. Penyiapan
 
-Prasyarat: [Bun](https://bun.sh) dan akses ke sebuah PostgreSQL. Node.js tidak
-diperlukan terpisah. Postgres lokal bisa dijalankan Prisma sendiri, jadi tidak
-wajib memasang Postgres di mesin.
+Prasyarat: [Bun](https://bun.sh) dan PostgreSQL 17 ke atas. Node.js tidak
+diperlukan terpisah.
 
 ```sh
 git clone https://github.com/farrelathalla/IITrack.git
@@ -107,13 +132,14 @@ sudo apt install -y postgresql
 ```
 
 ```sh
-sudo -u postgres psql -c "CREATE USER iitrack WITH PASSWORD 'iitrack' CREATEDB;" -c "CREATE DATABASE iitrack OWNER iitrack;"
+sudo -u postgres psql -c "CREATE USER iitrack WITH PASSWORD 'iitrack' CREATEDB;" -c "CREATE DATABASE iitrack OWNER iitrack;" -c "CREATE DATABASE iitrack_test OWNER iitrack;"
 ```
 
-Isi `DATABASE_URL` di `.env` dengan pengguna dan basis data tersebut:
+`.env.example` sudah berisi `DATABASE_URL` dan `TEST_DATABASE_URL` untuk
+pengguna dan basis data tersebut. Terapkan skema ke basis data test sekali:
 
-```
-DATABASE_URL="postgresql://iitrack:iitrack@localhost:5432/iitrack"
+```sh
+DATABASE_URL="postgresql://iitrack:iitrack@localhost:5432/iitrack_test" bun run db:deploy
 ```
 
 Isi juga `SESSION_SECRET` di `.env`:
@@ -131,11 +157,12 @@ bun run db:seed
 bun run dev
 ```
 
-Aplikasi berjalan di `http://localhost:3000`. Data contoh berisi lima akun
-periode 2026/2027 dengan kata sandi `iitrack-dev-2627`: `coo@iit.test`,
-`cfo@iit.test`, `cto@iit.test`, `pm@iit.test`, dan `admin@iit.test` yang
-memegang System Administrator privilege. Akun ini hanya untuk pengembangan dan
-tidak boleh ikut ke lingkungan mana pun yang dipakai orang sungguhan.
+Aplikasi berjalan di `http://localhost:3000`. Seed membuat periode 2026/2027,
+dua belas akun (daftarnya di README) dengan kata sandi `iitrack-dev-2627`, dan
+lima project yang dibangun lewat fungsi server yang sama dengan aplikasi,
+sehingga data contoh selalu mematuhi aturan bisnis. Akun ini hanya untuk
+pengembangan dan tidak boleh ikut ke lingkungan yang dipakai orang sungguhan.
+`bun run db:reset` mengosongkan basis data lokal lalu mengisi ulang seed.
 
 ### Kenapa bukan `bunx prisma dev`
 
@@ -144,9 +171,8 @@ menjalankan aplikasinya saja perintah itu cukup. Untuk test, tidak.
 
 `prisma dev` menjalankan PGlite, yaitu Postgres yang dikompilasi ke WebAssembly,
 dan servernya mati begitu menerima `RAISE EXCEPTION` dari trigger. Repositori ini
-memakai trigger semacam itu untuk aturan yang harus ditegakkan basis data,
-misalnya penolakan total persentase termin yang bukan 100 pada migrasi
-`20260906040000_add_termin`. Test F13 sengaja memicunya, servernya tumbang, dan
+memakai trigger semacam itu, misalnya penolakan UPDATE/DELETE pada
+`activity_logs`. Test append-only sengaja memicunya, servernya tumbang, dan
 seluruh berkas test sesudahnya gagal dengan pesan `Can't reach database server`.
 
 Gejalanya menyesatkan karena terlihat seperti kode yang rusak. Yang rusak adalah
@@ -156,14 +182,14 @@ menjalankan Vitest tanpa isolasi.
 
 ## 3. Variabel lingkungan
 
-Hanya dua, dan keduanya wajib. `.env` tidak pernah di-commit; yang di-commit
-hanya `.env.example` yang berisi bentuknya, bukan nilainya. Jangan menuliskan
-nilai sungguhan di dokumen, issue, PR, maupun pesan chat.
+`.env` tidak pernah di-commit; yang di-commit hanya `.env.example` yang berisi
+bentuknya. Jangan menuliskan nilai sungguhan di dokumen, issue, PR, maupun chat.
 
 | Variabel | Wajib | Bentuk | Dibaca di | Bila salah |
 |---|---|---|---|---|
 | `DATABASE_URL` | ya | `postgresql://pengguna:sandi@host:5432/basisdata` | `src/server/db.ts`, `prisma.config.ts`, `tests/support/load-env.ts` | Aplikasi gagal start dengan pesan bahwa `DATABASE_URL` belum diisi |
 | `SESSION_SECRET` | ya | teks acak, minimal 32 karakter | `src/server/auth/session.ts` | Permintaan yang menyentuh sesi melempar kesalahan bahwa secret belum diisi atau terlalu pendek |
+| `TEST_DATABASE_URL` | tidak | sama dengan `DATABASE_URL` | `tests/support/load-env.ts` | Bila kosong, test integrasi menulis ke `DATABASE_URL` dan data pengembangan ikut bertambah |
 
 `SESSION_SECRET` dipakai sebagai kunci HMAC token sesi. Yang disimpan di basis
 data adalah hasil HMAC-nya, bukan tokennya, sehingga salinan basis data saja
@@ -188,6 +214,7 @@ namanya tidak boleh diubah setelah di-push.
 | Menerapkan migrasi yang sudah ada | `bun run db:deploy` |
 | Membangkitkan ulang klien Prisma | `bun run db:generate` |
 | Mengisi data contoh | `bun run db:seed` |
+| Mengosongkan basis data lokal dan mengisi ulang | `bun run db:reset` |
 
 Aturan yang berlaku di repositori ini:
 
@@ -195,48 +222,44 @@ Aturan yang berlaku di repositori ini:
   baru. Mengubah yang lama membuat basis data orang lain dan CI berbeda isi
   tanpa ada yang tahu.
 - **SQL yang tidak bisa dinyatakan lewat skema ditulis tangan** di berkas
-  migrasinya, misalnya trigger append-only `audit_logs`. Periksa berkas SQL-nya
+  migrasinya, misalnya trigger append-only `activity_logs` dan partial unique
+  index penugasan. Periksa berkas SQL-nya
   setelah `db:migrate`, jangan diasumsikan Prisma menyusun semuanya.
 - **Setiap migrasi diberi komentar alasan** bila keputusannya tidak terbaca dari
   DDL-nya, misalnya kenapa sebuah foreign key memakai `RESTRICT` alih-alih
   `SET NULL`.
 
-Skema bertambah per fitur mengikuti pembagian sprint, bukan sekaligus di muka.
+Migrasi PRD versi awal diganti satu baseline, `20260926000000_baseline_prd_revised`,
+karena PRD revisi mengubah model domain secara menyeluruh dan saat itu belum ada
+basis data bersama yang isinya harus dipertahankan. Basis data yang dibuat dari
+migrasi lama tidak bisa di-upgrade; kosongkan lalu terapkan baseline
+(`bun run db:reset` untuk lokal). Mulai dari baseline ini, aturan di atas
+berlaku lagi: perubahan skema ditulis sebagai migrasi baru.
 
 ## 5. Pengujian
 
-Tiga lapis, dipisah karena ongkos jalannya berbeda.
+Dua lapis, dipisah karena ongkos jalannya berbeda.
 
 | Lapis | Letak | Perlu Postgres | Perintah |
 |---|---|---|---|
 | Unit | `tests/unit/` | tidak | `bun run test` |
 | Integrasi | `tests/integration/` | ya | `bun run test:integration` |
-| Alur penuh | `tests/e2e/` | ya | `bun run test:integration` |
 
-`bun run test:all` menjalankan keduanya. Test unit tidak menyentuh basis data
-maupun peramban, sehingga bisa dijalankan terus-menerus selama menulis kode.
-Test integrasi dan alur penuh memakai konfigurasi terpisah
-(`vitest.integration.mts`) dan berjalan berurutan, karena berbagi satu basis
-data.
+Test unit menguji `src/lib` dengan potret project buatan
+(`tests/support/factories.ts`): matriks akses, status stage, alur termin,
+status project, dan penutupan. Test integrasi memanggil fungsi `src/server`
+langsung terhadap Postgres sungguhan, termasuk sebagai pengguna yang tidak
+berhak, keputusan bersamaan COO dan Vice COO, regenerasi pengurus, dan trigger
+append-only. `tests/support/world.ts` menyediakan satu tim pengurus pada
+periode uji baru dan helper untuk membawa project ke stage tertentu.
 
-Konvensi penamaan:
+Judul `describe` menyebut bab PRD yang diuji, misalnya
+`PRD 5.2 — alur status per termin`, supaya setiap test bisa ditelusuri ke
+requirement-nya.
 
-- Berkas test unit dan integrasi memuat ID fitur dan nomor acceptance criteria,
-  misalnya `F03-AC1.test.ts`, dan judul `describe`-nya menyalin kalimat
-  acceptance criteria pada PRD bab 4 apa adanya.
-- Berkas test alur penuh dinamai mengikuti ID test case UAT, misalnya
-  `UAT-E2E-001.test.ts`, sehingga hasil larinya bisa dirujuk langsung dari
-  dokumen UAT tanpa penerjemahan.
-
-`tests/support/traceability.ts` memetakan setiap acceptance criteria Must Have
-ke test dan test case UAT-nya. Test `XC-01-AC2` membaca judul `describe` dari
-berkasnya, bukan dari daftar tulisan tangan, jadi criteria yang testnya dihapus
-atau judulnya berubah akan ketahuan. Menambah acceptance criteria di PRD tanpa
-menambah testnya akan membuat test itu gagal, bukan lolos diam-diam.
-
-Data uji tidak dibersihkan dengan menghapus jejaknya, karena memang tidak bisa:
-larangan hapus ditegakkan trigger basis data. Sebagai gantinya setiap eksekusi
-memakai email dan periode yang unik, lihat `tests/support/database.ts`.
+Data uji tidak dibersihkan, karena riwayat aktivitas memang tidak bisa dihapus.
+Setiap eksekusi memakai periode dan email unik; arahkan `TEST_DATABASE_URL` ke
+basis data terpisah supaya data pengembangan tidak ikut bertambah.
 
 ### CI
 
@@ -259,8 +282,9 @@ pelaksana yang lain.
 | Typecheck gagal pada field yang baru ditambahkan ke skema | Klien Prisma masih versi lama | `bun run db:generate` |
 | Test integrasi gagal seluruhnya di baris koneksi | Postgres tidak hidup, atau `DATABASE_URL` menunjuk basis data lain | `sudo systemctl start postgresql`, pastikan port 5432 mendengar, lalu `bun run db:deploy` |
 | Test integrasi lulus beberapa berkas lalu sisanya `Can't reach database server` | Basis datanya PGlite dari `bunx prisma dev`, bukan Postgres asli | Ikuti bab 2; alasannya ada di "Kenapa bukan `bunx prisma dev`" |
-| Test integrasi gagal karena data sisa | Basis data lokal memuat sisa eksekusi lama pada periode tetap | Jalankan ulang; bila menetap, terapkan ulang migrasi pada basis data kosong |
-| `UPDATE`/`DELETE` pada `audit_logs` ditolak | Trigger append-only, dan ini memang perilaku yang benar | Jangan cari jalan pintas; perbaiki kodenya agar tidak mengubah jejak |
+| `UPDATE`/`DELETE` pada `activity_logs` ditolak | Trigger append-only, dan ini memang perilaku yang benar | Jangan cari jalan pintas; perbaiki kodenya agar tidak mengubah riwayat |
+| `db:deploy` gagal pada basis data lama | Basis data dibuat dari migrasi sebelum baseline PRD revisi | Kosongkan basis datanya (`bun run db:reset` untuk lokal), lalu terapkan ulang |
+| Stage tidak terbuka padahal syaratnya sudah terpenuhi | Waktu selesai stage belum dicatat karena syaratnya berubah karena waktu (misalnya garansi berakhir) | Buka Project Detail; `loadProjectView` mencatatnya saat halaman dimuat |
 | Semua orang tiba-tiba diminta masuk ulang | `SESSION_SECRET` berganti | Kembalikan nilai lamanya bila pergantiannya tidak disengaja |
 | `SelectField` memberi peringatan hydration mismatch | Nilai awal berbeda antara server dan peramban | Lihat `src/components/ui/select-field.tsx`; kasus ini pernah diperbaiki, jangan diperbaiki ulang dengan cara lain |
 | Migrasi bentrok setelah rebase | Dua migrasi dibuat paralel di dua branch | Rename migrasi yang belum di-push agar stempel waktunya berurutan, jangan mengedit yang sudah di-push |
@@ -276,7 +300,7 @@ digabung tanpa review silang.
 | Arsitektur, tech stack, keputusan teknis, penetapan pelaksana TechDev | CTO / Vice CTO |
 | Lingkup, prioritas, jadwal, penugasan PM | COO / Vice COO dan Project Manager IITrack |
 | Aturan Finance, rantai persetujuan, ambang nilai | CFO / Vice CFO |
-| Akun, jabatan, dan periode aktif | Pemegang System Administrator privilege |
+| Akun, jabatan, dan periode aktif | Super Admin |
 
 Papan kerja, backlog, dan seluruh issue ada di repositori workspace
 `Operational-IIT-Workspace/IITrack`; kodenya di `farrelathalla/IITrack`. Issue
@@ -285,15 +309,32 @@ teknis. Selama sebuah `DEP` masih terbuka, pekerjaan yang bergantung padanya
 tidak dianggap tertahan oleh pelaksana, melainkan menunggu keputusan; sebutkan
 nomor issue-nya saat melaporkan.
 
-Dua hal yang saat ini ditulis sebagai penafsiran dan masih menunggu konfirmasi
-tertulis, keduanya sudah diberi komentar di kodenya:
+Keputusan berikut diambil saat PRD tidak menyebutnya secara eksplisit. Semuanya
+tertulis di kode beserta alasannya; bila stakeholder memutuskan berbeda, yang
+berubah cukup satu berkas di `src/lib` atau `src/server` beserta testnya.
 
-- Langkah kedua rantai persetujuan invoice, "POC dokumentasi", dipetakan ke
-  Officer Operational karena PRD bab 3.3 tidak memetakannya ke jabatan mana pun
-  pada Tabel 1. Lihat `src/lib/approval/chain.ts`.
-- Pengelolaan data client diberikan sebagai kewenangan global Officer
-  Operational, bukan sesuai penugasan, karena client adalah master data lintas
-  project. Lihat `src/lib/auth/capabilities.ts`.
-
-Bila salah satunya diputuskan berbeda, yang berubah cukup satu berkas di
-`src/lib` beserta testnya.
+- **Stage yang sudah selesai tidak terkunci ulang.** Waktu selesai dicatat
+  permanen (`project_stages.completedAt`), supaya mengganti developer di Stage
+  6 tidak mengunci Stage 5–9. Lihat `src/lib/project/stages.ts`.
+- **Super Admin melihat semua project** di Dashboard dan daftar, read-only
+  tanpa nominal. PRD bab 8.1 hanya menyebut C-Level dan yang ditugaskan.
+  Lihat `seesAllProjects` di `src/lib/auth/access.ts`.
+- **Termin pertama adalah DP (Stage 5), termin terakhir adalah termin final
+  (Stage 7), sisanya di Stage 6.** Project dengan satu termin tidak punya
+  termin final. Lihat `stageOfTerm` di `src/lib/finance/terms.ts`.
+- **Dokumen yang sudah disetujui terkunci**, kecuali MoU yang tautannya masih
+  diganti PM dengan versi bertanda tangan sebelum Tandai Ditandatangani.
+- **Akhir garansi inklusif**: garansi Selesai sehari setelah tanggal akhir (WIB).
+- **Toleransi Status Final default 7 hari**, bisa diubah di Pengaturan > System.
+- **Approver utama dan delegasi hanya untuk tampilan.** Wewenang memutuskan
+  mengikuti jabatan, sehingga jabatan utama dan wakil sama-sama bisa memutuskan
+  dan keputusan pertama yang berlaku (PRD bab 2.3).
+- **Role Permissions ditampilkan, tidak diedit.** Matriksnya diturunkan dari
+  aturan server supaya halaman dan penegakan tidak bisa berbeda.
+- **Akun dibuat dengan kata sandi awal dari Super Admin**, karena undangan email
+  di luar MVP (PRD bab 1.2). Pemilik akun bisa menggantinya di Profil. Foto
+  profil belum dibangun karena IITrack tidak menyimpan berkas.
+- **Akhir periode tidak memicu notifikasi terjadwal.** Tidak ada penjadwal di
+  MVP; project dengan penugasan ke akun yang sudah tidak aktif langsung tampil
+  "Perlu Penugasan Ulang" di Dashboard C-Level dan header project. Notifikasi
+  dikirim saat Super Admin mencabut akses atau mengubah jabatan.

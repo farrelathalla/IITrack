@@ -204,7 +204,12 @@ export async function transitionTerm(params: {
   await mutateProject({
     actor: params.actor,
     projectId: params.projectId,
-    action: ["term.pm", "term.finance"],
+    // Aksi izin mengikuti siapa yang berhak di langkah ini, supaya pesan
+    // penolakannya menyebut peran yang benar.
+    action: [
+      ...(rule.actors.includes("PM") ? (["term.pm"] as const) : []),
+      ...(rule.actors.includes("FINANCE") ? (["term.finance"] as const) : []),
+    ],
     run: async ({ tx, project, stages, viewer, now }) => {
       const term = project.terms.find((t) => t.id === params.termId);
       if (!term) throw new ActionError("Termin tidak ditemukan.");
