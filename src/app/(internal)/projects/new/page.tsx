@@ -19,10 +19,10 @@ export default async function NewProjectPage() {
         <div className="rounded-xl border border-line bg-white p-8 text-center shadow-sm">
           <Lock className="mx-auto mb-3 size-8 text-faint" />
           <h1 className="font-bold text-ink">Akses Dibatasi</h1>
-          <p className="mt-1 text-muted text-sm">{decision.reason}</p>
+          <p className="mt-1 text-muted text-xs">{decision.reason}</p>
           <Link
             href="/projects"
-            className="mt-4 inline-block font-medium text-plum-600 text-sm hover:underline"
+            className="mt-4 inline-block font-medium text-plum-600 text-xs hover:underline"
           >
             Kembali ke Semua Project
           </Link>
@@ -47,9 +47,8 @@ export default async function NewProjectPage() {
       </nav>
       <div>
         <h1 className="font-bold text-ink text-xl">Buat Project Baru</h1>
-        <p className="mt-0.5 text-muted text-sm">
-          Isi informasi dasar project. PM yang ditugaskan akan melengkapi detail
-          selanjutnya.
+        <p className="mt-0.5 text-muted text-xs">
+          Isi data dasar. PM melengkapi sisanya.
         </p>
       </div>
       <CreateProjectForm pmCandidates={pmCandidates} nextId={nextId} />

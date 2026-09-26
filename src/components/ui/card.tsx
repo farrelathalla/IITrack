@@ -35,7 +35,7 @@ export function SectionLabel({
     <div
       className={cn("mb-2 flex items-center justify-between gap-2", className)}
     >
-      <p className="font-semibold text-[11px] text-muted uppercase tracking-wider">
+      <p className="font-bold text-[11px] text-muted uppercase tracking-wider">
         {children}
       </p>
       {action}
@@ -43,7 +43,7 @@ export function SectionLabel({
   );
 }
 
-/** Pasangan label–nilai dalam grid informasi. */
+/** Pasangan label-nilai dalam grid informasi. */
 export function InfoRow({
   label,
   children,
@@ -56,12 +56,12 @@ export function InfoRow({
   return (
     <div
       className={cn(
-        "flex items-start justify-between gap-4 border-surface border-b py-2 last:border-b-0",
+        "flex items-center justify-between gap-4 border-surface border-b py-2.5 last:border-b-0",
         className,
       )}
     >
       <span className="shrink-0 text-muted text-xs">{label}</span>
-      <div className="flex min-w-0 items-center justify-end gap-2 text-right font-medium text-ink text-xs">
+      <div className="flex min-w-0 items-center justify-end gap-2 text-right font-semibold text-ink text-xs">
         {children}
       </div>
     </div>
@@ -70,7 +70,7 @@ export function InfoRow({
 
 export function EmptyState({ children }: { children: ReactNode }) {
   return (
-    <div className="rounded-xl border border-line bg-white p-10 text-center text-sm text-subtle">
+    <div className="rounded-xl border border-line bg-white p-10 text-center text-subtle text-xs">
       {children}
     </div>
   );

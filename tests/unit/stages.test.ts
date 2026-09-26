@@ -24,7 +24,7 @@ function statuses(project = emptyProject()): StageStatus[] {
   return deriveStages(project, NOW).map((s) => s.status);
 }
 
-describe("PRD 4.1 — sembilan stage berjalan berurutan", () => {
+describe("PRD 4.1: sembilan stage berjalan berurutan", () => {
   it("project baru: Stage 1 belum dimulai, sisanya terkunci dengan alasan", () => {
     const stages = deriveStages(emptyProject(), NOW);
     expect(stages.map((s) => s.status)).toEqual([

@@ -334,10 +334,10 @@ async function main() {
   }
 
   const threeTerms = (dp: string, t2: string) => [
-    { name: "Termin 1 — DP", percentage: 30, amount: 4_500_000, dueDate: dp },
+    { name: "Termin 1 (DP)", percentage: 30, amount: 4_500_000, dueDate: dp },
     { name: "Termin 2", percentage: 40, amount: 6_000_000, dueDate: t2 },
     {
-      name: "Termin 3 — Final",
+      name: "Termin 3 (Final)",
       percentage: 30,
       amount: 4_500_000,
       dueNote: "Setelah BAST",
@@ -359,13 +359,13 @@ async function main() {
   });
   await throughMou(medibase.code, karen, [
     {
-      name: "Termin 1 — DP",
+      name: "Termin 1 (DP)",
       percentage: 50,
       amount: 10_000_000,
       dueDate: "2026-08-10",
     },
     {
-      name: "Termin 2 — Final",
+      name: "Termin 2 (Final)",
       percentage: 50,
       amount: 10_000_000,
       dueNote: "Setelah BAST",
@@ -469,9 +469,9 @@ async function main() {
     input: {
       githubRepo: "https://github.com/inkubatorit/datasync-erp",
       sprintPlanning: "https://www.notion.so/inkubatorit/datasync-sprint",
-      currentSprint: "Sprint 4 (18–25 Sep 2026)",
+      currentSprint: "Sprint 4 (18-25 Sep)",
       progressPercent: "68",
-      nextMilestone: "UAT — 30 Sep 2026",
+      nextMilestone: "UAT, 30 Sep 2026",
     },
   });
   await updateLatestUpdate({

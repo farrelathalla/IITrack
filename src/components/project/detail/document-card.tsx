@@ -4,7 +4,7 @@ import { ExternalLink, Link2, Plus } from "lucide-react";
 import { useState } from "react";
 import { saveDocumentAction } from "@/app/(internal)/projects/[code]/actions";
 import { Badge, type Tone } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { Button, buttonClass } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
 import { SelectField } from "@/components/ui/select-field";
 import { TextField } from "@/components/ui/text-field";
@@ -78,7 +78,7 @@ export function DocumentCard({
     Boolean(doc?.signedAt && kind !== "BAST");
   const [open, setOpen] = useState(false);
   const { run, pending, error } = useRunner();
-  const owner = doc?.ownerName ?? pmOf(project)?.name ?? "—";
+  const owner = doc?.ownerName ?? pmOf(project)?.name ?? "-";
 
   function submit(formData: FormData) {
     const url = String(formData.get("url") ?? "");
@@ -98,7 +98,7 @@ export function DocumentCard({
   }
 
   return (
-    <div className="rounded-lg border border-line bg-white p-3.5">
+    <div className="rounded-xl border border-line bg-surface p-4">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-1.5">
@@ -109,7 +109,7 @@ export function DocumentCard({
               {def.required ? "Wajib" : "Opsional"}
             </Badge>
           </div>
-          <p className="mt-0.5 text-[11px] text-subtle">Pemilik: {owner}</p>
+          <p className="mt-0.5 text-subtle text-xs">Pemilik: {owner}</p>
         </div>
         <Badge tone={badge.tone}>{badge.label}</Badge>
       </div>
@@ -119,7 +119,7 @@ export function DocumentCard({
             href={doc.url}
             target="_blank"
             rel="noopener noreferrer"
-            className="pressable inline-flex items-center gap-1.5 rounded-lg border border-plum-200 px-3 py-1.5 font-semibold text-plum-600 text-xs hover:bg-plum-50"
+            className={buttonClass("secondary", "sm")}
           >
             <ExternalLink className="size-3.5" />
             Buka Dokumen
@@ -154,8 +154,8 @@ export function DocumentCard({
         onOpenChange={setOpen}
         title={
           doc?.url
-            ? `Ganti Link — ${title ?? def.name}`
-            : `Tambah Link — ${title ?? def.name}`
+            ? `Ganti Link: ${title ?? def.name}`
+            : `Tambah Link: ${title ?? def.name}`
         }
       >
         <form action={submit} className="space-y-3">
@@ -166,7 +166,7 @@ export function DocumentCard({
             type="url"
             placeholder="https://docs.google.com/…"
             defaultValue={doc?.url ?? ""}
-            hint="Dokumen dibuat di Google Docs atau Drive. IITrack hanya menyimpan tautannya."
+            hint="Tautan Google Docs atau Drive."
           />
           <TextField
             label="Tenggat (opsional)"

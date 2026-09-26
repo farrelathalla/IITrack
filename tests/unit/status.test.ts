@@ -28,7 +28,7 @@ import {
   term,
 } from "../support/factories";
 
-describe("PRD 9 — status project", () => {
+describe("PRD 9: status project", () => {
   it("On Track bila tidak ada kondisi lain", () => {
     const project = emptyProject();
     const s = summarize(project, deriveStages(project, NOW), NOW);
@@ -95,7 +95,7 @@ describe("PRD 9 — status project", () => {
   });
 });
 
-describe("PRD 8.1 — deadline terdekat dan next action", () => {
+describe("PRD 8.1: deadline terdekat dan next action", () => {
   it("deadline diurutkan dari yang paling dekat dan hanya dari stage yang terbuka", () => {
     const project = emptyProject({
       documents: [
@@ -178,7 +178,7 @@ describe("PRD 8.1 — deadline terdekat dan next action", () => {
   });
 });
 
-describe("PRD 4.12 dan 5.5 — penutupan project", () => {
+describe("PRD 4.12 dan 5.5: penutupan project", () => {
   function closable() {
     const base = projectThroughStage4();
     return {

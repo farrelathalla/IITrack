@@ -32,7 +32,7 @@ function allowed(
   return canOnProject(viewer(role, userId), action, access(overrides)).allowed;
 }
 
-describe("PRD 2.4 — matriks hak akses per bagian", () => {
+describe("PRD 2.4: matriks hak akses per bagian", () => {
   it("hanya COO dan Vice COO yang bisa menambah project dan mengganti PM", () => {
     expect(canGlobally(viewer("COO"), "project.create").allowed).toBe(true);
     expect(canGlobally(viewer("VICE_COO"), "project.create").allowed).toBe(
@@ -167,7 +167,7 @@ describe("PRD 2.4 — matriks hak akses per bagian", () => {
   });
 });
 
-describe("PRD 2.4 — aturan visibilitas", () => {
+describe("PRD 2.4: aturan visibilitas", () => {
   it("nominal dan tautan MoU terlihat oleh PM, C-Level, dan Finance POC project itu saja", () => {
     const p = access();
     expect(canSeeAmounts(viewer("PROJECT_MANAGER", PM_ID), p)).toBe(true);
@@ -227,7 +227,7 @@ describe("PRD 2.4 — aturan visibilitas", () => {
   });
 });
 
-describe("PRD 2.1 — satu jabatan aktif per akun", () => {
+describe("PRD 2.1: satu jabatan aktif per akun", () => {
   it("jabatan terbaru yang berlaku, dan akun nonaktif tidak punya jabatan", () => {
     const promoted = actor("PROJECT_MANAGER", {
       roleAssignments: [

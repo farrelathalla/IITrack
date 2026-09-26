@@ -73,7 +73,7 @@ const URL_PROMPT: Partial<Record<TermAction, string>> = {
 };
 
 export function termDueLabel(term: TermSnapshot): string {
-  return term.dueDate ? formatDate(term.dueDate) : (term.dueNote ?? "—");
+  return term.dueDate ? formatDate(term.dueDate) : (term.dueNote ?? "-");
 }
 
 /**
@@ -182,7 +182,7 @@ export function TermCard({ term }: { term: TermSnapshot }) {
           <p className="text-[10px] text-subtle uppercase tracking-wider">
             Finance Owner
           </p>
-          <p className="mt-0.5 font-medium text-ink">{finance?.name ?? "—"}</p>
+          <p className="mt-0.5 font-medium text-ink">{finance?.name ?? "-"}</p>
         </div>
       </div>
 
@@ -260,7 +260,7 @@ export function TermCard({ term }: { term: TermSnapshot }) {
         <RejectDialog
           open
           onOpenChange={(open) => !open && setDialog(null)}
-          title={`${TERM_TRANSITIONS[dialog].label} — ${term.name}`}
+          title={`${TERM_TRANSITIONS[dialog].label}: ${term.name}`}
           pending={pending}
           error={error}
           onReject={(feedback) =>
@@ -275,7 +275,7 @@ export function TermCard({ term }: { term: TermSnapshot }) {
         <Dialog
           open
           onOpenChange={(open) => !open && setDialog(null)}
-          title={`${TERM_TRANSITIONS[dialog].label} — ${term.name}`}
+          title={`${TERM_TRANSITIONS[dialog].label}: ${term.name}`}
         >
           <div className="space-y-3">
             <ErrorText error={error} />
@@ -285,7 +285,7 @@ export function TermCard({ term }: { term: TermSnapshot }) {
               value={url}
               onChange={(e) => setUrl(e.target.value)}
               placeholder="https://…"
-              hint="Referensi berupa tautan dan tidak wajib; yang dicatat adalah statusnya."
+              hint="Opsional."
             />
             <div className="flex justify-end gap-2">
               <Button variant="ghost" onClick={() => setDialog(null)}>
@@ -322,7 +322,7 @@ function toRows(terms: TermSnapshot[]): Row[] {
   if (terms.length === 0) {
     return [
       {
-        name: "Termin 1 — DP",
+        name: "Termin 1 (DP)",
         percentage: "30",
         amount: "",
         dueDate: "",
@@ -336,7 +336,7 @@ function toRows(terms: TermSnapshot[]): Row[] {
         dueNote: "",
       },
       {
-        name: "Termin 3 — Final",
+        name: "Termin 3 (Final)",
         percentage: "30",
         amount: "",
         dueDate: "",
@@ -535,8 +535,8 @@ export function TermsEditor({
           </p>
         </div>
         <p className="text-[11px] text-subtle">
-          Termin pertama selalu DP (Stage 5), termin terakhir adalah termin
-          final (Stage 7), dan termin di antaranya ditagih di Stage 6.
+          Termin 1 = DP (Stage 5), termin terakhir = final (Stage 7), sisanya
+          Stage 6.
         </p>
         <div className="flex justify-end gap-2">
           <Button variant="ghost" onClick={() => onOpenChange(false)}>

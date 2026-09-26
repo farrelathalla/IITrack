@@ -183,7 +183,7 @@ export function ChecklistRow({
       </span>
       <span
         className={cn(
-          "flex-1 text-sm",
+          "flex-1 text-xs",
           done ? "text-muted line-through" : "font-medium text-ink",
         )}
       >
@@ -210,7 +210,7 @@ export function ClosureBlock() {
         ))}
       </div>
       {project.closedAt ? (
-        <div className="flex items-center gap-2 rounded-lg border border-success-line bg-success-bg px-4 py-3 text-success-text text-sm">
+        <div className="flex items-center gap-2 rounded-lg border border-success-line bg-success-bg px-4 py-3 text-success-text text-xs">
           <CheckCircle2 className="size-4" />
           Project ditutup {formatDateTime(project.closedAt)}.
         </div>

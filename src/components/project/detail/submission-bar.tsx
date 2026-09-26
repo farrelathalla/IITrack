@@ -15,7 +15,7 @@ import {
   markSignedAction,
   submitDocumentAction,
 } from "@/app/(internal)/projects/[code]/actions";
-import { Button } from "@/components/ui/button";
+import { Button, buttonClass } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
 import { TextArea } from "@/components/ui/text-area";
 import { ROLE_LABELS } from "@/lib/auth/roles";
@@ -138,7 +138,7 @@ export function SubmissionBar({
                 href={docUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="pressable inline-flex items-center gap-1.5 rounded-lg border border-plum-200 bg-white px-4 py-2 font-semibold text-plum-600 text-sm hover:bg-plum-50"
+                className={buttonClass("secondary")}
               >
                 <ExternalLink className="size-3.5" />
                 Edit Dokumen

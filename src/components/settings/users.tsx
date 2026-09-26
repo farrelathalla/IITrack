@@ -56,7 +56,7 @@ function RoleSelect({ defaultValue }: { defaultValue?: RoleName | null }) {
       </option>
       {ROLE_ORDER.map((role) => (
         <option key={role} value={role}>
-          {ROLE_LABELS[role]} — {DIVISION_LABELS[ROLE_DIVISION[role]]}
+          {ROLE_LABELS[role]} ({DIVISION_LABELS[ROLE_DIVISION[role]]})
         </option>
       ))}
     </SelectField>
@@ -166,7 +166,7 @@ export function UsersSection({
       {message ? <Alert tone="success">{message}</Alert> : null}
 
       <div className="overflow-x-auto rounded-xl border border-line bg-white shadow-sm">
-        <table className="w-full text-left text-sm">
+        <table className="w-full text-left text-xs">
           <thead className="border-line border-b bg-surface">
             <tr>
               {[
@@ -192,7 +192,7 @@ export function UsersSection({
               <tr>
                 <td
                   colSpan={7}
-                  className="px-4 py-8 text-center text-subtle text-sm"
+                  className="px-4 py-8 text-center text-subtle text-xs"
                 >
                   Tidak ada pengguna yang cocok.
                 </td>
@@ -208,7 +208,7 @@ export function UsersSection({
                   </td>
                   <td className="px-4 py-3 text-muted text-xs">{u.email}</td>
                   <td className="px-4 py-3 text-muted text-xs">
-                    {u.division ? DIVISION_LABELS[u.division] : "—"}
+                    {u.division ? DIVISION_LABELS[u.division] : "-"}
                   </td>
                   <td className="px-4 py-3 text-xs">
                     {u.role ? (
@@ -218,11 +218,11 @@ export function UsersSection({
                         {ROLE_LABELS[u.lastRole]}
                       </span>
                     ) : (
-                      "—"
+                      "-"
                     )}
                   </td>
                   <td className="px-4 py-3 text-muted text-xs">
-                    {u.period ?? "—"}
+                    {u.period ?? "-"}
                   </td>
                   <td className="px-4 py-3">
                     <Badge tone={u.active ? "success" : "neutral"} dot>
@@ -306,7 +306,7 @@ export function UsersSection({
             autoComplete="new-password"
             minLength={8}
             required
-            hint="Sampaikan ke pemilik akun. Ia bisa menggantinya di Pengaturan > Profil."
+            hint="Bisa diganti pemilik akun di Profil."
           />
           <div className="flex justify-end gap-2">
             <Button variant="ghost" onClick={close}>
@@ -328,14 +328,14 @@ export function UsersSection({
           <div className="rounded-lg border border-line px-4 py-1">
             <InfoRow label="Email">{dialog.user.email}</InfoRow>
             <InfoRow label="Jabatan">
-              {dialog.user.role ? ROLE_LABELS[dialog.user.role] : "—"}
+              {dialog.user.role ? ROLE_LABELS[dialog.user.role] : "-"}
             </InfoRow>
             <InfoRow label="Divisi">
               {dialog.user.division
                 ? DIVISION_LABELS[dialog.user.division]
-                : "—"}
+                : "-"}
             </InfoRow>
-            <InfoRow label="Periode">{dialog.user.period ?? "—"}</InfoRow>
+            <InfoRow label="Periode">{dialog.user.period ?? "-"}</InfoRow>
             <InfoRow label="Status">
               {dialog.user.active ? "Aktif" : "Nonaktif"}
             </InfoRow>
@@ -365,7 +365,7 @@ export function UsersSection({
         <Dialog
           open
           onOpenChange={(o) => !o && close()}
-          title={`Edit Role — ${dialog.user.name}`}
+          title={`Edit Role: ${dialog.user.name}`}
         >
           <form
             action={(fd) =>
@@ -390,9 +390,7 @@ export function UsersSection({
               defaultValue={dialog.user.periodId}
             />
             <p className="text-subtle text-xs">
-              Hak akses lama berakhir dan hak akses baru berlaku seketika.
-              Project yang penugasannya tidak lagi cocok akan ditandai Perlu
-              Penugasan Ulang.
+              Akses lama langsung diganti akses baru.
             </p>
             <div className="flex justify-end gap-2">
               <Button variant="ghost" onClick={close}>
@@ -410,7 +408,7 @@ export function UsersSection({
         <Dialog
           open
           onOpenChange={(o) => !o && close()}
-          title={`Cabut Akses — ${dialog.user.name}`}
+          title={`Cabut Akses: ${dialog.user.name}`}
         >
           <form
             action={(fd) =>
@@ -427,8 +425,8 @@ export function UsersSection({
           >
             {error ? <Alert tone="danger">{error}</Alert> : null}
             <Alert tone="warning">
-              Sesi akun berakhir seketika dan akun tidak bisa login. Riwayat
-              aktivitasnya tetap tersimpan.
+              Akun langsung logout dan tidak bisa masuk lagi. Riwayatnya tetap
+              tersimpan.
             </Alert>
             <TextArea label="Alasan" name="reason" required rows={3} />
             <div className="flex justify-end gap-2">
@@ -447,7 +445,7 @@ export function UsersSection({
         <Dialog
           open
           onOpenChange={(o) => !o && close()}
-          title={`Atur Ulang Kata Sandi — ${dialog.user.name}`}
+          title={`Atur Ulang Kata Sandi: ${dialog.user.name}`}
         >
           <form
             action={(fd) =>

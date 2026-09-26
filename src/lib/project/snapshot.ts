@@ -2,8 +2,8 @@
  * Potret data satu project dalam bentuk objek biasa.
  *
  * Server membangunnya dari basis data (src/server/project/snapshot.ts), lalu
- * seluruh aturan turunan — status stage, status project, deadline terdekat,
- * checklist penutupan — dihitung dari potret ini. Karena murni, aturannya bisa
+ * seluruh aturan turunan, status stage, status project, deadline terdekat,
+ * checklist penutupan, dihitung dari potret ini. Karena murni, aturannya bisa
  * diuji tanpa basis data.
  */
 

@@ -102,7 +102,7 @@ export function PastProjectsTable({ rows }: { rows: PastProjectRow[] }) {
       </div>
 
       <div className="overflow-x-auto rounded-xl border border-line bg-white shadow-sm">
-        <table className="w-full text-left text-sm">
+        <table className="w-full text-left text-xs">
           <thead className="border-line border-b bg-surface">
             <tr>
               {[
@@ -129,7 +129,7 @@ export function PastProjectsTable({ rows }: { rows: PastProjectRow[] }) {
               <tr>
                 <td
                   colSpan={8}
-                  className="px-4 py-10 text-center text-sm text-subtle"
+                  className="px-4 py-10 text-center text-xs text-subtle"
                 >
                   {rows.length === 0
                     ? "Belum ada project yang selesai."
@@ -153,7 +153,7 @@ export function PastProjectsTable({ rows }: { rows: PastProjectRow[] }) {
                     {row.myRole ? (
                       <Badge tone="brand">{row.myRole}</Badge>
                     ) : (
-                      <span className="text-subtle text-xs">—</span>
+                      <span className="text-subtle text-xs">-</span>
                     )}
                   </td>
                   <td className="whitespace-nowrap px-4 py-3 text-muted text-xs">

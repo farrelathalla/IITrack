@@ -33,9 +33,9 @@ tanpa menyalakan apa pun. Isinya:
 | Berkas | Isi | PRD |
 |---|---|---|
 | `auth/access.ts` | Matriks hak akses per aksi, visibilitas nominal dan tautan | 2.4 |
-| `auth/roles.ts` | Jabatan, divisi, kelompok C-Level, jabatan yang boleh ditugaskan | 2.1–2.2 |
+| `auth/roles.ts` | Jabatan, divisi, kelompok C-Level, jabatan yang boleh ditugaskan | 2.1-2.2 |
 | `project/catalog.ts` | Sembilan stage dan jenis dokumen | 4.1, 4.3 |
-| `project/stages.ts` | Status tiap stage dari potret project | 4.1–4.2 |
+| `project/stages.ts` | Status tiap stage dari potret project | 4.1-4.2 |
 | `project/status.ts` | Status project, deadline terdekat, next action, penanggung jawab | 8.1, 9 |
 | `project/closure.ts` | Closure Checklist, syarat disbursement, Status Final | 4.12, 5.5 |
 | `finance/terms.ts` | Validasi skema termin dan alur status per termin | 4.6, 5 |
@@ -109,7 +109,7 @@ Aturan yang ditegakkan basis data, bukan disiplin kode:
   `project_number_counters` di transaksi yang sama dengan pembuatan project.
 - **Satu PM dan satu Finance POC aktif per project**, dan satu pengajuan
   menunggu per dokumen (partial unique index).
-- **Persentase termin 0–100, nominal tidak negatif, target selesai tidak
+- **Persentase termin 0-100, nominal tidak negatif, target selesai tidak
   sebelum target mulai** (CHECK constraint). Total 100% dicek aplikasi.
 
 ## 2. Penyiapan
@@ -254,7 +254,7 @@ append-only. `tests/support/world.ts` menyediakan satu tim pengurus pada
 periode uji baru dan helper untuk membawa project ke stage tertentu.
 
 Judul `describe` menyebut bab PRD yang diuji, misalnya
-`PRD 5.2 — alur status per termin`, supaya setiap test bisa ditelusuri ke
+`PRD 5.2, alur status per termin`, supaya setiap test bisa ditelusuri ke
 requirement-nya.
 
 Data uji tidak dibersihkan, karena riwayat aktivitas memang tidak bisa dihapus.
@@ -315,7 +315,7 @@ berubah cukup satu berkas di `src/lib` atau `src/server` beserta testnya.
 
 - **Stage yang sudah selesai tidak terkunci ulang.** Waktu selesai dicatat
   permanen (`project_stages.completedAt`), supaya mengganti developer di Stage
-  6 tidak mengunci Stage 5–9. Lihat `src/lib/project/stages.ts`.
+  6 tidak mengunci Stage 5-9. Lihat `src/lib/project/stages.ts`.
 - **Super Admin melihat semua project** di Dashboard dan daftar, read-only
   tanpa nominal. PRD bab 8.1 hanya menyebut C-Level dan yang ditugaskan.
   Lihat `seesAllProjects` di `src/lib/auth/access.ts`.

@@ -279,14 +279,14 @@ export function canEditTab(
   }
 }
 
-/** "Tampilan hanya baca — kamu tidak memiliki akses edit pada divisi X." */
+/** "Tampilan hanya baca, kamu tidak memiliki akses edit pada divisi X." */
 export function readOnlyBanner(closed: boolean, tab: DivisionTab): string {
   if (closed) {
-    return "Tampilan hanya baca — project ini sudah ditutup.";
+    return "Hanya baca. Project ini sudah ditutup.";
   }
   const name =
     tab === "pm" ? "Project Management" : DIVISION_LABELS[TAB_DIVISION[tab]];
-  return `Tampilan hanya baca — kamu tidak memiliki akses edit pada divisi ${name}.`;
+  return `Hanya baca. Kamu tidak punya akses edit di divisi ${name}.`;
 }
 
 export type MyProjectRole = ProjectRole | "C_LEVEL";
@@ -312,7 +312,7 @@ export function myProjectRole(
 
 /**
  * C-Level melihat semua project; jabatan lain hanya yang ditugaskan (PRD bab
- * 8.1–8.2). Super Admin ikut melihat semua karena perannya memantau secara
+ * 8.1-8.2). Super Admin ikut melihat semua karena perannya memantau secara
  * read-only dan ia tidak pernah ditugaskan ke project mana pun.
  */
 export function seesAllProjects(role: RoleName | null): boolean {

@@ -16,6 +16,7 @@ import { ProjectCard } from "@/components/project/project-card";
 import { URGENCY_TONE } from "@/components/project/tones";
 import { Avatar } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
+import { buttonClass } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/card";
 import { seesAllProjects } from "@/lib/auth/access";
 import {
@@ -141,7 +142,7 @@ export default async function DashboardPage() {
       <div className="flex items-start justify-between">
         <div>
           <h1 className="font-bold text-ink text-xl">Dashboard</h1>
-          <p className="mt-0.5 text-muted text-sm">
+          <p className="mt-0.5 text-muted text-xs">
             Selamat datang,{" "}
             <strong className="font-semibold text-ink">{actor.name}</strong>.
           </p>
@@ -163,13 +164,13 @@ export default async function DashboardPage() {
                 <span>
                   <strong className="text-ink">{item.project.name}</strong>{" "}
                   <span className="text-muted">
-                    — {PROJECT_ROLE_LABELS[assignment.role]} {assignment.name}{" "}
+                    · {PROJECT_ROLE_LABELS[assignment.role]} {assignment.name}{" "}
                     sudah tidak aktif
                   </span>
                 </span>
                 <Link
                   href={`/projects/${item.project.code}?tab=${assignment.role === "PM" ? "pm" : assignment.role === "DEVELOPER" ? "tech" : "finance"}`}
-                  className="pressable rounded-lg bg-plum-600 px-3 py-1 font-semibold text-white hover:bg-plum-700"
+                  className={buttonClass("primary", "sm")}
                 >
                   Ganti
                 </Link>
@@ -222,7 +223,7 @@ export default async function DashboardPage() {
                 className={cn("size-4", stat.accent)}
               />
             </div>
-            <p className={cn("font-bold text-3xl", stat.accent)}>
+            <p className={cn("font-bold text-2xl", stat.accent)}>
               {stat.value}
             </p>
             <p className="mt-0.5 text-[11px] text-subtle">{stat.sub}</p>
@@ -245,7 +246,7 @@ export default async function DashboardPage() {
           </div>
           <div className="overflow-hidden rounded-xl border border-line bg-white shadow-sm">
             {deadlines.length === 0 ? (
-              <div className="p-8 text-center text-sm text-subtle">
+              <div className="p-8 text-center text-xs text-subtle">
                 Tidak ada deadline dalam waktu dekat.
               </div>
             ) : (
@@ -304,7 +305,7 @@ export default async function DashboardPage() {
           </div>
           <div className="overflow-hidden rounded-xl border border-line bg-white shadow-sm">
             {activity.length === 0 ? (
-              <div className="p-8 text-center text-sm text-subtle">
+              <div className="p-8 text-center text-xs text-subtle">
                 Belum ada aktivitas tercatat.
               </div>
             ) : (

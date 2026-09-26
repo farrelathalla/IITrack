@@ -139,7 +139,7 @@ export async function throughMouSubmitted(team: Team, code: string) {
     projectId: code,
     terms: [
       {
-        name: "Termin 1 — DP",
+        name: "Termin 1 (DP)",
         percentage: 30,
         amount: 3_000_000,
         dueDate: "2026-09-01",
@@ -151,7 +151,7 @@ export async function throughMouSubmitted(team: Team, code: string) {
         dueDate: "2026-10-01",
       },
       {
-        name: "Termin 3 — Final",
+        name: "Termin 3 (Final)",
         percentage: 30,
         amount: 3_000_000,
         dueNote: "Setelah BAST",

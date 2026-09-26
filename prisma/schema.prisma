@@ -523,7 +523,7 @@ model ActivityLog {
   action     String
   /// Kalimat yang ditampilkan, misalnya "Mengajukan MoU untuk persetujuan".
   summary    String
-  /// Stage (1–9) atau divisi yang terkait, untuk tampilan riwayat.
+  /// Stage (1-9) atau divisi yang terkait, untuk tampilan riwayat.
   stage      Int?
   division   String?
   result     ActivityResult  @default(UPDATED)
@@ -552,7 +552,7 @@ model Notification {
   @@map("notifications")
 }
 
-/// Pengaturan sistem dalam bentuk kunci–nilai (PRD bab 8.7 dan 12).
+/// Pengaturan sistem dalam bentuk kunci-nilai (PRD bab 8.7 dan 12).
 model Setting {
   key       String   @id
   value     Json

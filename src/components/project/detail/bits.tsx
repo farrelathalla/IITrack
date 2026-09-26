@@ -33,11 +33,11 @@ export function FeedbackCard({
         <AlertCircle className="size-3.5 text-danger-text" />
         <p className="font-semibold text-danger-text text-xs">{title}</p>
       </div>
-      <p className="text-ink text-sm leading-relaxed">
+      <p className="text-ink text-xs leading-relaxed">
         &ldquo;{feedback}&rdquo;
       </p>
       <p className="mt-1 text-muted text-xs">
-        — {reviewer}
+        {reviewer}
         {decidedAt ? `, ${formatDate(decidedAt)}` : ""}
       </p>
     </div>
@@ -95,7 +95,7 @@ export function Subsection({
   return (
     <section className="space-y-2">
       <div className="flex items-center justify-between gap-2">
-        <p className="font-semibold text-[11px] text-muted uppercase tracking-wider">
+        <p className="font-bold text-[11px] text-muted uppercase tracking-wider">
           {title}
         </p>
         {action}

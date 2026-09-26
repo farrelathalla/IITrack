@@ -42,7 +42,7 @@ export function ProjectCard({ item }: { item: ProjectListItem }) {
                 <ProjectStatusChip status={summary.status} />
               ) : null}
             </div>
-            <h3 className="font-bold text-base text-ink transition-colors group-hover:text-plum-600">
+            <h3 className="font-bold text-sm text-ink transition-colors group-hover:text-plum-600">
               {project.name}
             </h3>
             <div className="mt-1.5 flex flex-wrap items-center gap-3 text-muted text-xs">
@@ -57,7 +57,7 @@ export function ProjectCard({ item }: { item: ProjectListItem }) {
                 {pm ? <Avatar name={pm.name} /> : null}
                 PM:{" "}
                 <strong className="font-medium text-ink">
-                  {pm?.name.split(" ")[0] ?? "—"}
+                  {pm?.name.split(" ")[0] ?? "-"}
                 </strong>
               </span>
             </div>
@@ -88,8 +88,8 @@ export function ProjectCard({ item }: { item: ProjectListItem }) {
               </div>
               <p className="font-medium text-ink text-xs">
                 {deadline
-                  ? `${deadline.label} — ${formatDayMonth(deadline.date)}`
-                  : "—"}
+                  ? `${deadline.label}: ${formatDayMonth(deadline.date)}`
+                  : "-"}
               </p>
             </div>
             <div>
@@ -100,7 +100,7 @@ export function ProjectCard({ item }: { item: ProjectListItem }) {
                 </span>
               </div>
               <p className="text-muted text-xs leading-relaxed">
-                {next?.label ?? "—"}
+                {next?.label ?? "-"}
               </p>
             </div>
           </div>

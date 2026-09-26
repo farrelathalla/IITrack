@@ -26,7 +26,7 @@ async function statuses(code: string) {
   return deriveStages(project, new Date()).map((s) => s.status);
 }
 
-describe("PRD 4 — alur project end-to-end, dari pembuatan sampai Project Selesai", () => {
+describe("PRD 4: alur project end-to-end, dari pembuatan sampai Project Selesai", () => {
   let team: Team;
   beforeAll(async () => {
     team = await createTeam();

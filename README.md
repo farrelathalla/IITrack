@@ -131,7 +131,7 @@ Mengikuti Development Workflow & Guidelines Inkubator IT.
 `test`, `chore`, atau `style`.
 
 **Test.** Judul `describe` menyebut bab PRD yang diuji, misalnya
-`PRD 5.2 — alur status per termin`, supaya setiap test bisa ditelusuri ke
+`PRD 5.2, alur status per termin`, supaya setiap test bisa ditelusuri ke
 requirement-nya.
 
 **Izin.** Pemeriksaan izin dilakukan di server. Menyembunyikan tombol tidak

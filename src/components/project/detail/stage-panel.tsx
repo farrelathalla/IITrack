@@ -1,6 +1,6 @@
 "use client";
 
-import { Check, CheckCircle2, Info, Pencil, PenLine, X } from "lucide-react";
+import { Check, CheckCircle2, Pencil, PenLine, X } from "lucide-react";
 import { useState } from "react";
 import {
   completeStage1Action,
@@ -13,7 +13,7 @@ import { Button } from "@/components/ui/button";
 import { InfoRow } from "@/components/ui/card";
 import { stageOfTerm } from "@/lib/finance/terms";
 import { formatRupiah, HIDDEN } from "@/lib/money";
-import { DOCUMENT_STATUS_LABELS, stageDefinition } from "@/lib/project/catalog";
+import { stageDefinition } from "@/lib/project/catalog";
 import {
   developersOf,
   documentOf,
@@ -53,17 +53,6 @@ function Stage1() {
           statusOptions={[...MANUAL_STATUS]}
         />
       </Subsection>
-      <InfoGrid>
-        <InfoRow label="Nama Dokumen">Requirement Gathering Document</InfoRow>
-        <InfoRow label="Pemilik">{doc?.ownerName ?? "—"}</InfoRow>
-        <InfoRow label="Tenggat">{formatDate(doc?.deadline)}</InfoRow>
-        <InfoRow label="Status">
-          {DOCUMENT_STATUS_LABELS[doc?.status ?? "MISSING"]}
-        </InfoRow>
-        <InfoRow label="Terakhir Diperbarui">
-          {formatDate(doc?.updatedAt)}
-        </InfoRow>
-      </InfoGrid>
       <ErrorText error={error} />
       {can["stage1.edit"] && !project.stage1DoneAt ? (
         <div className="flex items-center gap-2">
@@ -75,9 +64,7 @@ function Stage1() {
             Tandai Selesai
           </Button>
           {!doc?.url ? (
-            <span className="text-subtle text-xs">
-              Tautkan dokumennya terlebih dahulu.
-            </span>
+            <span className="text-subtle text-xs">Tautkan dokumen dulu.</span>
           ) : null}
         </div>
       ) : null}
@@ -96,11 +83,7 @@ function Stage2() {
       <Subsection title="Dokumen Pendukung (Opsional)">
         <DocumentCard kind="GANTT_CHART" editable={editable} />
       </Subsection>
-      <p className="flex items-start gap-1.5 rounded-lg bg-plum-50 px-3 py-2 text-plum-600 text-xs">
-        <Info className="mt-0.5 size-3.5 shrink-0" />
-        Project Charter memerlukan persetujuan COO / Vice COO sebelum project
-        dapat dilanjutkan ke stage berikutnya.
-      </p>
+      <p className="text-subtle text-xs">Perlu persetujuan COO / Vice COO.</p>
       <SubmissionBar
         kind="PROJECT_CHARTER"
         label="Project Charter"
@@ -136,7 +119,7 @@ export function TermsSummary() {
     >
       {project.terms.length === 0 ? (
         <p className="rounded-lg border border-line border-dashed px-3 py-4 text-center text-subtle text-xs">
-          Termin belum diisi. PM mengisi termin saat menyusun MoU.
+          Termin belum diisi.
         </p>
       ) : (
         <div className="overflow-hidden rounded-lg border border-line bg-white">
@@ -219,7 +202,7 @@ function Stage3() {
                     : "Menunggu"}
               </Badge>
             ) : (
-              "—"
+              "-"
             )}
           </InfoRow>
           <InfoRow label="Status Tanda Tangan">
@@ -238,9 +221,8 @@ function Stage3() {
       />
       {latest?.status === "APPROVED" && !mou?.signedAt ? (
         <p className="text-subtle text-xs">
-          Kirim MoU ke client. Setelah ditandatangani, ganti tautan dengan MoU
-          bertanda tangan lalu klik Tandai Ditandatangani. CFO/VCFO akan diberi
-          tahu untuk menunjuk Finance POC.
+          Kirim MoU ke client, ganti tautan dengan versi bertanda tangan, lalu
+          klik Tandai Ditandatangani.
         </p>
       ) : null}
     </>
@@ -266,7 +248,7 @@ function Stage4({ onAssign }: { onAssign: (mode: AssignmentMode) => void }) {
                 <DocumentCard
                   kind="PROGRAMMER_CONTRACT"
                   developerId={dev.userId}
-                  title={`Kontrak Programmer — ${dev.name}`}
+                  title={`Kontrak Programmer: ${dev.name}`}
                   editable={can["contract.edit"]}
                 />
                 <SubmissionBar
@@ -287,10 +269,8 @@ function Stage4({ onAssign }: { onAssign: (mode: AssignmentMode) => void }) {
         <TechReferences />
       </Subsection>
       {!financePocOf(project) ? (
-        <p className="flex items-start gap-1.5 rounded-lg bg-warning-bg px-3 py-2 text-warning-text text-xs">
-          <Info className="mt-0.5 size-3.5 shrink-0" />
-          Penunjukan Finance POC berjalan paralel di tab Finance. Stage 5 baru
-          terbuka bila Stage 4 selesai dan Finance POC sudah ditunjuk.
+        <p className="text-subtle text-xs">
+          Stage 5 terbuka setelah Stage 4 selesai dan Finance POC ditunjuk.
         </p>
       ) : null}
     </>
@@ -300,7 +280,7 @@ function Stage4({ onAssign }: { onAssign: (mode: AssignmentMode) => void }) {
 function Stage5() {
   const { project } = useProject();
   const dp = project.terms.find((t) => t.sequence === 1);
-  if (!dp) return <p className="text-subtle text-sm">Termin DP belum diisi.</p>;
+  if (!dp) return <p className="text-subtle text-xs">Termin DP belum diisi.</p>;
   return (
     <>
       <Subsection title="Alur Pembayaran DP">
@@ -392,10 +372,7 @@ function Stage7() {
         {final ? (
           <TermCard term={final} />
         ) : (
-          <p className="text-subtle text-xs">
-            Project ini hanya punya satu termin (DP), jadi tidak ada termin
-            final.
-          </p>
+          <p className="text-subtle text-xs">Tidak ada termin final.</p>
         )}
       </Subsection>
       <Subsection title="Garansi">
@@ -428,8 +405,7 @@ function Stage8() {
         <DocumentCard kind="PROGRAMMER_FEEDBACK" editable={can["ops.edit"]} />
       </div>
       <p className="text-subtle text-xs">
-        Kirim form feedback ke client dan programmer, lalu tautkan hasilnya di
-        sini.
+        Tautkan hasil form feedback di sini.
       </p>
     </>
   );
@@ -518,11 +494,11 @@ export function StagePanel({
           </span>
           <div>
             <p className="text-[11px] text-muted">
-              Stage {def.n} dari 9 — {def.divisionLabel}
+              Stage {def.n} dari 9 · {def.divisionLabel}
             </p>
             <h3
               className={cn(
-                "font-bold text-base",
+                "font-bold text-sm",
                 locked ? "text-subtle" : "text-ink",
               )}
             >
@@ -538,7 +514,7 @@ export function StagePanel({
       <div className="space-y-5 p-5">
         <p
           className={cn(
-            "text-sm leading-relaxed",
+            "text-xs leading-relaxed",
             locked ? "text-subtle" : "text-muted",
           )}
         >
@@ -573,7 +549,7 @@ export function StagePanel({
                 <p className="mb-0.5 font-semibold text-[10px] text-subtle uppercase tracking-wider">
                   Tanggal Selesai
                 </p>
-                <p className="font-medium text-ink text-sm">
+                <p className="font-medium text-ink text-xs">
                   {formatDate(state.completedAt)}
                 </p>
               </div>
@@ -582,7 +558,7 @@ export function StagePanel({
                   <p className="mb-0.5 font-semibold text-[10px] text-subtle uppercase tracking-wider">
                     Menunggu
                   </p>
-                  <p className="font-medium text-warning-text text-sm">
+                  <p className="font-medium text-warning-text text-xs">
                     {state.waitingFor}
                   </p>
                 </div>

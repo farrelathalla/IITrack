@@ -48,7 +48,7 @@ function PmTab() {
         <InfoGrid>
           <InfoRow label="Project ID">{project.code}</InfoRow>
           <InfoRow label="Project Manager">
-            {pmOf(project)?.name ?? "—"}
+            {pmOf(project)?.name ?? "-"}
           </InfoRow>
           <InfoRow label="Tanggal Mulai">
             {formatDate(project.targetStart)}
@@ -125,7 +125,7 @@ function PmTab() {
         </Subsection>
         <Subsection title="BAST">
           <div className="flex items-center justify-between rounded-lg border border-line bg-white px-4 py-3">
-            <span className="font-medium text-ink text-sm">
+            <span className="font-medium text-ink text-xs">
               Handover Report / BAST
             </span>
             <Badge
@@ -157,8 +157,8 @@ function TechTab({ onAssign }: { onAssign: (mode: AssignmentMode) => void }) {
 
   if (!open) {
     return (
-      <p className="rounded-lg border border-line border-dashed px-4 py-8 text-center text-subtle text-sm">
-        Tab Technology Dev terbuka setelah Agreement (Stage 3) selesai.
+      <p className="rounded-lg border border-line border-dashed px-4 py-8 text-center text-subtle text-xs">
+        Terbuka setelah Stage 3 selesai.
       </p>
     );
   }
@@ -179,7 +179,7 @@ function TechTab({ onAssign }: { onAssign: (mode: AssignmentMode) => void }) {
                 <DocumentCard
                   kind="PROGRAMMER_CONTRACT"
                   developerId={dev.userId}
-                  title={`Kontrak Programmer — ${dev.name}`}
+                  title={`Kontrak Programmer: ${dev.name}`}
                   editable={can["contract.edit"]}
                 />
                 <SubmissionBar
@@ -246,7 +246,7 @@ function FinanceTab({
               </div>
             </div>
           ) : (
-            <p className="text-muted text-sm">
+            <p className="text-muted text-xs">
               Finance POC belum ditunjuk. Menunggu CFO/VCFO.
             </p>
           )}
@@ -297,7 +297,7 @@ function FinanceTab({
               className="rounded-lg border border-line bg-white px-4 py-3"
             >
               <p className="text-muted text-xs">{card.label}</p>
-              <p className="font-bold text-ink text-lg tabular-nums">
+              <p className="font-bold text-ink text-base tabular-nums">
                 {amountsHidden ? HIDDEN : formatRupiah(card.value)}
               </p>
               <p className="text-[11px] text-subtle">{card.sub}</p>
@@ -342,7 +342,7 @@ function FinanceTab({
                 <strong className="text-ink">{t.name}:</strong>
                 <span className="text-muted">
                   {t.feedback
-                    ? `Ditolak — menunggu PM memperbaiki`
+                    ? "Ditolak, menunggu perbaikan PM"
                     : `Status saat ini: ${TERM_STEP_LABELS[t.step]}`}
                 </span>
               </p>
@@ -355,10 +355,7 @@ function FinanceTab({
         {stages[8].status === "locked" && !project.disbursement ? (
           <div className="rounded-lg border border-line bg-white px-4 py-3">
             <Badge tone={STAGE_TONE.locked}>Belum Tersedia</Badge>
-            <p className="mt-1 text-subtle text-xs">
-              Tersedia di Stage 9 setelah semua termin lunas, garansi selesai,
-              dan feedback lengkap.
-            </p>
+            <p className="mt-1 text-subtle text-xs">Tersedia di Stage 9.</p>
           </div>
         ) : (
           <DisbursementBlock />
@@ -405,7 +402,7 @@ export function DivisionTabs({
         <div className="pb-3">
           <p className="font-bold text-ink text-sm">Tampilan Divisi</p>
           <p className="text-muted text-xs">
-            Data yang sama — dilihat dari sudut pandang masing-masing divisi
+            Data yang sama, dilihat per divisi
           </p>
         </div>
         <div className="flex" role="tablist">
@@ -430,11 +427,10 @@ export function DivisionTabs({
         </div>
       </div>
       <div className="space-y-4 p-5">
-        <div className="flex items-center gap-2 rounded-lg bg-plum-50 px-3 py-2 text-plum-600 text-xs">
-          <span className="size-1.5 rounded-full bg-plum-600" />
-          Data di bawah terhubung dengan global workflow di atas. Perubahan
-          status di satu divisi akan tercermin di semua tampilan.
-        </div>
+        <p className="text-subtle text-xs">
+          Terhubung dengan workflow di atas. Perubahan di satu divisi langsung
+          terlihat di divisi lain.
+        </p>
         {!editableTabs[tab] ? (
           <ReadOnlyBanner>
             {readOnlyBanner(Boolean(project.closedAt), tab)}

@@ -82,7 +82,7 @@ export function checkTermScheme(drafts: readonly TermDraft[]): SchemeCheck {
   const first = drafts[0];
   if (first && !/\bDP\b|down\s*payment/i.test(first.name)) {
     errors.push(
-      'Termin pertama adalah DP. Beri nama yang memuat "DP", misalnya "Termin 1 — DP".',
+      'Termin pertama adalah DP. Beri nama yang memuat "DP", misalnya "Termin 1 (DP)".',
     );
   }
 
@@ -356,7 +356,7 @@ function atLeast(step: TermStep, target: TermStep): boolean {
 
 /** Kolom "Status Invoice" (PRD bab 5.3). */
 export function invoiceStatusLabel(step: TermStep): string {
-  if (step === "NOT_STARTED") return "—";
+  if (step === "NOT_STARTED") return "-";
   if (step === "INVOICE_REQUESTED") return "Diminta";
   if (step === "PROCESSING") return "Diproses";
   if (step === "INVOICE_APPROVED") return "Disetujui";
@@ -365,7 +365,7 @@ export function invoiceStatusLabel(step: TermStep): string {
 
 /** Kolom "Status Pembayaran" (PRD bab 5.3). */
 export function paymentStatusLabel(step: TermStep): string {
-  if (step === "NOT_STARTED") return "—";
+  if (step === "NOT_STARTED") return "-";
   if (step === "PROOF_SUBMITTED") return "Menunggu Verifikasi";
   if (atLeast(step, "PAYMENT_RECEIVED")) return "Lunas";
   return "Belum Lunas";
@@ -373,7 +373,7 @@ export function paymentStatusLabel(step: TermStep): string {
 
 /** Kolom "Status Kwitansi" (PRD bab 5.3). */
 export function receiptStatusLabel(step: TermStep): string {
-  return atLeast(step, "RECEIPT_ISSUED") ? "Diterbitkan" : "—";
+  return atLeast(step, "RECEIPT_ISSUED") ? "Diterbitkan" : "-";
 }
 
 export type TermStatus = "NOT_DUE" | "IN_PROGRESS" | "OVERDUE" | "PAID";

@@ -7,6 +7,7 @@ import { PersonPicker } from "@/components/project/person-picker";
 import {
   Alert,
   Button,
+  buttonClass,
   Card,
   Dialog,
   SelectField,
@@ -62,13 +63,12 @@ export function CreateProjectForm({
             <p className="font-semibold text-[11px] text-muted uppercase tracking-wider">
               Project ID (Sistem)
             </p>
-            <p className="font-bold font-mono text-lg text-plum-600">
+            <p className="font-bold font-mono text-base text-plum-600">
               {nextId ?? "Belum ada periode aktif"}
             </p>
           </div>
           <p className="max-w-sm text-right text-muted text-xs">
-            Format IIT-[periode]-[3 digit]. Nomor final diterbitkan saat project
-            dibuat, berurutan dan unik.
+            Nomor final terbit saat project dibuat.
           </p>
         </Card>
 
@@ -127,8 +127,7 @@ export function CreateProjectForm({
           />
           <p className="flex items-start gap-1.5 text-muted text-xs">
             <Info className="mt-0.5 size-3.5 shrink-0 text-plum-500" />
-            PM yang dipilih akan mendapatkan akses edit ke bagian Project
-            Management untuk project ini.
+            PM ini dapat akses edit Project Management.
           </p>
         </Section>
 
@@ -162,15 +161,10 @@ export function CreateProjectForm({
 
         <div className="flex items-center justify-between gap-4">
           <p className="max-w-lg text-subtle text-xs">
-            Setelah project dibuat, PM yang ditugaskan akan dapat mengisi detail
-            project di halaman Project Detail. Workflow dimulai dari Stage 1
-            secara otomatis.
+            Workflow mulai dari Stage 1.
           </p>
           <div className="flex gap-2">
-            <Link
-              href="/projects"
-              className="pressable rounded-lg border border-line bg-white px-4 py-2 font-semibold text-muted text-sm hover:bg-surface"
-            >
+            <Link href="/projects" className={buttonClass("secondary")}>
               Batal
             </Link>
             <Button type="submit" disabled={pending || !nextId}>
@@ -189,24 +183,19 @@ export function CreateProjectForm({
           <div className="space-y-4">
             <div className="flex items-center gap-3 rounded-lg bg-success-bg p-3">
               <CheckCircle2 className="size-6 text-success-text" />
-              <div className="text-sm">
+              <div className="text-xs">
                 <p className="font-bold font-mono text-ink">{state.code}</p>
                 <p className="text-muted text-xs">PM: {state.pmName}</p>
               </div>
             </div>
-            <p className="text-muted text-xs">
-              PM sudah menerima notifikasi dan bisa mulai mengisi Stage 1.
-            </p>
+            <p className="text-muted text-xs">PM sudah dapat notifikasi.</p>
             <div className="flex justify-end gap-2">
-              <Link
-                href="/projects"
-                className="pressable rounded-lg border border-line px-4 py-2 font-semibold text-muted text-sm hover:bg-surface"
-              >
+              <Link href="/projects" className={buttonClass("secondary")}>
                 Ke Semua Project
               </Link>
               <Link
                 href={`/projects/${state.code}`}
-                className="pressable rounded-lg bg-plum-600 px-4 py-2 font-semibold text-sm text-white hover:bg-plum-700"
+                className={buttonClass("primary")}
               >
                 Buka Project
               </Link>

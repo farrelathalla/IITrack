@@ -15,7 +15,7 @@ import type {
 export const PERIOD_START = new Date("2026-08-01T00:00:00+07:00");
 export const PERIOD_END = new Date("2027-08-01T00:00:00+07:00");
 
-/** 22 Sep 2026, 10:00 WIB — tanggal "hari ini" di prototipe. */
+/** 22 Sep 2026, 10:00 WIB, tanggal "hari ini" di prototipe. */
 export const NOW = new Date("2026-09-22T10:00:00+07:00");
 
 export function day(iso: string): Date {
@@ -131,7 +131,7 @@ export function term(
   return {
     id: `term-${sequence}`,
     sequence,
-    name: sequence === 1 ? "Termin 1 — DP" : `Termin ${sequence}`,
+    name: sequence === 1 ? "Termin 1 (DP)" : `Termin ${sequence}`,
     percentage: 30,
     amount: 4_500_000,
     dueDate: null,
@@ -183,7 +183,7 @@ export function emptyProject(
 }
 
 /**
- * Project yang sudah melewati Stage 1–4: Requirement selesai, Charter dan MoU
+ * Project yang sudah melewati Stage 1-4: Requirement selesai, Charter dan MoU
  * disetujui, MoU ditandatangani, satu developer dengan kontrak bertanda tangan,
  * dan Finance POC sudah ditunjuk.
  */
@@ -222,7 +222,7 @@ export function projectThroughStage4(
     terms: [
       term(1, "NOT_STARTED", { percentage: 30 }),
       term(2, "NOT_STARTED", { percentage: 40, amount: 6_000_000 }),
-      term(3, "NOT_STARTED", { name: "Termin 3 — Final", percentage: 30 }),
+      term(3, "NOT_STARTED", { name: "Termin 3 (Final)", percentage: 30 }),
     ],
     ...overrides,
   });

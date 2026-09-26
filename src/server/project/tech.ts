@@ -117,7 +117,10 @@ const techInfoSchema = z.object({
       if (value === "") return null;
       const n = Number(value);
       if (!Number.isInteger(n) || n < 0 || n > 100) {
-        ctx.addIssue({ code: "custom", message: "Progres harus angka 0–100." });
+        ctx.addIssue({
+          code: "custom",
+          message: "Progres harus angka 0 sampai 100.",
+        });
         return z.NEVER;
       }
       return n;

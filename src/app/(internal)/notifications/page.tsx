@@ -22,7 +22,7 @@ export default async function NotificationsPage() {
       <div className="flex items-start justify-between">
         <div>
           <h1 className="font-bold text-ink text-xl">Notifikasi</h1>
-          <p className="mt-0.5 text-muted text-sm">
+          <p className="mt-0.5 text-muted text-xs">
             {unread > 0
               ? `${unread} belum dibaca`
               : "Semua notifikasi sudah dibaca."}
@@ -38,7 +38,7 @@ export default async function NotificationsPage() {
       </div>
       <div className="overflow-hidden rounded-xl border border-line bg-white shadow-sm">
         {items.length === 0 ? (
-          <p className="p-10 text-center text-sm text-subtle">
+          <p className="p-10 text-center text-xs text-subtle">
             Belum ada notifikasi.
           </p>
         ) : (
@@ -63,7 +63,7 @@ export default async function NotificationsPage() {
                 <span className="flex-1">
                   <span
                     className={cn(
-                      "block text-sm",
+                      "block text-xs",
                       item.readAt ? "text-muted" : "font-medium text-ink",
                     )}
                   >

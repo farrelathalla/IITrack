@@ -39,7 +39,7 @@ export default async function PastProjectsPage() {
   const thisYear = rows.filter((r) => r.year === yearInWib(now)).length;
   const onTime = items.filter((i) => i.project.finalStatus !== "LATE").length;
   const rate =
-    items.length === 0 ? "—" : `${Math.round((onTime / items.length) * 100)}%`;
+    items.length === 0 ? "-" : `${Math.round((onTime / items.length) * 100)}%`;
 
   return (
     <div className="mx-auto max-w-[1280px] space-y-5 p-6">
@@ -47,7 +47,7 @@ export default async function PastProjectsPage() {
         active="past"
         canCreate={canGlobally(viewer, "project.create").allowed}
       />
-      <p className="text-muted text-sm">
+      <p className="text-muted text-xs">
         Riwayat project yang pernah kamu tangani.
       </p>
       <div className="grid grid-cols-3 gap-3">

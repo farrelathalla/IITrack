@@ -35,7 +35,7 @@ export default async function ActiveProjectsPage() {
       code: project.code,
       name: project.name,
       client: project.client,
-      pm: pmOf(project)?.name ?? "—",
+      pm: pmOf(project)?.name ?? "-",
       myRole: myRole ? MY_ROLE_LABELS[myRole] : null,
       stageNumber: summary.current.n,
       stageName: stageDefinition(summary.current.n).shortName,
@@ -48,7 +48,7 @@ export default async function ActiveProjectsPage() {
       deadlineTone: deadline
         ? URGENCY_TONE[urgencyOf(deadline.date, now)].tone
         : "neutral",
-      nextAction: summary.nextAction?.label ?? "—",
+      nextAction: summary.nextAction?.label ?? "-",
     };
   });
 
@@ -71,7 +71,7 @@ export default async function ActiveProjectsPage() {
         active="active"
         canCreate={canGlobally(viewer, "project.create").allowed}
       />
-      <p className="text-muted text-sm">
+      <p className="text-muted text-xs">
         Project aktif yang sedang menjadi tanggung jawabmu.
       </p>
       <div className="grid grid-cols-4 gap-3">

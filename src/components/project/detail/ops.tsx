@@ -125,7 +125,7 @@ export function MilestonesBlock() {
                 </button>
                 <p
                   className={cn(
-                    "flex-1 text-sm",
+                    "flex-1 text-xs",
                     state === "done" ? "text-muted line-through" : "text-ink",
                   )}
                 >
@@ -223,7 +223,7 @@ export function UatControl({ editable }: { editable: boolean }) {
   return (
     <div className="space-y-1">
       <div className="flex items-center justify-between gap-2 rounded-lg border border-line bg-white px-4 py-3">
-        <span className="font-medium text-ink text-sm">UAT Status</span>
+        <span className="font-medium text-ink text-xs">UAT Status</span>
         {editable ? (
           <select
             aria-label="Status UAT"
@@ -320,8 +320,7 @@ export function WarrantyBlock({ editable }: { editable: boolean }) {
             />
           </div>
           <p className="text-[11px] text-subtle">
-            Status garansi berubah otomatis: Aktif selama masa garansi, Selesai
-            sehari setelah tanggal akhir.
+            Status garansi berubah otomatis dari tanggal.
           </p>
           <div className="flex justify-end gap-2">
             <Button variant="ghost" onClick={() => setOpen(false)}>
@@ -346,7 +345,7 @@ export function StageDeadline({ stage }: { stage: number }) {
   return (
     <>
       <div className="flex items-center gap-2">
-        <p className="font-medium text-ink text-sm">
+        <p className="font-medium text-ink text-xs">
           {formatDate(state?.deadline)}
         </p>
         {can["ops.edit"] && state?.status !== "completed" ? (

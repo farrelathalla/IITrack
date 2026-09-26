@@ -69,7 +69,7 @@ export function StaffingBlock({
       <InfoGrid>
         <InfoRow label="Project">{`${project.code} · ${project.name}`}</InfoRow>
         <InfoRow label="Client">{project.client}</InfoRow>
-        <InfoRow label="PM">{pmOf(project)?.name ?? "—"}</InfoRow>
+        <InfoRow label="PM">{pmOf(project)?.name ?? "-"}</InfoRow>
         <InfoRow label="Status Request">
           <Badge
             tone={
@@ -95,7 +95,7 @@ export function StaffingBlock({
               </span>
             </InfoRow>
             <InfoRow label="Assigned By">
-              {staffing.assignedByName ? `${staffing.assignedByName}` : "—"}
+              {staffing.assignedByName ? `${staffing.assignedByName}` : "-"}
             </InfoRow>
           </>
         ) : null}
@@ -238,7 +238,7 @@ export function TechReferences() {
           <p className="mb-1.5 font-semibold text-[11px] text-muted uppercase tracking-wider">
             {item.label}
           </p>
-          <div className="flex items-center justify-between gap-2 text-sm">
+          <div className="flex items-center justify-between gap-2 text-xs">
             {item.value ? (
               <ExternalAnchor href={item.value}>
                 {item.value.replace(/^https?:\/\//, "")}
@@ -313,18 +313,18 @@ export function TechProgress({ showBar = true }: { showBar?: boolean }) {
   return (
     <div className="space-y-3">
       <InfoGrid>
-        <InfoRow label="Sprint Saat Ini">{tech?.currentSprint ?? "—"}</InfoRow>
+        <InfoRow label="Sprint Saat Ini">{tech?.currentSprint ?? "-"}</InfoRow>
         <InfoRow label="Progress Summary">
-          {progress !== null ? `${progress}% fitur selesai` : "—"}
+          {progress !== null ? `${progress}% fitur selesai` : "-"}
         </InfoRow>
         <InfoRow label="Technical Blockers">
           {open.length === 0 ? "Tidak ada" : `${open.length} terbuka`}
         </InfoRow>
-        <InfoRow label="Next Milestone">{tech?.nextMilestone ?? "—"}</InfoRow>
+        <InfoRow label="Next Milestone">{tech?.nextMilestone ?? "-"}</InfoRow>
         <InfoRow label="Latest Update">
           {tech?.latestUpdateAt
             ? `${formatDateTimeShort(tech.latestUpdateAt)}`
-            : "—"}
+            : "-"}
         </InfoRow>
       </InfoGrid>
       {tech?.latestUpdate ? (
@@ -430,7 +430,7 @@ export function TechProgress({ showBar = true }: { showBar?: boolean }) {
             label="Sprint saat ini"
             name="currentSprint"
             defaultValue={tech?.currentSprint ?? ""}
-            placeholder="Sprint 4 (18–25 Sep 2026)"
+            placeholder="Sprint 4 (18-25 Sep)"
           />
           <TextField
             label="Progress (%)"
@@ -444,7 +444,7 @@ export function TechProgress({ showBar = true }: { showBar?: boolean }) {
             label="Next milestone"
             name="nextMilestone"
             defaultValue={tech?.nextMilestone ?? ""}
-            placeholder="UAT — 30 Sep 2026"
+            placeholder="UAT, 30 Sep 2026"
           />
           <div className="flex justify-end gap-2">
             <Button variant="ghost" onClick={() => setDialog(null)}>
