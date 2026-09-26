@@ -59,7 +59,7 @@ export default async function ActiveProjectsPage() {
   ).length;
 
   return (
-    <div className="mx-auto max-w-[1280px] space-y-5 p-6">
+    <div className="w-full space-y-5 px-8 py-8">
       <ProjectsHeader
         title="Active Projects"
         subtitle="Projects currently assigned to you."

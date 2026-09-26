@@ -45,7 +45,7 @@ export default async function AllProjectsPage() {
   ];
 
   return (
-    <div className="mx-auto max-w-[1280px] space-y-5 p-6">
+    <div className="w-full space-y-5 px-8 py-8">
       <ProjectsHeader
         title="All Projects"
         subtitle="View all projects across Inkubator IT."

@@ -42,7 +42,7 @@ export default async function PastProjectsPage() {
     items.length === 0 ? "-" : `${Math.round((onTime / items.length) * 100)}%`;
 
   return (
-    <div className="mx-auto max-w-[1280px] space-y-5 p-6">
+    <div className="w-full space-y-5 px-8 py-8">
       <ProjectsHeader
         title="Past Projects"
         subtitle="Riwayat project yang pernah kamu tangani."

@@ -75,7 +75,7 @@ export function AllProjectsTable({ rows }: { rows: AllProjectRow[] }) {
       </div>
 
       <div className="overflow-x-auto rounded-2xl border border-line bg-white shadow-sm">
-        <table className="w-full text-left text-xs">
+        <table className="w-full text-left text-sm">
           <thead className="border-line border-b text-muted">
             <tr>
               {[
@@ -89,7 +89,7 @@ export function AllProjectsTable({ rows }: { rows: AllProjectRow[] }) {
               ].map((heading) => (
                 <th
                   key={heading}
-                  className="whitespace-nowrap px-4 py-3 font-medium text-[11px]"
+                  className="whitespace-nowrap px-5 py-4 font-medium text-xs"
                 >
                   {heading}
                 </th>
@@ -99,7 +99,7 @@ export function AllProjectsTable({ rows }: { rows: AllProjectRow[] }) {
           <tbody className="divide-y divide-surface">
             {filtered.length === 0 ? (
               <tr>
-                <td colSpan={7} className="px-4 py-10 text-center text-subtle">
+                <td colSpan={7} className="px-5 py-16 text-center text-subtle">
                   {rows.length === 0
                     ? "Belum ada project."
                     : "Tidak ada project yang cocok."}
@@ -108,15 +108,15 @@ export function AllProjectsTable({ rows }: { rows: AllProjectRow[] }) {
             ) : (
               filtered.map((row) => (
                 <tr key={row.code} className="hover:bg-surface">
-                  <td className="px-4 py-3">
+                  <td className="px-5 py-4">
                     <Link
                       href={`/projects/${row.code}`}
-                      className="rounded-md bg-plum-50 px-1.5 py-0.5 font-medium text-plum-600"
+                      className="rounded-md bg-plum-50 px-2 py-1 font-medium text-plum-600"
                     >
                       {row.code}
                     </Link>
                   </td>
-                  <td className="px-4 py-3">
+                  <td className="px-5 py-4">
                     <Link
                       href={`/projects/${row.code}`}
                       className="font-semibold text-ink hover:text-plum-600"
@@ -124,13 +124,13 @@ export function AllProjectsTable({ rows }: { rows: AllProjectRow[] }) {
                       {row.name}
                     </Link>
                   </td>
-                  <td className="px-4 py-3 text-muted">{row.client}</td>
-                  <td className="px-4 py-3 text-ink">{row.pm}</td>
-                  <td className="px-4 py-3">
+                  <td className="px-5 py-4 text-muted">{row.client}</td>
+                  <td className="px-5 py-4 text-ink">{row.pm}</td>
+                  <td className="px-5 py-4">
                     <Badge tone={row.statusTone}>{row.statusLabel}</Badge>
                   </td>
-                  <td className="px-4 py-3 text-muted">{row.stageName}</td>
-                  <td className="px-4 py-3 text-muted">{row.updatedLabel}</td>
+                  <td className="px-5 py-4 text-muted">{row.stageName}</td>
+                  <td className="px-5 py-4 text-muted">{row.updatedLabel}</td>
                 </tr>
               ))
             )}

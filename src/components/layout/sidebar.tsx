@@ -16,7 +16,7 @@ import { Avatar } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 
 const LINK =
-  "flex items-center gap-3 rounded-xl px-3 py-2.5 font-medium text-sm transition-colors";
+  "flex items-center gap-3 rounded-xl px-3.5 py-3 font-medium text-[15px] transition-colors";
 const ACTIVE = "bg-white/15 text-white";
 const IDLE = "text-white/70 hover:bg-white/10 hover:text-white";
 
@@ -58,7 +58,7 @@ export function Sidebar({
   const onActive = pathname === "/projects";
 
   return (
-    <aside className="fixed inset-y-0 left-0 z-20 flex w-60 select-none flex-col bg-[linear-gradient(180deg,#10091F_0%,#241229_33%,#3B2020_66%,#5A310F_100%)]">
+    <aside className="fixed inset-y-0 left-0 z-20 flex w-72 select-none flex-col bg-[linear-gradient(180deg,#10091F_0%,#241229_33%,#3B2020_66%,#5A310F_100%)]">
       <div className="px-5 pt-6 pb-4">
         <Link href="/" className="inline-flex">
           <BrandLogo />

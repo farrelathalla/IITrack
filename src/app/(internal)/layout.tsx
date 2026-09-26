@@ -33,7 +33,7 @@ export default async function InternalLayout({
         unread={unread}
         logoutAction={logoutAction}
       />
-      <div className="flex min-h-dvh flex-col pl-60">
+      <div className="flex min-h-dvh flex-col pl-72">
         <TopNav
           name={actor.name}
           unread={unread}
