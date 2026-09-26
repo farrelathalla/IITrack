@@ -280,11 +280,8 @@ export function canEditTab(
 }
 
 /** "Tampilan hanya baca — kamu tidak memiliki akses edit pada divisi X." */
-export function readOnlyBanner(
-  project: ProjectAccess,
-  tab: DivisionTab,
-): string {
-  if (project.closed) {
+export function readOnlyBanner(closed: boolean, tab: DivisionTab): string {
+  if (closed) {
     return "Tampilan hanya baca — project ini sudah ditutup.";
   }
   const name =

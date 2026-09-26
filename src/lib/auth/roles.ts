@@ -101,7 +101,7 @@ export const PROJECT_ROLE_DIVISION: Record<ProjectRole, Division> = {
 export function initials(name: string): string {
   return name
     .split(/\s+/)
-    .filter(Boolean)
+    .filter((part) => /^\p{L}/u.test(part))
     .map((part) => part[0]?.toUpperCase() ?? "")
     .join("")
     .slice(0, 2);

@@ -2,12 +2,7 @@ import { z } from "zod";
 import { canGlobally } from "@/lib/auth/access";
 import { hashPassword } from "@/lib/auth/password";
 import { activeRole } from "@/lib/auth/period";
-import {
-  DIVISION_LABELS,
-  ROLE_DIVISION,
-  ROLE_LABELS,
-  ROLE_ORDER,
-} from "@/lib/auth/roles";
+import { ROLE_DIVISION, ROLE_LABELS, ROLE_ORDER } from "@/lib/auth/roles";
 import type { Actor, Division, RoleName } from "@/lib/auth/types";
 import { recordActivity, type Tx } from "@/server/activity";
 import { ACTOR_SELECT, toActor, viewerOf } from "@/server/auth/actor";
@@ -462,4 +457,23 @@ export async function createPeriod(params: {
   });
 }
 
-export { DIVISION_LABELS };
+/** Pengguna aktif pemegang salah satu jabatan, untuk pilihan approver. */
+export async function activeUsersByRoles(
+  roles: readonly RoleName[],
+  now: Date = new Date(),
+): Promise<{ id: string; name: string; email: string }[]> {
+  return prisma.user.findMany({
+    where: {
+      status: "ACTIVE",
+      roleAssignments: {
+        some: {
+          role: { in: [...roles] },
+          OR: [{ endedAt: null }, { endedAt: { gt: now } }],
+          period: { startDate: { lte: now }, endDate: { gt: now } },
+        },
+      },
+    },
+    select: { id: true, name: true, email: true },
+    orderBy: { name: "asc" },
+  });
+}

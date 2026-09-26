@@ -162,10 +162,18 @@ export async function saveDocument(params: {
       assertDeveloper(context, input.kind, input.developerId);
 
       const existing = documentOf(project, input.kind, input.developerId);
-      const pending = latestSubmission(project, existing?.id);
-      if (pending?.status === "PENDING") {
+      const latest = latestSubmission(project, existing?.id);
+      if (latest?.status === "PENDING") {
         throw new ActionError(
           `${def.name} sedang menunggu persetujuan, jadi isiannya terkunci.`,
+        );
+      }
+      // Setelah disetujui, dokumen tidak diubah lagi tanpa pengajuan baru.
+      // MoU pengecualian: PM mengganti tautannya dengan versi bertanda tangan
+      // sebelum menandai ditandatangani (PRD bab 4.6).
+      if (latest?.status === "APPROVED" && input.kind !== "MOU") {
+        throw new ActionError(
+          `${def.name} sudah disetujui dan tidak bisa diubah lagi.`,
         );
       }
       if (existing?.signedAt && input.kind !== "BAST") {
