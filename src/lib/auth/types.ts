@@ -1,114 +1,45 @@
 /**
- * Kontrak hak akses IITrack (F03).
+ * Tipe dasar akun dan jabatan IITrack (PRD bab 2).
  *
- * Berkas ini sengaja tidak mengimpor Prisma maupun modul Next.js. PRD bab 3.9
- * mewajibkan aturan izin diuji tanpa menjalankan basis data maupun peramban,
- * karena aturan ini dipanggil setiap request dan diuji puluhan kali per hari.
+ * Berkas di `src/lib` sengaja tidak mengimpor Prisma maupun modul Next.js,
+ * supaya aturan izin bisa diuji tanpa menjalankan basis data maupun peramban.
  */
-
-export type Division = "OPERATIONAL" | "FINANCE" | "TECHDEV";
 
 export type RoleName =
+  | "SUPER_ADMIN"
   | "COO"
   | "VICE_COO"
-  | "CFO"
-  | "VICE_CFO"
+  | "PROJECT_MANAGER"
   | "CTO"
   | "VICE_CTO"
-  | "PROJECT_MANAGER"
-  | "FINANCE_POC"
-  | "OFFICER_OPERATIONAL"
-  | "TECHDEV_MEMBER";
+  | "TECH_DEVELOPER"
+  | "CFO"
+  | "VICE_CFO"
+  | "FINANCE_POC";
 
-export type UserStatus = "INVITED" | "ACTIVE" | "DEACTIVATED";
+export type Division = "SYSTEM" | "OPERATIONAL" | "TECHDEV" | "FINANCE";
 
-/**
- * Daftar aksi yang dikenal sistem. Seluruh fitur memanggil daftar ini; tidak ada
- * fitur yang memeriksa izin dengan caranya sendiri (Pembagian Kerja bab 5).
- */
-export type Action =
-  // Master data
-  | "master_data.view"
-  | "client.manage"
-  | "member.manage"
-  // Project
-  | "project.view"
-  | "project.view_value"
-  | "project.create"
-  | "project.edit_operational"
-  | "project.assign_pm"
-  | "project.override_id"
-  | "project.assign_member"
-  // Stage dan gate
-  | "stage.view"
-  | "stage.change"
-  | "gate.override"
-  // Finance
-  | "finance.view"
-  | "finance.edit"
-  | "finance.submit"
-  | "finance.approve_final"
-  // TechDev
-  | "techdev.view"
-  | "techdev.edit"
-  | "staffing.request"
-  | "staffing.approve"
-  // Approval lintas domain
-  | "approval.project_value_scope"
-  | "approval.p0_second_confirmation"
-  // Administrasi akun (System Administrator privilege)
-  | "user.invite"
-  | "user.deactivate"
-  | "user.manage_role_assignment"
-  | "user.override_period"
-  // Jejak aktivitas
-  | "audit.view"
-  | "audit.delete";
+export type UserStatus = "ACTIVE" | "INACTIVE";
+
+/** Peran seseorang di dalam satu project (PRD bab 2.2). */
+export type ProjectRole = "PM" | "DEVELOPER" | "FINANCE_POC";
 
 /**
- * Penetapan jabatan beserta masa berlakunya. Izin menempel pada penetapan ini,
- * bukan pada orangnya, sehingga akses berhenti sendiri saat kepengurusan
- * berganti (PRD bab 3.2, Member dan Role).
+ * Jabatan pada satu periode. `endDate` adalah yang lebih dulu di antara akhir
+ * periode dan waktu jabatan itu diakhiri lebih awal.
  */
 export interface RoleAssignment {
   role: RoleName;
-  division: Division;
-  /** Awal masa jabatan, inklusif. */
+  /** Inklusif. */
   startDate: Date;
-  /** Akhir masa jabatan, eksklusif. `null` berarti belum ditentukan. */
-  endDate: Date | null;
-  /**
-   * System Administrator privilege. Bukan divisi keempat, melainkan wewenang
-   * administratif yang menempel pada anggota TechDev yang ditunjuk C-Level
-   * (PRD bab 3.5). Privilege ikut berakhir bersama masa jabatannya.
-   */
-  isSystemAdmin: boolean;
+  /** Eksklusif. */
+  endDate: Date;
 }
 
+/** Orang yang sedang melakukan permintaan. */
 export interface Actor {
   userId: string;
+  name: string;
   status: UserStatus;
   roleAssignments: RoleAssignment[];
 }
-
-/**
- * Konteks project yang sedang diakses. `assignedDivisions` berisi divisi tempat
- * actor terdaftar sebagai pelaksana pada project tersebut, kosong bila ia bukan
- * pelaksana.
- */
-export interface ProjectContext {
-  projectId: string;
-  assignedDivisions: Division[];
-}
-
-export interface PermissionQuery {
-  actor: Actor;
-  action: Action;
-  project?: ProjectContext;
-  /** Waktu evaluasi. Wajib eksplisit supaya masa jabatan dapat diuji. */
-  now: Date;
-}
-
-export type PermissionDecision =
-  | { allowed: true }
-  | { allowed: false; reason: string };

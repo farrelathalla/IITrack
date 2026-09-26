@@ -47,27 +47,27 @@ export function Dialog({
       ref={ref}
       aria-labelledby={titleId}
       className={cn(
-        "m-auto w-[min(100%-2rem,28rem)] rounded-card border border-line bg-white p-0 text-ink shadow-lg open:flex open:flex-col",
-        "backdrop:bg-ink/40",
+        "m-auto max-h-[calc(100dvh-2rem)] w-[min(100%-2rem,32rem)] rounded-xl border border-line bg-white p-0 text-ink shadow-xl open:flex open:flex-col",
+        "backdrop:bg-ink/40 backdrop:backdrop-blur-[1px]",
         className,
       )}
       onClose={handleClose}
     >
       <div className="flex items-start justify-between gap-3 border-line border-b px-5 py-4">
-        <h2 id={titleId} className="text-base">
+        <h2 id={titleId} className="font-bold text-base text-ink">
           {title}
         </h2>
         <Button
           type="button"
           variant="ghost"
-          className="px-2 py-1 no-underline"
+          size="sm"
           onClick={handleClose}
           aria-label="Tutup"
         >
           Tutup
         </Button>
       </div>
-      <div className="px-5 py-4">{children}</div>
+      <div className="overflow-y-auto px-5 py-4">{children}</div>
     </dialog>
   );
 }

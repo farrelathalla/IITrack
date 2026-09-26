@@ -20,7 +20,7 @@ const DUMMY_HASH =
 export interface AuthenticatableUser {
   id: string;
   status: UserStatus;
-  /** Kosong selama akun belum menyelesaikan aktivasi. */
+  /** Kosong bila Super Admin belum menetapkan kata sandi. */
   passwordHash: string | null;
   roleAssignments: RoleAssignment[];
 }
@@ -52,11 +52,11 @@ export async function authenticate(
 
   // Sejak titik ini pemasuk terbukti memegang kredensial akun tersebut, jadi
   // alasan yang lebih spesifik tidak lagi membocorkan apa pun kepada orang lain.
-  if (user.status === "DEACTIVATED") {
+  if (user.status === "INACTIVE") {
     return {
       authenticated: false,
       reason:
-        "Akun Anda sudah dinonaktifkan. Hubungi pengurus TechDev yang memegang wewenang administrasi akun.",
+        "Akses IITrack Anda sudah dicabut. Hubungi Super Admin bila ini keliru.",
     };
   }
 
@@ -64,7 +64,7 @@ export async function authenticate(
     return {
       authenticated: false,
       reason:
-        "Masa jabatan Anda sudah berakhir atau belum dimulai, sehingga akun ini belum bisa dipakai. Minta pengurus TechDev memperbarui periode jabatan Anda.",
+        "Masa jabatan Anda sudah berakhir atau belum dimulai, sehingga akun ini belum bisa dipakai. Minta Super Admin memperbarui jabatan dan periode Anda.",
     };
   }
 

@@ -1,6 +1,6 @@
 import type { InputHTMLAttributes, ReactNode } from "react";
 import { FieldError } from "@/components/ui/alert";
-import { FIELD_CONTROL } from "@/components/ui/field-styles";
+import { FIELD_CONTROL, FIELD_LABEL } from "@/components/ui/field-styles";
 import { cn } from "@/lib/utils";
 
 /**
@@ -24,7 +24,7 @@ export function TextField({
 
   return (
     <label className="flex flex-col gap-1.5" htmlFor={controlId}>
-      <span className="font-medium text-plum-900">{label}</span>
+      <span className={FIELD_LABEL}>{label}</span>
       <input
         {...props}
         id={controlId}
@@ -32,7 +32,7 @@ export function TextField({
         className={cn(FIELD_CONTROL, className)}
       />
       {hint && !error ? (
-        <span className="text-slate-500 text-xs">{hint}</span>
+        <span className="text-subtle text-xs">{hint}</span>
       ) : null}
       {error ? <FieldError>{error}</FieldError> : null}
     </label>

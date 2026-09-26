@@ -1,14 +1,14 @@
-import type { RoleAssignment } from "./types";
+import type { Actor, RoleAssignment, RoleName } from "./types";
 
 /**
  * Masa jabatan berlaku sejak `startDate` inklusif sampai `endDate` eksklusif,
- * sehingga kewenangan berhenti tepat pada tanggal berakhirnya. `endDate` kosong
- * berarti belum ditentukan dan jabatannya masih berjalan.
+ * sehingga kewenangan berhenti tepat pada tanggal berakhirnya.
  */
 export function isWithinPeriod(assignment: RoleAssignment, now: Date): boolean {
-  if (now.getTime() < assignment.startDate.getTime()) return false;
-  if (assignment.endDate === null) return true;
-  return now.getTime() < assignment.endDate.getTime();
+  return (
+    now.getTime() >= assignment.startDate.getTime() &&
+    now.getTime() < assignment.endDate.getTime()
+  );
 }
 
 export function activeAssignments(
@@ -23,4 +23,19 @@ export function hasActiveAssignment(
   now: Date,
 ): boolean {
   return assignments.some((assignment) => isWithinPeriod(assignment, now));
+}
+
+/**
+ * Jabatan aktif seseorang. Setiap akun punya satu jabatan aktif (PRD bab
+ * 2.1); bila data sempat tumpang tindih, yang dimulai paling akhir yang
+ * dipakai karena itulah hasil perubahan jabatan terbaru.
+ */
+export function activeRole(actor: Actor, now: Date): RoleName | null {
+  if (actor.status !== "ACTIVE") return null;
+
+  const current = activeAssignments(actor.roleAssignments, now).sort(
+    (a, b) => b.startDate.getTime() - a.startDate.getTime(),
+  );
+
+  return current[0]?.role ?? null;
 }

@@ -10,7 +10,7 @@ export function Table({
   ...props
 }: HTMLAttributes<HTMLTableElement>) {
   return (
-    <div className="w-full overflow-x-auto rounded-card border border-line">
+    <div className="w-full overflow-x-auto rounded-xl border border-line bg-white shadow-sm">
       <table
         className={cn("w-full border-collapse text-left text-sm", className)}
         {...props}
@@ -25,7 +25,7 @@ export function TableHeader({
 }: HTMLAttributes<HTMLTableSectionElement>) {
   return (
     <thead
-      className={cn("border-line border-b bg-surface-alt", className)}
+      className={cn("border-line border-b bg-surface", className)}
       {...props}
     />
   );
@@ -44,7 +44,7 @@ export function TableRow({
 }: HTMLAttributes<HTMLTableRowElement>) {
   return (
     <tr
-      className={cn("border-line border-b last:border-b-0", className)}
+      className={cn("border-surface border-b last:border-b-0", className)}
       {...props}
     />
   );
@@ -57,7 +57,7 @@ export function TableHead({
   return (
     <th
       className={cn(
-        "px-3 py-2 font-semibold text-plum-900 text-xs tracking-wide",
+        "whitespace-nowrap px-4 py-2.5 font-semibold text-[11px] text-muted uppercase tracking-wider",
         className,
       )}
       {...props}
@@ -69,5 +69,5 @@ export function TableCell({
   className,
   ...props
 }: TdHTMLAttributes<HTMLTableCellElement>) {
-  return <td className={cn("px-3 py-2 text-ink", className)} {...props} />;
+  return <td className={cn("px-4 py-3 text-ink", className)} {...props} />;
 }
