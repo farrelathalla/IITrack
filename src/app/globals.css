@@ -91,3 +91,140 @@
   scrollbar-width: thin;
   scrollbar-color: var(--color-navy-700) transparent;
 }
+
+/*
+ * Gerak. Kurva ease-out yang kuat untuk elemen yang muncul, kurva drawer untuk
+ * panel samping. Semua durasi di bawah 300ms: ini alat kerja yang dibuka
+ * puluhan kali sehari, jadi gerak harus terasa cepat, bukan dekoratif.
+ */
+:root {
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+@layer base {
+  /* Permukaan bawaan peramban ikut palet: seleksi teks, caret, focus ring. */
+  ::selection {
+    background-color: var(--color-plum-200);
+    color: var(--color-ink);
+  }
+
+  input,
+  textarea {
+    caret-color: var(--color-plum-600);
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-plum-600);
+    outline-offset: 2px;
+    border-radius: 0.5rem;
+  }
+
+  input:focus-visible,
+  select:focus-visible,
+  textarea:focus-visible {
+    outline: none;
+  }
+
+  html {
+    scrollbar-color: var(--color-faint) transparent;
+  }
+}
+
+/* Tombol dan elemen yang bisa ditekan mengecil sedikit: tanda bahwa klik diterima. */
+@utility pressable {
+  transition-property:
+    transform, background-color, border-color, color, box-shadow, opacity;
+  transition-duration: 160ms;
+  transition-timing-function: var(--ease-out);
+
+  &:active:not(:disabled) {
+    transform: scale(0.97);
+  }
+}
+
+/* Popover yang muncul dari pemicunya (lonceng, pencarian, pemilih orang). */
+@utility pop-in {
+  transform-origin: top right;
+  animation: pop-in 150ms var(--ease-out);
+}
+
+@utility pop-in-left {
+  transform-origin: top left;
+  animation: pop-in 150ms var(--ease-out);
+}
+
+@keyframes pop-in {
+  from {
+    opacity: 0;
+    transform: scale(0.96) translateY(-4px);
+  }
+}
+
+/* Dialog tetap di tengah, muncul dari skala 0.96, bukan dari nol. */
+@utility dialog-motion {
+  &[open] {
+    animation: dialog-in 200ms var(--ease-out);
+  }
+
+  &[open]::backdrop {
+    animation: fade-in 200ms var(--ease-out);
+  }
+}
+
+@keyframes dialog-in {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@utility drawer-in {
+  animation: drawer-in 280ms var(--ease-drawer);
+}
+
+@keyframes drawer-in {
+  from {
+    transform: translateX(100%);
+  }
+}
+
+@utility fade-in {
+  animation: fade-in 200ms var(--ease-out);
+}
+
+/* Skeleton saat memuat: denyut pelan, bukan kilatan. */
+@utility skeleton {
+  background-color: var(--color-surface-2);
+  border-radius: 0.5rem;
+  animation: skeleton-pulse 1.4s ease-in-out infinite;
+}
+
+@keyframes skeleton-pulse {
+  50% {
+    opacity: 0.55;
+  }
+}
+
+/*
+ * Gerak dikurangi, tidak dihilangkan: perubahan posisi dan skala dimatikan,
+ * perubahan opacity yang membantu memahami status tetap ada.
+ */
+@media (prefers-reduced-motion: reduce) {
+  .pop-in,
+  .pop-in-left,
+  .drawer-in,
+  .dialog-motion[open] {
+    animation-name: fade-in;
+  }
+
+  .pressable:active:not(:disabled) {
+    transform: none;
+  }
+}

@@ -61,7 +61,7 @@ export function WorkflowStepper({
               >
                 <span
                   className={cn(
-                    "relative flex size-10 items-center justify-center rounded-full border-2 bg-white transition-all",
+                    "relative flex size-10 items-center justify-center rounded-full border-2 bg-white transition-[transform,border-color,box-shadow] duration-200 ease-(--ease-out)",
                     done && "bg-success-bg",
                     revision && "bg-danger-bg",
                     active

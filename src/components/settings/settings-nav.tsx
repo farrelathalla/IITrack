@@ -1,9 +1,27 @@
 "use client";
 
+import {
+  FolderLock,
+  KeyRound,
+  type LucideIcon,
+  Server,
+  UserRound,
+  Users,
+  Workflow,
+} from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { SETTINGS_SECTIONS, type SettingsSection } from "@/lib/settings";
 import { cn } from "@/lib/utils";
+
+const ICONS: Record<SettingsSection, LucideIcon> = {
+  profile: UserRound,
+  users: Users,
+  permissions: KeyRound,
+  workflow: Workflow,
+  access: FolderLock,
+  system: Server,
+};
 
 export function SettingsNav({ sections }: { sections: SettingsSection[] }) {
   const pathname = usePathname();
@@ -12,6 +30,7 @@ export function SettingsNav({ sections }: { sections: SettingsSection[] }) {
       {SETTINGS_SECTIONS.filter((s) => sections.includes(s.id)).map(
         (section) => {
           const active = pathname === `/settings/${section.id}`;
+          const Icon = ICONS[section.id];
           return (
             <Link
               key={section.id}
@@ -23,9 +42,7 @@ export function SettingsNav({ sections }: { sections: SettingsSection[] }) {
                   : "text-muted hover:bg-surface hover:text-ink",
               )}
             >
-              <span aria-hidden="true" className="text-sm">
-                {section.icon}
-              </span>
+              <Icon className="size-4 shrink-0" aria-hidden="true" />
               {section.label}
             </Link>
           );

@@ -146,7 +146,7 @@ function Header({
           </div>
           <div className="h-2 overflow-hidden rounded-full bg-line">
             <div
-              className="h-full rounded-full transition-all"
+              className="h-full rounded-full transition-[width] duration-300 ease-(--ease-out)"
               style={{ width: `${percent}%`, backgroundColor: color }}
             />
           </div>

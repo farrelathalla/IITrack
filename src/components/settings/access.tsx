@@ -74,7 +74,7 @@ export function AccessSection({
                 {manageTab ? (
                   <Link
                     href={`/projects/${row.code}?tab=${manageTab}`}
-                    className="rounded-lg border border-plum-200 px-3 py-1.5 font-semibold text-plum-600 text-xs hover:bg-plum-50"
+                    className="pressable rounded-lg border border-plum-200 px-3 py-1.5 font-semibold text-plum-600 text-xs hover:bg-plum-50"
                   >
                     Manage Access
                   </Link>

@@ -138,7 +138,7 @@ export function SubmissionBar({
                 href={docUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-1.5 rounded-lg border border-plum-200 bg-white px-4 py-2 font-semibold text-plum-600 text-sm hover:bg-plum-50"
+                className="pressable inline-flex items-center gap-1.5 rounded-lg border border-plum-200 bg-white px-4 py-2 font-semibold text-plum-600 text-sm hover:bg-plum-50"
               >
                 <ExternalLink className="size-3.5" />
                 Edit Dokumen

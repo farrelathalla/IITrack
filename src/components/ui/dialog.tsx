@@ -47,7 +47,7 @@ export function Dialog({
       ref={ref}
       aria-labelledby={titleId}
       className={cn(
-        "m-auto max-h-[calc(100dvh-2rem)] w-[min(100%-2rem,32rem)] rounded-xl border border-line bg-white p-0 text-ink shadow-xl open:flex open:flex-col",
+        "dialog-motion m-auto max-h-[calc(100dvh-2rem)] w-[min(100%-2rem,32rem)] rounded-xl border border-line bg-white p-0 text-ink shadow-xl open:flex open:flex-col",
         "backdrop:bg-ink/40 backdrop:backdrop-blur-[1px]",
         className,
       )}

@@ -169,7 +169,7 @@ export function CreateProjectForm({
           <div className="flex gap-2">
             <Link
               href="/projects"
-              className="rounded-lg border border-line bg-white px-4 py-2 font-semibold text-muted text-sm hover:bg-surface"
+              className="pressable rounded-lg border border-line bg-white px-4 py-2 font-semibold text-muted text-sm hover:bg-surface"
             >
               Batal
             </Link>
@@ -200,13 +200,13 @@ export function CreateProjectForm({
             <div className="flex justify-end gap-2">
               <Link
                 href="/projects"
-                className="rounded-lg border border-line px-4 py-2 font-semibold text-muted text-sm hover:bg-surface"
+                className="pressable rounded-lg border border-line px-4 py-2 font-semibold text-muted text-sm hover:bg-surface"
               >
                 Ke Semua Project
               </Link>
               <Link
                 href={`/projects/${state.code}`}
-                className="rounded-lg bg-plum-600 px-4 py-2 font-semibold text-sm text-white hover:bg-plum-700"
+                className="pressable rounded-lg bg-plum-600 px-4 py-2 font-semibold text-sm text-white hover:bg-plum-700"
               >
                 Buka Project
               </Link>

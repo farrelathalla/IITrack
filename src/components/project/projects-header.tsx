@@ -37,7 +37,7 @@ export function ProjectsHeader({
         {canCreate ? (
           <Link
             href="/projects/new"
-            className="inline-flex items-center gap-1.5 rounded-lg bg-plum-600 px-4 py-2 font-semibold text-sm text-white hover:bg-plum-700"
+            className="pressable inline-flex items-center gap-1.5 rounded-lg bg-plum-600 px-4 py-2 font-semibold text-sm text-white hover:bg-plum-700"
           >
             <Plus className="size-4" />
             Tambah Project
