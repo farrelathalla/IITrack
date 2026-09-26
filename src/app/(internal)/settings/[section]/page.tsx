@@ -77,7 +77,7 @@ export default async function SettingsSectionPage({
       <div className="rounded-xl border border-line bg-white p-8 text-center shadow-sm">
         <Lock className="mx-auto mb-3 size-8 text-faint" />
         <p className="font-semibold text-ink">Akses Dibatasi</p>
-        <p className="mt-1 text-muted text-sm">
+        <p className="mt-1 text-muted text-xs">
           Halaman ini tidak tersedia untuk jabatanmu.
         </p>
       </div>
@@ -93,9 +93,9 @@ export default async function SettingsSectionPage({
         <ProfileSection
           name={actor.name}
           email={me?.email ?? ""}
-          roleLabel={role ? ROLE_LABELS[role] : "—"}
-          period={me?.period ?? "—"}
-          division={role ? DIVISION_LABELS[ROLE_DIVISION[role]] : "—"}
+          roleLabel={role ? ROLE_LABELS[role] : "-"}
+          period={me?.period ?? "-"}
+          division={role ? DIVISION_LABELS[ROLE_DIVISION[role]] : "-"}
           active={role !== null}
         />
       );

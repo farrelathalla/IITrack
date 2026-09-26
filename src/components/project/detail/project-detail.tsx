@@ -47,7 +47,7 @@ function Header({
 
   const info = [
     ["Client", project.client],
-    ["Project Manager", pm?.name ?? "—"],
+    ["Project Manager", pm?.name ?? "-"],
     [
       "Stage Saat Ini",
       project.closedAt ? "Selesai" : stageDefinition(summary.current.n).name,
@@ -56,7 +56,7 @@ function Header({
     ["Target Selesai", formatDate(project.targetEnd)],
     [
       "Deadline Terdekat",
-      deadline ? `${formatDate(deadline.date)} — ${deadline.label}` : "—",
+      deadline ? `${formatDate(deadline.date)}: ${deadline.label}` : "-",
     ],
   ];
 
@@ -85,7 +85,7 @@ function Header({
                 </Badge>
               ) : null}
             </div>
-            <h1 className="font-bold text-2xl text-ink">{project.name}</h1>
+            <h1 className="font-bold text-xl text-ink">{project.name}</h1>
           </div>
           <div className="flex shrink-0 items-center gap-2">
             <Button variant="secondary" size="sm" onClick={onHistory}>
@@ -130,7 +130,7 @@ function Header({
               <p className="mb-0.5 font-semibold text-[10px] text-subtle uppercase tracking-wider">
                 {label}
               </p>
-              <p className="font-medium text-ink text-sm">{value}</p>
+              <p className="font-medium text-ink text-xs">{value}</p>
             </div>
           ))}
         </div>

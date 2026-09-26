@@ -36,7 +36,7 @@ export function SettingsNav({ sections }: { sections: SettingsSection[] }) {
               key={section.id}
               href={`/settings/${section.id}`}
               className={cn(
-                "flex items-center gap-2.5 rounded-lg px-3 py-2 font-medium text-sm transition-colors",
+                "flex items-center gap-2.5 rounded-lg px-3 py-2 font-medium text-xs transition-colors",
                 active
                   ? "bg-plum-600 text-white"
                   : "text-muted hover:bg-surface hover:text-ink",

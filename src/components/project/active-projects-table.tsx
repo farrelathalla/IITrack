@@ -116,7 +116,7 @@ export function ActiveProjectsTable({ rows }: { rows: ActiveProjectRow[] }) {
       </div>
 
       <div className="overflow-x-auto rounded-xl border border-line bg-white shadow-sm">
-        <table className="w-full text-left text-sm">
+        <table className="w-full text-left text-xs">
           <thead className="border-line border-b bg-surface">
             <tr>
               {[
@@ -143,10 +143,10 @@ export function ActiveProjectsTable({ rows }: { rows: ActiveProjectRow[] }) {
               <tr>
                 <td
                   colSpan={8}
-                  className="px-4 py-10 text-center text-sm text-subtle"
+                  className="px-4 py-10 text-center text-xs text-subtle"
                 >
                   {rows.length === 0
-                    ? "Belum ada project aktif. Project yang kamu pegang akan muncul di sini setelah kamu ditugaskan."
+                    ? "Belum ada project aktif."
                     : "Tidak ada project yang cocok."}
                 </td>
               </tr>
@@ -176,7 +176,7 @@ export function ActiveProjectsTable({ rows }: { rows: ActiveProjectRow[] }) {
                     {row.myRole ? (
                       <Badge tone="brand">{row.myRole}</Badge>
                     ) : (
-                      <span className="text-subtle text-xs">—</span>
+                      <span className="text-subtle text-xs">-</span>
                     )}
                   </td>
                   <td className="w-44 px-4 py-3">
@@ -201,7 +201,7 @@ export function ActiveProjectsTable({ rows }: { rows: ActiveProjectRow[] }) {
                         </p>
                       </div>
                     ) : (
-                      <span className="text-subtle text-xs">—</span>
+                      <span className="text-subtle text-xs">-</span>
                     )}
                   </td>
                   <td className="max-w-56 px-4 py-3 text-muted text-xs">

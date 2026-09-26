@@ -46,12 +46,12 @@ export function SystemSection({
         <div className="mb-4 rounded-lg border border-line px-4 py-1">
           <InfoRow label="Periode aktif">
             {active
-              ? `${active.name} (${active.start} – ${active.end})`
+              ? `${active.name} (${active.start} s.d. ${active.end})`
               : "Belum ada"}
           </InfoRow>
           <InfoRow label="Format Project ID">{projectIdFormat}</InfoRow>
           <InfoRow label="Contoh">
-            {active ? `IIT-${active.code}-001` : "—"}
+            {active ? `IIT-${active.code}-001` : "-"}
           </InfoRow>
         </div>
         <table className="mb-4 w-full text-xs">
@@ -126,9 +126,7 @@ export function SystemSection({
             />
           </div>
           <p className="text-[11px] text-subtle">
-            Pada tanggal akhir periode lama, akses pengurusnya berakhir otomatis
-            dan project aktif yang penugasannya jatuh ke akun nonaktif ditandai
-            Perlu Penugasan Ulang.
+            Akses pengurus lama berakhir otomatis di tanggal akhir periode.
           </p>
           <Button type="submit" size="sm" disabled={period.pending}>
             Buat Periode
@@ -141,8 +139,7 @@ export function SystemSection({
           Toleransi Status Final
         </h2>
         <p className="mb-3 text-muted text-xs">
-          Project yang ditutup dalam rentang ini di sekitar target selesai
-          dianggap Selesai Tepat Waktu.
+          Selisih dari target yang masih dihitung tepat waktu.
         </p>
         {tol.error ? (
           <Alert tone="danger" className="mb-2">

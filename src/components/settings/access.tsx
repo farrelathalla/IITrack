@@ -4,6 +4,7 @@ import { Search } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 import { Avatar } from "@/components/ui/avatar";
+import { buttonClass } from "@/components/ui/button";
 import { FIELD_CONTROL } from "@/components/ui/field-styles";
 import { cn } from "@/lib/utils";
 
@@ -55,7 +56,7 @@ export function AccessSection({
       </div>
       <div className="space-y-3">
         {filtered.length === 0 ? (
-          <p className="rounded-xl border border-line bg-white p-8 text-center text-sm text-subtle">
+          <p className="rounded-xl border border-line bg-white p-8 text-center text-xs text-subtle">
             Tidak ada project yang cocok.
           </p>
         ) : (
@@ -74,7 +75,7 @@ export function AccessSection({
                 {manageTab ? (
                   <Link
                     href={`/projects/${row.code}?tab=${manageTab}`}
-                    className="pressable rounded-lg border border-plum-200 px-3 py-1.5 font-semibold text-plum-600 text-xs hover:bg-plum-50"
+                    className={buttonClass("secondary", "sm")}
                   >
                     Manage Access
                   </Link>

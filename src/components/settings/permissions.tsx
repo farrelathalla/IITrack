@@ -23,7 +23,7 @@ export function PermissionsSection() {
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
-        <p className="text-muted text-sm">
+        <p className="text-muted text-xs">
           Matriks izin untuk role yang dipilih
         </p>
         <label className="flex items-center gap-2 text-xs">
@@ -42,7 +42,7 @@ export function PermissionsSection() {
         </label>
       </div>
       <div className="overflow-x-auto rounded-xl border border-line bg-white shadow-sm">
-        <table className="w-full text-sm">
+        <table className="w-full text-xs">
           <thead className="border-line border-b bg-surface">
             <tr>
               <th className="px-4 py-2.5 text-left font-semibold text-[11px] text-muted uppercase tracking-wider">
@@ -90,10 +90,8 @@ export function PermissionsSection() {
         </table>
       </div>
       <p className="text-[11px] text-subtle">
-        &ldquo;Terbatas&rdquo; berarti hanya pada project tempat orang itu
-        ditugaskan, atau hanya divisinya sendiri. Izin ini ditegakkan di server
-        sesuai PRD bab 2.4; perubahan aturan dilakukan lewat pembaruan sistem,
-        bukan dari halaman ini.
+        &ldquo;Terbatas&rdquo;: hanya project yang ditugaskan atau divisinya
+        sendiri.
       </p>
     </div>
   );

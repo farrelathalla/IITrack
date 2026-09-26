@@ -19,7 +19,7 @@ import {
   throughStage4,
 } from "../support/world";
 
-describe("PRD 2.4 dan 13 — izin diperiksa di server, termasuk bila dipanggil langsung", () => {
+describe("PRD 2.4 dan 13: izin diperiksa di server, termasuk bila dipanggil langsung", () => {
   let team: Team;
   let code: string;
   beforeAll(async () => {
@@ -177,7 +177,7 @@ describe("PRD 2.4 dan 13 — izin diperiksa di server, termasuk bila dipanggil l
   });
 });
 
-describe("PRD 2.3 — keputusan pertama yang berlaku", () => {
+describe("PRD 2.3: keputusan pertama yang berlaku", () => {
   it("COO dan Vice COO memutuskan bersamaan: satu berhasil, yang lain ditolak", async () => {
     const team = await createTeam();
     const code = await newProject(team);
@@ -218,7 +218,7 @@ describe("PRD 2.3 — keputusan pertama yang berlaku", () => {
   });
 });
 
-describe("PRD 2.5 — regenerasi pengurus", () => {
+describe("PRD 2.5: regenerasi pengurus", () => {
   it("mengubah jabatan PM mencabut hak editnya seketika dan menandai Perlu Penugasan Ulang", async () => {
     const team = await createTeam();
     const code = await newProject(team);
@@ -290,7 +290,7 @@ describe("PRD 2.5 — regenerasi pengurus", () => {
   });
 });
 
-describe("PRD 13 — riwayat aktivitas hanya bisa ditambah", () => {
+describe("PRD 13: riwayat aktivitas hanya bisa ditambah", () => {
   it("UPDATE dan DELETE pada activity_logs ditolak basis data", async () => {
     const row = await testDb.activityLog.findFirstOrThrow();
     await expect(

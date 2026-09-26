@@ -30,8 +30,7 @@ export const STAGES: readonly StageDefinition[] = [
     shortName: "Initial Comm.",
     divisionLabel: "Project Management",
     division: "OPERATIONAL",
-    description:
-      "Komunikasi awal dengan client dan pengumpulan kebutuhan: scope, timeline, budget, konteks teknis, dan deliverable.",
+    description: "Komunikasi awal dan kumpulkan kebutuhan client.",
   },
   {
     n: 2,
@@ -39,8 +38,7 @@ export const STAGES: readonly StageDefinition[] = [
     shortName: "Feasibility",
     divisionLabel: "Project Management",
     division: "OPERATIONAL",
-    description:
-      "Menilai kelayakan project dan menetapkan scope, biaya, timeline, serta rencana project. Project Charter perlu disetujui COO/VCOO.",
+    description: "Nilai kelayakan dan susun Project Charter.",
   },
   {
     n: 3,
@@ -48,8 +46,7 @@ export const STAGES: readonly StageDefinition[] = [
     shortName: "Agreement",
     divisionLabel: "Project Management",
     division: "OPERATIONAL",
-    description:
-      "Menyelesaikan perjanjian formal dengan client. MoU dibuat di Google Docs, disetujui COO/VCOO, lalu ditandatangani client.",
+    description: "Susun MoU, minta persetujuan, lalu tanda tangan client.",
   },
   {
     n: 4,
@@ -57,8 +54,7 @@ export const STAGES: readonly StageDefinition[] = [
     shortName: "Tech Assignment",
     divisionLabel: "Tech Development",
     division: "TECHDEV",
-    description:
-      "Mendapatkan developer lewat Request SDM, lalu menyelesaikan Kontrak Programmer untuk setiap developer.",
+    description: "Request SDM, tugaskan developer, dan selesaikan kontraknya.",
   },
   {
     n: 5,
@@ -66,8 +62,7 @@ export const STAGES: readonly StageDefinition[] = [
     shortName: "Down Payment",
     divisionLabel: "Finance",
     division: "FINANCE",
-    description:
-      "Menyelesaikan pembayaran pertama sebelum pengembangan dimulai. Status invoice, pembayaran, dan kwitansi diperbarui Finance POC.",
+    description: "Proses pembayaran DP sebelum pengembangan mulai.",
   },
   {
     n: 6,
@@ -75,8 +70,7 @@ export const STAGES: readonly StageDefinition[] = [
     shortName: "Execution",
     divisionLabel: "Tech Development",
     division: "TECHDEV",
-    description:
-      "Memantau pengembangan, progres developer, milestone, dan pembayaran termin lanjutan.",
+    description: "Pantau pengembangan dan termin lanjutan.",
   },
   {
     n: 7,
@@ -84,8 +78,7 @@ export const STAGES: readonly StageDefinition[] = [
     shortName: "Handover",
     divisionLabel: "Project Management + Tech",
     division: "OPERATIONAL",
-    description:
-      "Testing, serah terima ke client (BAST), pelunasan termin final, dan pemantauan masa garansi.",
+    description: "Testing, BAST, termin final, dan masa garansi.",
   },
   {
     n: 8,
@@ -93,7 +86,7 @@ export const STAGES: readonly StageDefinition[] = [
     shortName: "Evaluation",
     divisionLabel: "Project Management",
     division: "OPERATIONAL",
-    description: "Mengumpulkan evaluasi dari client dan programmer.",
+    description: "Kumpulkan feedback client dan programmer.",
   },
   {
     n: 9,
@@ -101,8 +94,7 @@ export const STAGES: readonly StageDefinition[] = [
     shortName: "Closure",
     divisionLabel: "Project Management + Finance",
     division: "OPERATIONAL",
-    description:
-      "Melengkapi dokumentasi dan administrasi penutupan. Semua syarat harus terpenuhi sebelum project ditandai selesai.",
+    description: "Lengkapi dokumentasi dan tutup project.",
   },
 ];
 

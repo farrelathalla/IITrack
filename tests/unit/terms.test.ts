@@ -23,20 +23,20 @@ const draft = (name: string, percentage: number) => ({
   dueNote: null,
 });
 
-describe("PRD 4.6 — validasi skema termin", () => {
+describe("PRD 4.6: validasi skema termin", () => {
   it("menerima skema dengan total 100% dan termin pertama DP", () => {
     expect(
       checkTermScheme([
-        draft("Termin 1 — DP", 30),
+        draft("Termin 1 (DP)", 30),
         draft("Termin 2", 40),
-        draft("Termin 3 — Final", 30),
+        draft("Termin 3 (Final)", 30),
       ]),
     ).toEqual({ valid: true });
   });
 
   it("menolak total persentase yang bukan 100%", () => {
     const result = checkTermScheme([
-      draft("Termin 1 — DP", 30),
+      draft("Termin 1 (DP)", 30),
       draft("Termin 2", 40),
     ]);
     expect(result.valid).toBe(false);
@@ -50,16 +50,16 @@ describe("PRD 4.6 — validasi skema termin", () => {
   it("menolak termin pertama yang bukan DP", () => {
     const result = checkTermScheme([
       draft("Termin 1", 50),
-      draft("Termin 2 — DP", 50),
+      draft("Termin 2 (DP)", 50),
     ]);
     expect(result.valid).toBe(false);
   });
 
   it('due date boleh berupa teks seperti "Setelah BAST"', () => {
     const result = checkTermScheme([
-      draft("Termin 1 — DP", 70),
+      draft("Termin 1 (DP)", 70),
       {
-        ...draft("Termin 2 — Final", 30),
+        ...draft("Termin 2 (Final)", 30),
         dueDate: null,
         dueNote: "Setelah BAST",
       },
@@ -67,14 +67,14 @@ describe("PRD 4.6 — validasi skema termin", () => {
     expect(result).toEqual({ valid: true });
 
     const missing = checkTermScheme([
-      draft("Termin 1 — DP", 70),
-      { ...draft("Termin 2 — Final", 30), dueDate: null, dueNote: " " },
+      draft("Termin 1 (DP)", 70),
+      { ...draft("Termin 2 (Final)", 30), dueDate: null, dueNote: " " },
     ]);
     expect(missing.valid).toBe(false);
   });
 });
 
-describe("PRD 5.2 — letak termin pada stage", () => {
+describe("PRD 5.2: letak termin pada stage", () => {
   it("DP di Stage 5, termin lanjutan di Stage 6, termin final di Stage 7", () => {
     expect(stageOfTerm(1, 3)).toBe(5);
     expect(stageOfTerm(2, 3)).toBe(6);
@@ -83,7 +83,7 @@ describe("PRD 5.2 — letak termin pada stage", () => {
   });
 });
 
-describe("PRD 5.2 — alur status per termin", () => {
+describe("PRD 5.2: alur status per termin", () => {
   const happyPath: [TermAction, "PM" | "FINANCE", TermStep][] = [
     ["REQUEST_INVOICE", "PM", "INVOICE_REQUESTED"],
     ["PROCESS", "FINANCE", "PROCESSING"],
@@ -220,13 +220,13 @@ describe("PRD 5.2 — alur status per termin", () => {
   });
 });
 
-describe("PRD 5.3 — status yang ditampilkan", () => {
+describe("PRD 5.3: status yang ditampilkan", () => {
   it("kolom invoice, pembayaran, dan kwitansi mengikuti langkah alur", () => {
     expect([
       invoiceStatusLabel("NOT_STARTED"),
       paymentStatusLabel("NOT_STARTED"),
       receiptStatusLabel("NOT_STARTED"),
-    ]).toEqual(["—", "—", "—"]);
+    ]).toEqual(["-", "-", "-"]);
     expect(invoiceStatusLabel("PROCESSING")).toBe("Diproses");
     expect(paymentStatusLabel("SENT_TO_CLIENT")).toBe("Belum Lunas");
     expect(paymentStatusLabel("PROOF_SUBMITTED")).toBe("Menunggu Verifikasi");
@@ -253,7 +253,7 @@ describe("PRD 5.3 — status yang ditampilkan", () => {
   });
 });
 
-describe("PRD 5.4 — ringkasan keuangan dihitung dari termin", () => {
+describe("PRD 5.4: ringkasan keuangan dihitung dari termin", () => {
   it("menjumlahkan total, terbayar, dan sisa tagihan", () => {
     expect(
       financialSummary([

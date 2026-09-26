@@ -55,7 +55,7 @@ export function ActivityDrawer({
           <div>
             <h2 className="font-bold text-ink">Riwayat Aktivitas</h2>
             <p className="text-subtle text-xs">
-              Riwayat hanya bisa ditambah, tidak bisa diubah atau dihapus.
+              Tidak bisa diubah atau dihapus.
             </p>
           </div>
           <button
@@ -69,7 +69,7 @@ export function ActivityDrawer({
         </div>
         <div className="flex-1 overflow-y-auto px-5 py-4">
           {items.length === 0 ? (
-            <p className="py-10 text-center text-sm text-subtle">
+            <p className="py-10 text-center text-xs text-subtle">
               Belum ada aktivitas tercatat.
             </p>
           ) : (
@@ -88,7 +88,7 @@ export function ActivityDrawer({
                     <p className="text-[11px] text-subtle">
                       {formatDateTime(item.createdAt)}
                     </p>
-                    <p className="text-ink text-sm leading-snug">
+                    <p className="text-ink text-xs leading-snug">
                       <span className="font-semibold">{item.actorName}</span>{" "}
                       {item.summary}
                     </p>

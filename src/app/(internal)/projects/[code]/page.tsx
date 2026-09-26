@@ -40,7 +40,7 @@ export default async function ProjectDetailPage({
           <p className="font-semibold text-ink">Project tidak ditemukan.</p>
           <Link
             href="/projects"
-            className="mt-3 inline-block font-medium text-plum-600 text-sm hover:underline"
+            className="mt-3 inline-block font-medium text-plum-600 text-xs hover:underline"
           >
             Kembali ke Semua Project
           </Link>

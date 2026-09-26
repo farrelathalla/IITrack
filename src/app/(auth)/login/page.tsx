@@ -37,12 +37,11 @@ export default async function LoginPage({
           </div>
         </div>
         <div className="space-y-3">
-          <p className="font-bold text-2xl text-white leading-snug">
+          <p className="font-bold text-xl text-white leading-snug">
             Satu project, satu Project ID.
           </p>
-          <p className="text-navy-300 text-sm leading-relaxed">
-            Project Management, Technology Dev, dan Finance bekerja di atas
-            record yang sama, dari penugasan PM sampai project ditutup.
+          <p className="text-navy-300 text-xs leading-relaxed">
+            PM, Tech, dan Finance bekerja di satu data project yang sama.
           </p>
         </div>
         <p className="text-[11px] text-navy-500">
@@ -58,9 +57,8 @@ export default async function LoginPage({
           </div>
           <div className="space-y-1">
             <h1 className="font-bold text-ink text-xl">Masuk ke IITrack</h1>
-            <p className="text-muted text-sm">
-              Gunakan akun IIT Anda. Akun dibuat oleh Super Admin; tidak ada
-              pendaftaran mandiri.
+            <p className="text-muted text-xs">
+              Pakai akun IIT kamu. Akun dibuat oleh Super Admin.
             </p>
           </div>
 

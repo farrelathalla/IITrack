@@ -37,8 +37,8 @@ export function ProfileSection({
       <div className="mb-6 flex items-center gap-4">
         <Avatar name={name} size="lg" />
         <div>
-          <h2 className="font-bold text-ink text-lg">{name}</h2>
-          <p className="text-muted text-sm">
+          <h2 className="font-bold text-ink text-base">{name}</h2>
+          <p className="text-muted text-xs">
             {roleLabel} · Divisi {division}
           </p>
           <p className="text-subtle text-xs">{email}</p>

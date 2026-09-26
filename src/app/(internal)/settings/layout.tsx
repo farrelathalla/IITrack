@@ -12,7 +12,7 @@ export default async function SettingsLayout({
     <div className="mx-auto max-w-[1280px] p-6">
       <div className="mb-5">
         <h1 className="font-bold text-ink text-xl">Pengaturan</h1>
-        <p className="mt-0.5 text-muted text-sm">
+        <p className="mt-0.5 text-muted text-xs">
           Profil dan pengaturan sesuai jabatanmu.
         </p>
       </div>

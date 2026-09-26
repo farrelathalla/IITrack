@@ -305,7 +305,7 @@ export async function setWarranty(params: {
         projectId: project.id,
         actorId: params.actor.userId,
         action: "handover.warranty",
-        summary: `Mengatur garansi ${formatDate(input.warrantyStart)} – ${formatDate(input.warrantyEnd)}`,
+        summary: `Mengatur garansi ${formatDate(input.warrantyStart)} s.d. ${formatDate(input.warrantyEnd)}`,
         stage: 7,
         division: "OPERATIONAL",
       });

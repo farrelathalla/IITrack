@@ -66,7 +66,7 @@ function ProjectSearch() {
         onFocus={() => setOpen(true)}
         placeholder="Cari project..."
         aria-label="Cari project berdasarkan Project ID, nama, atau client"
-        className="w-64 rounded-lg border border-line bg-surface py-1.5 pr-4 pl-9 text-sm transition-colors placeholder:text-subtle focus:border-plum-600 focus:bg-white focus:outline-none"
+        className="w-64 rounded-lg border border-line bg-surface py-1.5 pr-4 pl-9 text-xs transition-colors placeholder:text-subtle focus:border-plum-600 focus:bg-white focus:outline-none"
       />
       {open && query.trim() ? (
         <div className="pop-in absolute top-10 right-0 z-50 w-80 overflow-hidden rounded-xl border border-line bg-white shadow-lg">

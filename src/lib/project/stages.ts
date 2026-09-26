@@ -1,5 +1,5 @@
 /**
- * Status sembilan stage, dihitung dari potret project (PRD bab 4.1–4.2).
+ * Status sembilan stage, dihitung dari potret project (PRD bab 4.1-4.2).
  *
  * Aturannya:
  * - Stage berikutnya terkunci sampai stage sebelumnya selesai. Stage 5 juga

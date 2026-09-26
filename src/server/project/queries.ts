@@ -27,7 +27,7 @@ export interface ProjectListItem {
 
 /**
  * Project yang relevan untuk pengguna: C-Level (dan Super Admin) melihat
- * semua, jabatan lain hanya project tempat ia ditugaskan (PRD bab 8.1–8.2).
+ * semua, jabatan lain hanya project tempat ia ditugaskan (PRD bab 8.1-8.2).
  */
 export async function listProjects(
   viewer: Viewer,

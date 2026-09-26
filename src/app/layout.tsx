@@ -12,10 +12,9 @@ const inter = Inter({
 export const metadata: Metadata = {
   title: {
     default: "IITrack",
-    template: "%s — IITrack",
+    template: "%s · IITrack",
   },
-  description:
-    "Sistem alur kerja lintas divisi Inkubator IT HMIF ITB. Satu project, satu Project ID.",
+  description: "Alur kerja lintas divisi Inkubator IT HMIF ITB.",
 };
 
 export default function RootLayout({
@@ -27,7 +26,7 @@ export default function RootLayout({
     // Variabel font menempel di <html>, bukan <body>, karena Tailwind
     // meresolusi --font-sans pada elemen akar.
     <html lang="id" className={inter.variable}>
-      <body className="antialiased">{children}</body>
+      <body>{children}</body>
     </html>
   );
 }

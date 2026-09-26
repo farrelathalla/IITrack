@@ -33,28 +33,26 @@ const INFO: Record<
     title: "Ganti Project Manager",
     peran: "Project Manager",
     access:
-      "Orang ini akan mendapat akses edit pada tab Project Manager dan aksi Operasional project ini. Hak edit PM lama berakhir seketika.",
+      "Dapat akses edit tab Project Manager. Akses PM lama langsung berakhir.",
   },
   "developer-add": {
     role: "DEVELOPER",
     title: "Tugaskan Developer",
     peran: "Developer",
-    access:
-      "Orang ini akan mendapat akses edit pada tab Technology Dev project ini.",
+    access: "Dapat akses edit tab Technology Dev.",
   },
   "developer-replace": {
     role: "DEVELOPER",
     title: "Ganti Developer",
     peran: "Developer",
     access:
-      "Developer pengganti mendapat akses edit pada tab Technology Dev. Kontrak Programmer developer lama tetap tersimpan.",
+      "Dapat akses edit tab Technology Dev. Kontrak developer lama tetap tersimpan.",
   },
   finance: {
     role: "FINANCE_POC",
     title: "Tunjuk Finance POC",
     peran: "Finance POC",
-    access:
-      "Orang ini akan mendapat akses edit status pembayaran pada tab Finance project ini.",
+    access: "Dapat akses edit status pembayaran di tab Finance.",
   },
 };
 

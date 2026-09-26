@@ -51,7 +51,7 @@ export function WorkflowSection({
       {error ? <Alert tone="danger">{error}</Alert> : null}
       {message ? <Alert tone="success">{message}</Alert> : null}
       <div className="overflow-x-auto rounded-xl border border-line bg-white shadow-sm">
-        <table className="w-full text-left text-sm">
+        <table className="w-full text-left text-xs">
           <thead className="border-line border-b bg-surface">
             <tr>
               {["Pengajuan", "Jabatan approver", "Utama", "Delegasi"].map(
@@ -100,7 +100,7 @@ export function WorkflowSection({
                         }
                         className={cn(FIELD_CONTROL, "py-1.5 text-xs")}
                       >
-                        <option value="">— {row.primaryHint} —</option>
+                        <option value="">{row.primaryHint}</option>
                         {row.primaryOptions.map((o) => (
                           <option key={o.id} value={o.id}>
                             {o.name}
@@ -134,7 +134,7 @@ export function WorkflowSection({
                         }
                         className={cn(FIELD_CONTROL, "py-1.5 text-xs")}
                       >
-                        <option value="">— {row.delegateHint} —</option>
+                        <option value="">{row.delegateHint}</option>
                         {row.delegateOptions.map((o) => (
                           <option key={o.id} value={o.id}>
                             {o.name}
@@ -158,10 +158,7 @@ export function WorkflowSection({
           </tbody>
         </table>
       </div>
-      <p className="text-[11px] text-subtle">
-        Keputusan pertama yang masuk yang berlaku. Setelah itu tombol Setujui
-        dan Tolak hilang dari sisi yang lain.
-      </p>
+      <p className="text-[11px] text-subtle">Keputusan pertama yang berlaku.</p>
       {canManage ? (
         <div className="flex justify-end">
           <Button

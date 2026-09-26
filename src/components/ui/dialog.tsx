@@ -54,7 +54,7 @@ export function Dialog({
       onClose={handleClose}
     >
       <div className="flex items-start justify-between gap-3 border-line border-b px-5 py-4">
-        <h2 id={titleId} className="font-bold text-base text-ink">
+        <h2 id={titleId} className="font-bold text-sm text-ink">
           {title}
         </h2>
         <Button

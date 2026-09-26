@@ -95,7 +95,7 @@ function wibParts(date: Date) {
 
 /** "22 Sep 2026" */
 export function formatDate(date: Date | null | undefined): string {
-  if (!date) return "—";
+  if (!date) return "-";
   const p = wibParts(date);
   return `${p.day} ${MONTHS_SHORT[p.month]} ${p.year}`;
 }

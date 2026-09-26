@@ -12,7 +12,7 @@ export function Table({
   return (
     <div className="w-full overflow-x-auto rounded-xl border border-line bg-white shadow-sm">
       <table
-        className={cn("w-full border-collapse text-left text-sm", className)}
+        className={cn("w-full border-collapse text-left text-xs", className)}
         {...props}
       />
     </div>
