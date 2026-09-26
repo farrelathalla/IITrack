@@ -147,6 +147,7 @@ export interface ProjectSnapshot {
   targetEnd: Date;
   internalNote: string | null;
   createdAt: Date;
+  updatedAt: Date;
   closedAt: Date | null;
   finalStatus: "EARLY" | "ON_TIME" | "LATE" | null;
   stage1DoneAt: Date | null;

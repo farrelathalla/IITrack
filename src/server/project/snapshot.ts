@@ -88,6 +88,7 @@ export function toSnapshot(
     targetEnd: row.targetEnd,
     internalNote: row.internalNote,
     createdAt: row.createdAt,
+    updatedAt: row.updatedAt,
     closedAt: row.closedAt,
     finalStatus: row.finalStatus,
     stage1DoneAt: row.stage1DoneAt,

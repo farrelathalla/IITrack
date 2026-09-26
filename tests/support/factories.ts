@@ -162,6 +162,7 @@ export function emptyProject(
     targetEnd: day("2026-11-30"),
     internalNote: null,
     createdAt: day("2026-08-01"),
+    updatedAt: day("2026-09-10"),
     closedAt: null,
     finalStatus: null,
     stage1DoneAt: null,
