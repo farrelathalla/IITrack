@@ -33,7 +33,6 @@ export async function loginAction(
   const result = await attemptLogin({
     email: parsed.data.email,
     password: parsed.data.password,
-    ipAddress: requestHeaders.get("x-forwarded-for"),
   });
 
   if (!result.authenticated) {
@@ -43,7 +42,7 @@ export async function loginAction(
   await createSession(result.userId, requestHeaders.get("user-agent"));
 
   // redirect melempar ke luar, jadi harus di luar percabangan penolakan.
-  redirect("/beranda");
+  redirect("/");
 }
 
 export async function logoutAction(): Promise<void> {

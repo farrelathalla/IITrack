@@ -1,149 +1,106 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import {
-  StatusBadge,
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui";
-import { canSeeAction } from "@/lib/auth/ui-visibility";
+  type ActiveProjectRow,
+  ActiveProjectsTable,
+} from "@/components/project/active-projects-table";
+import { ProjectsHeader, StatCard } from "@/components/project/projects-header";
+import { PROJECT_TONE, URGENCY_TONE } from "@/components/project/tones";
 import {
-  formatDateTimeId,
-  formatProjectValue,
-  stageLabel,
-  visibleProjectListColumns,
-} from "@/lib/project/hub-display";
-import { getAuthenticatedSession } from "@/server/auth/session";
-import { readProjectList } from "@/server/project/hub";
+  canGlobally,
+  MY_ROLE_LABELS,
+  seesAllProjects,
+} from "@/lib/auth/access";
+import { stageDefinition } from "@/lib/project/catalog";
+import { pmOf } from "@/lib/project/snapshot";
+import {
+  PROJECT_STATUS_LABELS,
+  urgencyLabel,
+  urgencyOf,
+} from "@/lib/project/status";
+import { daysUntil } from "@/lib/time";
+import { requireUser } from "@/server/auth/current";
+import { listProjects } from "@/server/project/queries";
 
-export const metadata: Metadata = {
-  title: "Project",
-};
+export const metadata: Metadata = { title: "Project Aktif" };
 
-export default async function ProjectListPage() {
-  const session = await getAuthenticatedSession();
+export default async function ActiveProjectsPage() {
+  const { viewer } = await requireUser();
   const now = new Date();
-  const bolehDaftar =
-    session !== null && canSeeAction(session.actor, "project.create", now);
-  const columns = visibleProjectListColumns(
-    session?.actor ?? {
-      userId: "anon",
-      status: "DEACTIVATED",
-      roleAssignments: [],
-    },
-    now,
-  );
-  const bolehLihatNilai = columns.some((column) => column.key === "value");
+  const items = await listProjects(viewer, { closed: false, now });
 
-  const projects =
-    session === null ? [] : await readProjectList(session.actor, now);
+  const rows: ActiveProjectRow[] = items.map(({ project, summary, myRole }) => {
+    const deadline = summary.nearestDeadline;
+    const status = summary.status ?? "ON_TRACK";
+    return {
+      code: project.code,
+      name: project.name,
+      client: project.client,
+      pm: pmOf(project)?.name ?? "—",
+      myRole: myRole ? MY_ROLE_LABELS[myRole] : null,
+      stageNumber: summary.current.n,
+      stageName: stageDefinition(summary.current.n).shortName,
+      completed: summary.completed,
+      status,
+      statusLabel: PROJECT_STATUS_LABELS[status],
+      statusTone: PROJECT_TONE[status],
+      deadlineLabel: deadline?.label ?? null,
+      deadlineChip: deadline ? urgencyLabel(deadline.date, now) : null,
+      deadlineTone: deadline
+        ? URGENCY_TONE[urgencyOf(deadline.date, now)].tone
+        : "neutral",
+      nextAction: summary.nextAction?.label ?? "—",
+    };
+  });
+
+  const mine = seesAllProjects(viewer.role)
+    ? items.length
+    : items.filter((i) => i.myRole && i.myRole !== "C_LEVEL").length;
+  const dueThisWeek = items.filter((i) =>
+    i.deadlines.some((d) => {
+      const days = daysUntil(d.date, now);
+      return days >= 0 && days <= 7;
+    }),
+  ).length;
+  const overdue = items.filter((i) =>
+    i.deadlines.some((d) => daysUntil(d.date, now) < 0),
+  ).length;
 
   return (
-    <div className="flex flex-col gap-6">
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div className="flex flex-col gap-1">
-          <h1 className="text-xl">Project</h1>
-          <p className="max-w-prose text-slate-500">
-            Daftar project dengan nomor resmi. Buka baris untuk melihat hub:
-            identitas, tahap, tim, dokumen, termin, dan riwayat dalam satu
-            layar.
-          </p>
-        </div>
-        {bolehDaftar ? (
-          <Link
-            href="/projects/baru"
-            className="inline-flex items-center justify-center rounded-card bg-plum-900 px-4 py-2 font-semibold text-white hover:bg-plum-950"
-          >
-            Daftarkan project
-          </Link>
-        ) : null}
+    <div className="mx-auto max-w-[1280px] space-y-5 p-6">
+      <ProjectsHeader
+        active="active"
+        canCreate={canGlobally(viewer, "project.create").allowed}
+      />
+      <p className="text-muted text-sm">
+        Project aktif yang sedang menjadi tanggung jawabmu.
+      </p>
+      <div className="grid grid-cols-4 gap-3">
+        <StatCard
+          label="Project Aktif Saya"
+          value={mine}
+          sub="ditugaskan kepadamu"
+          accent="text-plum-600"
+        />
+        <StatCard
+          label="Deadline Minggu Ini"
+          value={dueThisWeek}
+          sub="dalam 7 hari ke depan"
+          accent="text-warning-dot"
+        />
+        <StatCard
+          label="Menunggu Aksi Saya"
+          value={items.filter((i) => i.awaitingMe).length}
+          sub="butuh tindakanmu"
+          accent="text-plum-600"
+        />
+        <StatCard
+          label="Overdue"
+          value={overdue}
+          sub="melewati batas waktu"
+          accent="text-danger-text"
+        />
       </div>
-
-      {projects.length === 0 ? (
-        <p className="rounded-card border border-line bg-white px-4 py-3 text-slate-500 text-sm">
-          Belum ada project.{" "}
-          {bolehDaftar ? (
-            <>
-              <Link
-                href="/projects/baru"
-                className="font-medium text-plum-900 underline-offset-4 hover:underline"
-              >
-                Daftarkan yang pertama
-              </Link>
-              .
-            </>
-          ) : (
-            "Minta COO atau PM yang berwenang untuk mendaftarkannya."
-          )}
-        </p>
-      ) : (
-        <Table>
-          <TableHeader>
-            <TableRow>
-              {columns.map((column) => (
-                <TableHead key={column.key}>{column.label}</TableHead>
-              ))}
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {projects.map((project) => (
-              <TableRow key={project.projectId}>
-                {columns.map((column) => {
-                  const href = `/projects/${encodeURIComponent(project.projectId)}`;
-                  const cell = (() => {
-                    switch (column.key) {
-                      case "projectId":
-                        return (
-                          <span className="angka font-medium text-plum-900">
-                            {project.projectId}
-                          </span>
-                        );
-                      case "name":
-                        return project.name;
-                      case "client":
-                        return project.clientName;
-                      case "pm":
-                        return project.assignedPm ?? "—";
-                      case "stage":
-                        return (
-                          <StatusBadge status={project.stage ?? "pending"}>
-                            {stageLabel(project.stage)}
-                          </StatusBadge>
-                        );
-                      case "updatedAt":
-                        return (
-                          <span className="angka text-xs">
-                            {formatDateTimeId(project.updatedAt)}
-                          </span>
-                        );
-                      case "value":
-                        return bolehLihatNilai
-                          ? (formatProjectValue(project.value) ?? "—")
-                          : "—";
-                      default:
-                        return null;
-                    }
-                  })();
-
-                  return (
-                    <TableCell key={column.key}>
-                      <Link
-                        href={href}
-                        className="block underline-offset-2 hover:underline"
-                      >
-                        {cell}
-                      </Link>
-                    </TableCell>
-                  );
-                })}
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      )}
+      <ActiveProjectsTable rows={rows} />
     </div>
   );
 }

@@ -11,8 +11,8 @@ export const LOGIN_NOTICES: Record<LoginAlasan, string> = {
   logout: "Anda sudah keluar dari IITrack.",
   sesi: "Sesi Anda sudah berakhir. Silakan masuk kembali.",
   jabatan:
-    "Masa jabatan Anda sudah berakhir, sehingga sesinya ikut berakhir. Minta pengurus TechDev memperbarui periode jabatan Anda bila ini keliru.",
-  akun: "Akun Anda sudah dinonaktifkan, sehingga sesinya ikut berakhir. Hubungi pengurus TechDev yang memegang wewenang administrasi akun.",
+    "Masa jabatan Anda sudah berakhir, sehingga sesinya ikut berakhir. Minta Super Admin memperbarui jabatan dan periode Anda bila ini keliru.",
+  akun: "Akses IITrack Anda sudah dicabut, sehingga sesinya ikut berakhir. Hubungi Super Admin bila ini keliru.",
 };
 
 const KNOWN = new Set<string>(Object.keys(LOGIN_NOTICES));

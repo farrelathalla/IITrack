@@ -3,7 +3,7 @@
 import type { ReactNode, SelectHTMLAttributes } from "react";
 import { useId } from "react";
 import { FieldError } from "@/components/ui/alert";
-import { FIELD_CONTROL } from "@/components/ui/field-styles";
+import { FIELD_CONTROL, FIELD_LABEL } from "@/components/ui/field-styles";
 import { cn } from "@/lib/utils";
 
 /**
@@ -33,7 +33,7 @@ export function SelectField({
 
   return (
     <label className="flex flex-col gap-1.5" htmlFor={controlId}>
-      <span className="font-medium text-plum-900">{label}</span>
+      <span className={FIELD_LABEL}>{label}</span>
       <select
         {...props}
         id={controlId}
@@ -45,7 +45,7 @@ export function SelectField({
         {children}
       </select>
       {hint && !error ? (
-        <span className="text-slate-500 text-xs">{hint}</span>
+        <span className="text-subtle text-xs">{hint}</span>
       ) : null}
       {error ? <FieldError>{error}</FieldError> : null}
     </label>

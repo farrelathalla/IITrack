@@ -69,7 +69,7 @@ export function evaluateSession(
       valid: false,
       code: "inactive",
       reason:
-        "Akun Anda sudah dinonaktifkan, sehingga sesinya ikut berakhir. Hubungi pengurus TechDev yang memegang wewenang administrasi akun.",
+        "Akses IITrack Anda sudah dicabut, sehingga sesinya ikut berakhir. Hubungi Super Admin bila ini keliru.",
     };
   }
 
@@ -78,7 +78,7 @@ export function evaluateSession(
       valid: false,
       code: "no_assignment",
       reason:
-        "Masa jabatan Anda sudah berakhir, sehingga sesinya ikut berakhir. Minta pengurus TechDev memperbarui periode jabatan Anda bila ini keliru.",
+        "Masa jabatan Anda sudah berakhir, sehingga sesinya ikut berakhir. Minta Super Admin memperbarui jabatan dan periode Anda bila ini keliru.",
     };
   }
 

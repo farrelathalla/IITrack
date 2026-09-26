@@ -1,7 +1,12 @@
-// Skema basis data IITrack.
+// Skema basis data IITrack, mengikuti IIT-PRD-IITRACK-DEV-2026 bab 12.
 //
-// Model ditambahkan per fitur mengikuti pembagian sprint, bukan sekaligus di
-// muka. Berkas ini berisi fondasi yang dipakai seluruh fitur sejak Sprint 0.
+// Prinsip yang dipegang skema ini (PRD bab 1.1):
+// - Satu project, satu record. Tab PM, Technology Dev, dan Finance membaca
+//   baris yang sama, tidak ada salinan per divisi.
+// - Dokumen hanya tautan. IITrack menyimpan alamat dan statusnya.
+// - Finance hanya status. Invoice dan kwitansi tidak dibuat di sini.
+// - Status stage dan status project dihitung dari data (src/lib/project),
+//   bukan disimpan, supaya tidak ada dua sumber kebenaran.
 
 generator client {
   provider = "prisma-client-js"
@@ -12,228 +17,300 @@ datasource db {
   provider = "postgresql"
 }
 
-enum Division {
-  OPERATIONAL
-  FINANCE
-  TECHDEV
+// ─── Akun, jabatan, periode ────────────────────────────────────────────────
+
+/// Jabatan pengurus (PRD bab 2.1). Divisinya diturunkan dari jabatan di
+/// src/lib/auth/roles.ts, jadi tidak disimpan terpisah.
+enum RoleName {
+  SUPER_ADMIN
+  COO
+  VICE_COO
+  PROJECT_MANAGER
+  CTO
+  VICE_CTO
+  TECH_DEVELOPER
+  CFO
+  VICE_CFO
+  FINANCE_POC
 }
 
 enum UserStatus {
-  INVITED
   ACTIVE
-  DEACTIVATED
+  INACTIVE
 }
 
-/// Anggota pengurus yang memakai IITrack. Anggota TechDev yang hanya
-/// mengerjakan kode tidak punya akun di sini (PRD bab 2.1).
+/// Akun tidak pernah dihapus, hanya dinonaktifkan, agar nama pelaku di riwayat
+/// project tetap terbaca (PRD bab 2.5).
 model User {
   id           String     @id @default(cuid())
   email        String     @unique
   name         String
-  /// Kosong selama akun masih berstatus INVITED dan belum diaktivasi.
   passwordHash String?
-  status       UserStatus @default(INVITED)
-  createdAt    DateTime   @default(now())
-  updatedAt    DateTime   @updatedAt
+  status       UserStatus @default(ACTIVE)
 
-  roleAssignments    RoleAssignment[]
+  revokedAt    DateTime?
+  revokedById  String?
+  revokedBy    User?     @relation("UserRevokedBy", fields: [revokedById], references: [id], onDelete: Restrict)
+  revokeReason String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  revokedUsers       User[]              @relation("UserRevokedBy")
+  roleAssignments    RoleAssignment[]    @relation("RoleHolder")
+  rolesGranted       RoleAssignment[]    @relation("RoleGrantedBy")
   sessions           Session[]
-  auditLogs          AuditLog[]
-  projectsRegistered Project[]             @relation("ProjectRegisteredBy")
-  projectsAsPm       Project[]             @relation("ProjectAssignedPm")
-  stageChanges       ProjectStageHistory[]
-  submissions        Submission[]
-  approvalSteps      ApprovalStep[]
-  projectAssignments ProjectAssignment[]   @relation("AssignmentMember")
-  assignmentsMade    ProjectAssignment[]   @relation("AssignmentAssigner")
-  staffingRequested  StaffingRequest[]     @relation("StaffingRequester")
-  staffingFulfilled  StaffingRequest[]     @relation("StaffingFulfiller")
-  referencesAdded    ExternalReference[]
-  terminsCreated     Termin[]              @relation("TerminCreatedBy")
-  clientRevisions    ClientRevision[]      @relation("ClientRevisionAuthor")
-  invoicesIssued     Invoice[]             @relation("InvoiceIssuedBy")
-  receiptsRecorded   Receipt[]             @relation("ReceiptRecordedBy")
-  receiptsValidated  Receipt[]             @relation("ReceiptValidatedBy")
+  activities         ActivityLog[]
+  notifications      Notification[]
+  projectsCreated    Project[]
+  assignments        ProjectAssignment[] @relation("AssignmentMember")
+  assignmentsMade    ProjectAssignment[] @relation("AssignmentAssigner")
+  documentsOwned     Document[]          @relation("DocumentOwner")
+  documentsUpdated   Document[]          @relation("DocumentUpdatedBy")
+  submissionsMade    Submission[]        @relation("SubmissionSubmitter")
+  submissionsDecided Submission[]        @relation("SubmissionDecider")
+  blockers           TechBlocker[]
 
   @@map("users")
 }
 
-enum RoleName {
-  COO
-  VICE_COO
-  CFO
-  VICE_CFO
-  CTO
-  VICE_CTO
-  PROJECT_MANAGER
-  FINANCE_POC
-  OFFICER_OPERATIONAL
-  TECHDEV_MEMBER
+/// Periode kepengurusan, misalnya 2026/2027 dengan kode 2627 untuk Project ID.
+model Period {
+  id        String   @id @default(cuid())
+  /// Label tampilan, misalnya "2026/2027".
+  name      String   @unique
+  /// Empat digit untuk Project ID, misalnya "2627".
+  code      String   @unique
+  startDate DateTime
+  /// Eksklusif. Pada tanggal ini akses pengurus periode tersebut berakhir.
+  endDate   DateTime
+  createdAt DateTime @default(now())
+
+  roleAssignments RoleAssignment[]
+
+  @@map("periods")
 }
 
-/// Penetapan jabatan beserta masa berlakunya. Izin menempel pada penetapan ini,
-/// bukan pada orangnya, sehingga akses berhenti sendiri ketika kepengurusan
-/// berganti (F03).
+/// Jabatan seseorang pada satu periode. Mengubah jabatan menutup baris lama
+/// (`endedAt`) dan membuat baris baru, sehingga riwayatnya tetap utuh.
 model RoleAssignment {
-  id            String    @id @default(cuid())
-  userId        String
-  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  role          RoleName
-  division      Division
-  /// Label periode kepengurusan, misalnya "2026/2027".
-  period        String
-  /// Awal masa jabatan, inklusif.
-  startDate     DateTime
-  /// Akhir masa jabatan, eksklusif. Kosong berarti belum ditentukan.
-  endDate       DateTime?
-  /// System Administrator privilege, bukan divisi keempat (PRD bab 3.5).
-  isSystemAdmin Boolean   @default(false)
-  createdAt     DateTime  @default(now())
+  id       String   @id @default(cuid())
+  userId   String
+  user     User     @relation("RoleHolder", fields: [userId], references: [id], onDelete: Restrict)
+  role     RoleName
+  periodId String
+  period   Period   @relation(fields: [periodId], references: [id], onDelete: Restrict)
+
+  /// Terisi bila jabatan ini diakhiri sebelum periodenya habis.
+  endedAt DateTime?
+
+  grantedById String?
+  grantedBy   User?    @relation("RoleGrantedBy", fields: [grantedById], references: [id], onDelete: Restrict)
+  createdAt   DateTime @default(now())
 
   @@index([userId])
-  @@index([startDate, endDate])
   @@map("role_assignments")
 }
 
-/// Sesi masuk disimpan di basis data, bukan hanya di dalam cookie, supaya bisa
-/// dicabut seketika ketika masa jabatan habis atau akun dinonaktifkan (F02).
+/// Sesi disimpan di basis data supaya bisa dicabut seketika (PRD bab 13).
 model Session {
   id        String    @id @default(cuid())
   /// HMAC dari token sesi. Token aslinya hanya ada di cookie peramban.
   tokenHash String    @unique
   userId    String
-  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Restrict)
   expiresAt DateTime
   revokedAt DateTime?
-  createdAt DateTime  @default(now())
   userAgent String?
+  createdAt DateTime  @default(now())
 
   @@index([userId])
   @@map("sessions")
 }
 
-/// Jejak aktivitas. Entri hanya bisa ditambah: pemblokiran UPDATE dan DELETE
-/// ditegakkan trigger basis data, bukan hanya disiplin kode, sehingga jabatan
-/// mana pun termasuk pemegang System Administrator privilege tidak dapat
-/// merapikan catatan lama (PRD bab 5, Ketertelusuran).
-model AuditLog {
-  id         String   @id @default(cuid())
-  /// Kosong bila pelakunya belum teridentifikasi, misalnya percobaan masuk
-  /// dengan email yang tidak terdaftar.
-  actorId    String?
-  actor      User?    @relation(fields: [actorId], references: [id], onDelete: SetNull)
-  action     String
-  objectType String
-  objectId   String?
-  /// Nilai sebelum dan sesudah perubahan, kosong untuk aksi yang tidak mengubah data.
-  before     Json?
-  after      Json?
-  /// Alasan yang wajib diisi pada aksi tertentu, misalnya penolakan dan override.
-  reason     String?
-  ipAddress  String?
-  createdAt  DateTime @default(now())
+// ─── Project ───────────────────────────────────────────────────────────────
 
-  @@index([actorId])
-  @@index([objectType, objectId])
-  @@index([createdAt])
-  @@map("audit_logs")
+enum ProjectType {
+  DEVELOPMENT
+  ADVISORY
+  HIRING
+  DEPLOYMENT
+  INTEGRATION
+  OTHER
 }
 
-enum ProjectStatus {
-  ACTIVE
-  CANCELLED
-  COMPLETED
+enum ProjectSource {
+  BUSINESS_DEVELOPMENT
+  NON_BD
+  INTERNAL
+  GOVERNMENT
+  OTHER
 }
 
-/// Project sebagai entitas utama. Seluruh dokumen, termin, pengajuan, dan
-/// penugasan menempel pada Project ID-nya (F05).
+enum FinalStatus {
+  EARLY
+  ON_TIME
+  LATE
+}
+
 model Project {
-  id                String        @id @default(cuid())
-  /// Nomor resmi berformat IIT-2627-NNN. Unik dan tidak pernah didaur ulang.
-  projectId         String        @unique
-  /// Periode dan urutan disimpan terurai supaya keunikannya bisa dijamin
-  /// basis data, bukan hanya lewat keunikan teks nomornya.
-  period            String
-  sequence          Int
-  name              String
-  /// Nama yang tampil di daftar/hub. Diisi dari master client bila project
-  /// merujuk `clientId`, dan ikut diperbarui saat master datanya berubah (F06).
-  /// Kolom teks ini tetap ada supaya project lama tanpa rujukan tidak pecah.
-  clientName        String
-  /// Rujukan ke master data client. Kosong pada project yang didaftarkan
-  /// sebelum F06, atau yang masih memakai ketikan nama.
-  clientId          String?
-  client            Client?       @relation(fields: [clientId], references: [id], onDelete: Restrict)
-  value             Decimal?      @db.Decimal(18, 2)
-  status            ProjectStatus @default(ACTIVE)
-  /// Waktu client mengonfirmasi, menjadi titik awal pengukuran SLA penugasan
-  /// PM (F04). Kosong bila belum dicatat.
-  clientConfirmedAt DateTime?
-  /// PM yang ditugaskan. Penugasan inilah yang memberi hak edit Operational,
-  /// bukan pengaturan izin manual. Penugasan lintas divisi menyusul di F31.
-  assignedPmId      String?
-  assignedPm        User?         @relation("ProjectAssignedPm", fields: [assignedPmId], references: [id], onDelete: Restrict)
-  pmAssignedAt      DateTime?
-  /// Kunci tahap berjalan, merujuk katalog pada src/lib/project/stages.ts.
-  /// Disimpan sebagai teks, bukan enum, karena daftar resmi sebelas tahapnya
-  /// masih ditunggu (DEP-04). Kosong berarti belum pernah dipindahkan.
-  stage             String?
+  id         String @id @default(cuid())
+  /// Nomor resmi, misalnya IIT-2627-014. Unik dan tidak pernah didaur ulang.
+  code       String @unique
+  periodCode String
+  sequence   Int
 
-  registeredById String
-  registeredBy   User   @relation("ProjectRegisteredBy", fields: [registeredById], references: [id], onDelete: Restrict)
+  name         String
+  client       String
+  type         ProjectType?
+  source       ProjectSource?
+  targetStart  DateTime
+  targetEnd    DateTime
+  internalNote String?
 
-  stageHistory     ProjectStageHistory[]
-  submissions      Submission[]
-  assignments      ProjectAssignment[]
-  staffingRequests StaffingRequest[]
-  references       ExternalReference[]
-  termins          Termin[]
-  invoices         Invoice[]
-  receipts         Receipt[]
+  /// Terisi saat PM atau COO menandai project selesai. Project yang sudah
+  /// ditutup bersifat read-only untuk semua jabatan.
+  closedAt    DateTime?
+  finalStatus FinalStatus?
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  // Penanda stage yang butuh tombol eksplisit dari PM (PRD bab 4.1).
+  stage1DoneAt       DateTime?
+  developmentDoneAt  DateTime?
 
-  @@unique([period, sequence])
-  @@index([status])
-  @@index([clientId])
+  createdById String
+  createdBy   User     @relation(fields: [createdById], references: [id], onDelete: Restrict)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  assignments  ProjectAssignment[]
+  stages       ProjectStage[]
+  documents    Document[]
+  submissions  Submission[]
+  staffing     StaffingRequest?
+  techInfo     TechInfo?
+  blockers     TechBlocker[]
+  milestones   Milestone[]
+  terms        Term[]
+  handover     Handover?
+  disbursement Disbursement?
+  activities   ActivityLog[]
+
+  @@unique([periodCode, sequence])
   @@map("projects")
 }
 
-/// Penghitung nomor project per periode.
-///
-/// Nomor diambil dengan menaikkan baris ini di dalam transaksi yang sama
-/// dengan penyimpanan project, sehingga dua permintaan bersamaan tidak bisa
-/// mendapat nomor yang sama dan transaksi yang batal tidak meninggalkan
-/// lompatan. Sequence bawaan Postgres tidak dipakai karena bisa berlubang saat
-/// transaksi dibatalkan.
+/// Penghitung nomor project per periode. Dinaikkan di transaksi yang sama
+/// dengan pembuatan project, sehingga nomor tidak kembar dan tidak berlubang.
 model ProjectNumberCounter {
-  period        String   @id
+  periodCode    String   @id
   highestIssued Int      @default(0)
   updatedAt     DateTime @updatedAt
 
   @@map("project_number_counters")
 }
 
-/// Riwayat perpindahan tahap. Entri hanya bisa ditambah, ditegakkan trigger
-/// basis data, supaya tahap project menjadi data yang bisa ditelusuri dan
-/// riwayatnya tidak bisa dimanipulasi (F09-AC3).
-model ProjectStageHistory {
-  id        String  @id @default(uuid())
+enum ProjectRole {
+  PM
+  DEVELOPER
+  FINANCE_POC
+}
+
+/// Penugasan orang ke project (PRD bab 2.2). Saat diganti, baris lama ditutup
+/// dengan `endedAt` dan baris baru dibuat; riwayat tidak pernah dihapus.
+model ProjectAssignment {
+  id        String      @id @default(cuid())
   projectId String
-  project   Project @relation(fields: [projectId], references: [id], onDelete: Restrict)
-  /// Tahap sebelumnya. Kosong pada perpindahan pertama.
-  fromStage String?
-  toStage   String
+  project   Project     @relation(fields: [projectId], references: [id], onDelete: Restrict)
+  userId    String
+  user      User        @relation("AssignmentMember", fields: [userId], references: [id], onDelete: Restrict)
+  role      ProjectRole
+  /// Role teknis, khusus developer, misalnya "Full-stack Developer".
+  techRole  String?
 
-  changedById String
-  changedBy   User   @relation(fields: [changedById], references: [id], onDelete: Restrict)
+  assignedById String
+  assignedBy   User      @relation("AssignmentAssigner", fields: [assignedById], references: [id], onDelete: Restrict)
+  startedAt    DateTime  @default(now())
+  endedAt      DateTime?
 
-  note      String?
-  createdAt DateTime @default(now())
+  @@index([projectId, role])
+  @@index([userId])
+  @@map("project_assignments")
+}
 
-  @@index([projectId, createdAt])
-  @@map("project_stage_history")
+/// Tenggat dan waktu selesai per stage. Status lain (terkunci, berjalan,
+/// menunggu persetujuan, revisi) dihitung dari data. Waktu selesai disimpan
+/// sekali saat syaratnya pertama kali terpenuhi dan tidak pernah dicabut, supaya
+/// penggantian developer atau dokumen di kemudian hari tidak mengunci ulang
+/// stage sesudahnya di tengah pengerjaan.
+model ProjectStage {
+  projectId   String
+  project     Project   @relation(fields: [projectId], references: [id], onDelete: Restrict)
+  stage       Int
+  deadline    DateTime?
+  completedAt DateTime?
+
+  @@id([projectId, stage])
+  @@map("project_stages")
+}
+
+// ─── Dokumen dan pengajuan ─────────────────────────────────────────────────
+
+enum DocumentKind {
+  REQUIREMENT_GATHERING
+  PROJECT_CHARTER
+  GANTT_CHART
+  MOU
+  PROGRAMMER_CONTRACT
+  PROGRESS_REPORT
+  TESTING_RESULT
+  BAST
+  CLIENT_FEEDBACK
+  PROGRAMMER_FEEDBACK
+  PROJECT_DOCUMENTATION
+  SOURCE_CODE_DOCUMENTATION
+}
+
+/// Status isi dokumen (PRD bab 4.4). Status persetujuan ada di Submission,
+/// status tanda tangan di `signedAt`.
+enum DocumentStatus {
+  MISSING
+  IN_PROGRESS
+  SUBMITTED
+  DONE
+}
+
+/// Tautan dokumen beserta statusnya. Satu baris per jenis per project, kecuali
+/// Kontrak Programmer yang satu per developer (`developerId`).
+model Document {
+  id          String         @id @default(cuid())
+  projectId   String
+  project     Project        @relation(fields: [projectId], references: [id], onDelete: Restrict)
+  kind        DocumentKind
+  /// Kosong untuk semua jenis kecuali Kontrak Programmer. Diisi string kosong
+  /// alih-alih NULL supaya unique constraint berlaku.
+  developerId String         @default("")
+  url         String?
+  status      DocumentStatus @default(MISSING)
+  deadline    DateTime?
+  signedAt    DateTime?
+
+  ownerId     String?
+  owner       User?    @relation("DocumentOwner", fields: [ownerId], references: [id], onDelete: Restrict)
+  updatedById String?
+  updatedBy   User?    @relation("DocumentUpdatedBy", fields: [updatedById], references: [id], onDelete: Restrict)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  submissions Submission[]
+
+  @@unique([projectId, kind, developerId])
+  @@map("documents")
+}
+
+enum SubmissionKind {
+  PROJECT_CHARTER
+  MOU
+  PROGRAMMER_CONTRACT
 }
 
 enum SubmissionStatus {
@@ -242,390 +319,244 @@ enum SubmissionStatus {
   REJECTED
 }
 
-enum ApprovalDecision {
-  PENDING
-  APPROVED
-  REJECTED
-  SKIPPED
-}
-
-/// Pengajuan yang harus melewati rantai persetujuan (F17).
-///
-/// Satu bentuk pengajuan dipakai bersama invoice, kuitansi, staffing request,
-/// dan perubahan nilai project, supaya seluruhnya masuk lewat pintu yang sama.
+/// Pengajuan dokumen ke approver (PRD bab 6). Setiap pengajuan ulang membuat
+/// baris baru, sehingga riwayat penolakan dan feedback tetap terbaca.
+/// Keputusan pertama yang masuk yang berlaku: pembaruan hanya dilakukan pada
+/// baris yang masih PENDING.
 model Submission {
-  id   String @id @default(uuid())
-  /// Jenis pengajuan, merujuk SubmissionType pada src/lib/approval/chain.ts.
-  type String
-
-  projectId String?
-  project   Project? @relation(fields: [projectId], references: [id], onDelete: Restrict)
+  id         String           @id @default(cuid())
+  projectId  String
+  project    Project          @relation(fields: [projectId], references: [id], onDelete: Restrict)
+  kind       SubmissionKind
+  documentId String
+  document   Document         @relation(fields: [documentId], references: [id], onDelete: Restrict)
+  status     SubmissionStatus @default(PENDING)
 
   submittedById String
-  submittedBy   User   @relation(fields: [submittedById], references: [id], onDelete: Restrict)
+  submittedBy   User      @relation("SubmissionSubmitter", fields: [submittedById], references: [id], onDelete: Restrict)
+  submittedAt   DateTime  @default(now())
+  decidedById   String?
+  decidedBy     User?     @relation("SubmissionDecider", fields: [decidedById], references: [id], onDelete: Restrict)
+  decidedAt     DateTime?
+  feedback      String?
 
-  status           SubmissionStatus @default(PENDING)
-  /// Langkah yang sedang menunggu keputusan. Kosong bila sudah selesai.
-  currentStepOrder Int?
-  /// Bertambah setiap kali pengajuan yang ditolak diperbaiki. Langkah revisi
-  /// lama tidak dihapus, sehingga riwayatnya tetap utuh (F17-AC3).
-  revision         Int              @default(1)
-  /// Isi pengajuan, bentuknya mengikuti jenisnya.
-  payload          Json?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  steps           ApprovalStep[]
-  staffingRequest StaffingRequest?
-  invoice         Invoice?
-
+  @@index([projectId, kind])
   @@index([status])
-  @@index([projectId])
   @@map("submissions")
 }
 
-/// Satu langkah pada rantai persetujuan sebuah pengajuan.
-///
-/// Setelah diputuskan, barisnya tidak bisa diubah lagi maupun dihapus; larangan
-/// itu ditegakkan trigger basis data.
-model ApprovalStep {
-  id           String     @id @default(uuid())
-  submissionId String
-  submission   Submission @relation(fields: [submissionId], references: [id], onDelete: Restrict)
+// ─── Tech Development ─────────────────────────────────────────────────────
 
-  order         Int
-  label         String
-  /// Jabatan yang berwenang, disalin dari rantai saat pengajuan dibuat supaya
-  /// riwayat tetap terbaca walaupun rantainya berubah di kemudian hari.
-  eligibleRoles String[]
-
-  decision    ApprovalDecision @default(PENDING)
-  decidedById String?
-  decidedBy   User?            @relation(fields: [decidedById], references: [id], onDelete: Restrict)
-  reason      String?
-  decidedAt   DateTime?
-
-  revision  Int      @default(1)
-  createdAt DateTime @default(now())
-
-  @@unique([submissionId, revision, order])
-  @@index([decision])
-  @@map("approval_steps")
+enum StaffingStatus {
+  WAITING_TECHDEV
+  DEVELOPER_ASSIGNED
 }
 
-/// Penetapan seseorang sebagai pelaksana pada satu project (F31).
-///
-/// Penugasan inilah yang memberi hak edit, bukan pengaturan izin manual. Satu
-/// project bisa punya pelaksana dari tiga divisi sekaligus, dan masing-masing
-/// hanya bisa beraksi di domainnya.
-model ProjectAssignment {
-  id        String  @id @default(uuid())
-  projectId String
-  project   Project @relation(fields: [projectId], references: [id], onDelete: Restrict)
-
-  userId String
-  user   User   @relation("AssignmentMember", fields: [userId], references: [id], onDelete: Restrict)
-
-  division Division
-
-  assignedById String
-  assignedBy   User   @relation("AssignmentAssigner", fields: [assignedById], references: [id], onDelete: Restrict)
-
-  createdAt DateTime  @default(now())
-  /// Terisi ketika penugasan dicabut atau dipindahkan ke orang lain. Barisnya
-  /// tidak pernah dihapus, sehingga riwayat penugasan lama tetap terbaca.
-  endedAt   DateTime?
-
-  @@index([projectId, division])
-  @@index([userId])
-  @@map("project_assignments")
-}
-
-enum StaffingRequestStatus {
-  SUBMITTED
-  FULFILLED
-  REJECTED
-}
-
-/// Permintaan tenaga programmer dari PM kepada CTO (F14).
-///
-/// Stempel waktu pengajuan dan penetapan disimpan terpisah supaya lama
-/// tanggapan bisa dihitung dalam jam kerja, bukan jam kalender.
+/// Request SDM dari PM ke CTO/VCTO (PRD bab 4.7). Satu per project; belum ada
+/// baris berarti "Request Belum Diajukan".
 model StaffingRequest {
-  id        String  @id @default(uuid())
-  projectId String
-  project   Project @relation(fields: [projectId], references: [id], onDelete: Restrict)
-
-  requestedById String
-  requestedBy   User   @relation("StaffingRequester", fields: [requestedById], references: [id], onDelete: Restrict)
-
-  /// Jabatan atau keahlian yang dibutuhkan, misalnya "Backend Developer".
-  roleNeeded     String
-  headcount      Int
-  neededBy       DateTime
+  projectId     String         @id
+  project       Project        @relation(fields: [projectId], references: [id], onDelete: Restrict)
   technicalNeeds String
-  deliverable    String
+  roleRequested String
+  headcount     Int
+  neededBy      DateTime
+  status        StaffingStatus @default(WAITING_TECHDEV)
+  submittedById String
+  submittedAt   DateTime       @default(now())
+  assignedById  String?
+  assignedAt    DateTime?
 
-  status StaffingRequestStatus @default(SUBMITTED)
-
-  /// Pengajuan pada rantai persetujuan F17. Satu permintaan satu pengajuan.
-  submissionId String?     @unique
-  submission   Submission? @relation(fields: [submissionId], references: [id], onDelete: Restrict)
-
-  requestedAt   DateTime  @default(now())
-  fulfilledAt   DateTime?
-  fulfilledById String?
-  fulfilledBy   User?     @relation("StaffingFulfiller", fields: [fulfilledById], references: [id], onDelete: Restrict)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@index([projectId])
-  @@index([status])
   @@map("staffing_requests")
 }
 
-enum ReferenceKind {
-  GOOGLE_DRIVE
-  NOTION
-  GITHUB_REPO
-  OTHER
+model TechInfo {
+  projectId       String    @id
+  project         Project   @relation(fields: [projectId], references: [id], onDelete: Restrict)
+  githubRepo      String?
+  sprintPlanning  String?
+  currentSprint   String?
+  progressPercent Int?
+  nextMilestone   String?
+  /// Diisi PM (bagian Operasional di Stage 6).
+  latestUpdate    String?
+  latestUpdateAt  DateTime?
+  updatedAt       DateTime  @updatedAt
+
+  @@map("tech_infos")
 }
 
-/// Tautan ke berkas dan repository di luar IITrack (F25).
-///
-/// Isinya tidak disalin. Yang disimpan hanya alamatnya bersama Project ID,
-/// sehingga tidak ada salinan master data kedua yang bisa berbeda.
-model ExternalReference {
-  id        String  @id @default(uuid())
-  projectId String
-  project   Project @relation(fields: [projectId], references: [id], onDelete: Restrict)
-
-  kind  ReferenceKind
-  /// Alamat yang sudah dibakukan, supaya satu berkas tidak tersimpan dua kali
-  /// hanya karena beda cara menuliskannya.
-  url   String
-  label String
-
-  addedById String
-  addedBy   User   @relation(fields: [addedById], references: [id], onDelete: Restrict)
-
-  createdAt DateTime @default(now())
-
-  @@unique([projectId, url])
-  @@index([projectId, kind])
-  @@map("external_references")
-}
-
-enum TerminStatus {
-  UNPAID
-  PAID
-}
-
-/// Jadwal termin pembayaran sebuah project (F13).
-///
-/// Setiap baris memuat nomor, persentase, nominal, dan jatuh tempo. Jumlah
-/// persentase seluruh baris sebuah project harus tepat 100, dan termin pertama
-/// (uang muka) 25 sampai 50 persen sesuai IITBOOK. Kedua aturan itu dicek di
-/// `src/lib/termin/scheme.ts` lalu ditegakkan lagi di basis data.
-///
-/// Status lunas diubah proses kuitansi (F20), bukan dari penyimpanan skema.
-/// Pengajuan invoice (F16) menempel ke baris ini nanti; nomor dokumen IITBOOK
-/// tidak memuat indeks termin (#84), jadi relasi invoice tidak dikarang di sini.
-model Termin {
-  id        String  @id @default(uuid())
-  projectId String
-  project   Project @relation(fields: [projectId], references: [id], onDelete: Restrict)
-
-  /// Urutan dalam skema. Satu = uang muka (DP).
-  sequence Int
-
-  /// Persentase dua desimal. Sumber kebenaran skema.
-  percentage Decimal @db.Decimal(5, 2)
-
-  /// Nominal = persentase × nilai project, disimpan supaya F16 tidak menghitung ulang.
-  amount Decimal @db.Decimal(18, 2)
-
-  dueDate DateTime
-
-  status TerminStatus @default(UNPAID)
-
+model TechBlocker {
+  id          String    @id @default(cuid())
+  projectId   String
+  project     Project   @relation(fields: [projectId], references: [id], onDelete: Restrict)
+  description String
+  resolvedAt  DateTime?
   createdById String
-  createdBy   User   @relation("TerminCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
+  createdBy   User      @relation(fields: [createdById], references: [id], onDelete: Restrict)
+  createdAt   DateTime  @default(now())
 
-  invoices Invoice[]
+  @@index([projectId])
+  @@map("tech_blockers")
+}
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+/// Client-Facing Milestones yang diisi PM.
+model Milestone {
+  id        String    @id @default(cuid())
+  projectId String
+  project   Project   @relation(fields: [projectId], references: [id], onDelete: Restrict)
+  name      String
+  date      DateTime
+  doneAt    DateTime?
+  sortOrder Int       @default(0)
+
+  @@index([projectId])
+  @@map("milestones")
+}
+
+// ─── Finance ───────────────────────────────────────────────────────────────
+
+/// Langkah alur status per termin (PRD bab 5.2).
+enum TermStep {
+  NOT_STARTED
+  INVOICE_REQUESTED
+  PROCESSING
+  INVOICE_APPROVED
+  SENT_TO_CLIENT
+  PROOF_SUBMITTED
+  PAYMENT_RECEIVED
+  RECEIPT_ISSUED
+  DONE
+}
+
+/// Termin pembayaran. Urutan 1 selalu DP; urutan terakhir adalah termin final.
+model Term {
+  id         String   @id @default(cuid())
+  projectId  String
+  project    Project  @relation(fields: [projectId], references: [id], onDelete: Restrict)
+  sequence   Int
+  name       String
+  percentage Decimal  @db.Decimal(5, 2)
+  amount     Decimal  @db.Decimal(18, 2)
+  /// Tanggal jatuh tempo, atau kosong bila memakai teks seperti "Setelah BAST".
+  dueDate    DateTime?
+  dueNote    String?
+
+  step     TermStep @default(NOT_STARTED)
+  /// Alasan penolakan terakhir oleh Finance POC, dikosongkan saat diajukan lagi.
+  feedback String?
+
+  invoiceRequestUrl  String?
+  approvedInvoiceUrl String?
+  transferProofUrl   String?
+  receiptUrl         String?
+  completedAt        DateTime?
+  updatedAt          DateTime  @updatedAt
 
   @@unique([projectId, sequence])
-  @@index([projectId])
-  @@map("termins")
+  @@map("terms")
 }
 
-/// Master data client (F06).
-///
-/// Identitasnya stabil. Isi yang sedang berlaku ada di baris ini, sedangkan
-/// setiap perubahan menambah satu baris `client_revisions` yang tidak boleh
-/// diubah atau dihapus, supaya project yang sudah jalan tidak kehilangan
-/// rujukan ke data lama. Nama yang tampil di project mengikuti isi terkini.
-model Client {
-  id      String @id @default(uuid())
-  name    String
-  contact String?
-  address String?
-  npwp    String?
-  /// Nomor revisi yang sedang berlaku, mulai dari 1.
-  revision Int   @default(1)
+enum UatStatus {
+  NOT_STARTED
+  SCHEDULED
+  PASSED
+  NEEDS_FIX
+}
 
-  createdAt DateTime @default(now())
+model Handover {
+  projectId     String    @id
+  project       Project   @relation(fields: [projectId], references: [id], onDelete: Restrict)
+  uatStatus     UatStatus @default(NOT_STARTED)
+  warrantyStart DateTime?
+  warrantyEnd   DateTime?
+  updatedAt     DateTime  @updatedAt
+
+  @@map("handovers")
+}
+
+enum DisbursementStatus {
+  SUBMITTED
+  VERIFIED
+  APPROVED
+  DISBURSED
+  REJECTED
+}
+
+/// Finance Disbursement (PRD bab 5.5). Belum ada baris berarti belum diajukan.
+model Disbursement {
+  projectId     String             @id
+  project       Project            @relation(fields: [projectId], references: [id], onDelete: Restrict)
+  status        DisbursementStatus
+  feedback      String?
+  submittedById String
+  submittedAt   DateTime
+  verifiedById  String?
+  verifiedAt    DateTime?
+  decidedById   String?
+  decidedAt     DateTime?
+  disbursedById String?
+  disbursedAt   DateTime?
+
+  @@map("disbursements")
+}
+
+// ─── Riwayat, notifikasi, pengaturan ──────────────────────────────────────
+
+enum ActivityResult {
+  CREATED
+  UPDATED
+  SUBMITTED
+  APPROVED
+  REJECTED
+}
+
+/// Riwayat aktivitas. Hanya bisa ditambah; UPDATE dan DELETE ditolak trigger
+/// basis data (PRD bab 13). Dipakai untuk aktivitas project maupun akun.
+model ActivityLog {
+  id         String          @id @default(cuid())
+  projectId  String?
+  project    Project?        @relation(fields: [projectId], references: [id], onDelete: Restrict)
+  actorId    String?
+  actor      User?           @relation(fields: [actorId], references: [id], onDelete: Restrict)
+  /// Kode mesin, misalnya "mou.submitted". Katalognya di src/lib/activity.
+  action     String
+  /// Kalimat yang ditampilkan, misalnya "Mengajukan MoU untuk persetujuan".
+  summary    String
+  /// Stage (1–9) atau divisi yang terkait, untuk tampilan riwayat.
+  stage      Int?
+  division   String?
+  result     ActivityResult  @default(UPDATED)
+  feedback   String?
+  objectType String?
+  objectId   String?
+  data       Json?
+  createdAt  DateTime        @default(now())
+
+  @@index([projectId, createdAt])
+  @@index([createdAt])
+  @@map("activity_logs")
+}
+
+model Notification {
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Restrict)
+  message   String
+  /// Tautan tujuan, misalnya /projects/IIT-2627-014?stage=3&tab=pm.
+  href      String?
+  readAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([userId, readAt])
+  @@map("notifications")
+}
+
+/// Pengaturan sistem dalam bentuk kunci–nilai (PRD bab 8.7 dan 12).
+model Setting {
+  key       String   @id
+  value     Json
   updatedAt DateTime @updatedAt
 
-  revisions ClientRevision[]
-  projects  Project[]
-
-  @@index([name])
-  @@map("clients")
-}
-
-/// Satu potret data client pada suatu saat. Hanya boleh ditambah.
-model ClientRevision {
-  id       String @id @default(uuid())
-  clientId String
-  client   Client @relation(fields: [clientId], references: [id], onDelete: Restrict)
-
-  revision Int
-  name     String
-  contact  String?
-  address  String?
-  npwp     String?
-
-  changedById String
-  changedBy   User   @relation("ClientRevisionAuthor", fields: [changedById], references: [id], onDelete: Restrict)
-
-  createdAt DateTime @default(now())
-
-  @@unique([clientId, revision])
-  @@index([clientId])
-  @@map("client_revisions")
-}
-
-/// Invoice satu termin (F16).
-///
-/// Nilai, jatuh tempo, dan nama client disalin ke barisnya saat pengajuan
-/// dibuat, bukan dibaca ulang saat ditampilkan. Invoice yang sudah masuk rantai
-/// persetujuan harus tetap menunjukkan angka yang dilihat penyetujunya, walaupun
-/// jadwal termin atau master data client berubah sesudahnya.
-model Invoice {
-  id String @id @default(uuid())
-
-  /// Nomor dokumen `#02-[Project ID]` sesuai IITBOOK 3.8.
-  ///
-  /// Sengaja tidak dijadikan unik. IITBOOK menetapkan nomornya dari Project ID,
-  /// sedangkan satu project punya beberapa termin, sehingga dua invoice pada
-  /// project yang sama memang mendapat nomor yang sama. Pembeda apa yang
-  /// dipakai IITBOOK untuk itu belum tertulis di dokumen mana pun dan masih
-  /// ditanyakan pada #84. Menebaknya di sini berarti menerbitkan nomor resmi
-  /// yang tidak bisa dipertanggungjawabkan.
-  number String
-
-  projectId String
-  project   Project @relation(fields: [projectId], references: [id], onDelete: Restrict)
-
-  /// Termin yang ditagih. Satu invoice selalu menagih tepat satu termin.
-  terminId String
-  termin   Termin @relation(fields: [terminId], references: [id], onDelete: Restrict)
-
-  /// Pengajuan pada rantai persetujuan F17. Statusnya tidak disalin ke sini
-  /// supaya keadaan persetujuan hanya punya satu sumber kebenaran.
-  submissionId String     @unique
-  submission   Submission @relation(fields: [submissionId], references: [id], onDelete: Restrict)
-
-  /// Salinan dari project dan termin pada saat pengajuan dibuat.
-  clientName String
-  amount     Decimal  @db.Decimal(18, 2)
-  dueDate    DateTime
-
-  /// Isian yang tetap dilengkapi manusia. Kosong berarti belum diisi, bukan
-  /// gagal terisi otomatis.
-  description String?
-  notes       String?
-
-  issuedById String
-  issuedBy   User   @relation("InvoiceIssuedBy", fields: [issuedById], references: [id], onDelete: Restrict)
-
-  receipt Receipt?
-
-  issuedAt  DateTime @default(now())
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@index([projectId])
-  @@index([terminId])
-  @@map("invoices")
-}
-
-enum ReceiptStatus {
-  /// Bukti transfer sudah tercatat, tetapi kuitansinya belum dinyatakan valid.
-  RECORDED
-  /// Kuitansi dinyatakan valid Finance POC. Termin rujukannya ikut lunas.
-  VALID
-}
-
-/// Kuitansi beserta bukti transfernya (F20).
-///
-/// Satu kuitansi selalu menunjuk tepat satu invoice, dan lewat invoice itu
-/// menunjuk termin dan Project ID yang benar. Nilainya dicocokkan terhadap
-/// invoice rujukannya sebelum boleh dinyatakan valid, supaya selisih tertangkap
-/// sebelum dokumennya sampai ke client.
-model Receipt {
-  id String @id @default(uuid())
-
-  /// Nomor dokumen `#01-[Project ID]` sesuai IITBOOK 3.7. Sama seperti invoice,
-  /// sengaja tidak unik selama pembedanya masih ditanyakan pada #84.
-  number String
-
-  /// Satu invoice paling banyak punya satu kuitansi.
-  invoiceId String  @unique
-  invoice   Invoice @relation(fields: [invoiceId], references: [id], onDelete: Restrict)
-
-  /// Disalin dari invoice supaya kuitansi bisa dicari per project tanpa join,
-  /// dan supaya trigger bisa memastikan keduanya tidak pernah menunjuk project
-  /// yang berbeda.
-  projectId String
-  project   Project @relation(fields: [projectId], references: [id], onDelete: Restrict)
-
-  /// Nilai yang benar-benar diterima menurut bukti transfer, bukan salinan
-  /// nilai invoice. Justru perbedaan keduanya yang harus tertangkap.
-  amount Decimal  @db.Decimal(18, 2)
-  /// Tanggal transfer menurut buktinya.
-  paidAt DateTime
-
-  /// Tautan bukti transfer. IITrack menyimpan alamatnya, bukan berkasnya,
-  /// mengikuti cara yang sama dengan tautan rujukan pada F25.
-  proofUrl  String
-  proofNote String?
-
-  status ReceiptStatus @default(RECORDED)
-
-  /// Penjelasan tertulis atas selisih terhadap invoice. Wajib terisi sebelum
-  /// kuitansi yang nilainya berbeda boleh dinyatakan valid; ditegakkan trigger,
-  /// bukan hanya diperiksa aplikasi.
-  resolution String?
-
-  recordedById String
-  recordedBy   User   @relation("ReceiptRecordedBy", fields: [recordedById], references: [id], onDelete: Restrict)
-  recordedAt   DateTime @default(now())
-
-  validatedById String?
-  validatedBy   User?     @relation("ReceiptValidatedBy", fields: [validatedById], references: [id], onDelete: Restrict)
-  validatedAt   DateTime?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@index([projectId])
-  @@index([status])
-  @@map("receipts")
+  @@map("settings")
 }

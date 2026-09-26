@@ -2,52 +2,53 @@
 @import "tw-animate-css";
 
 /*
- * Token visual IITrack.
+ * Token visual IITrack, disampel dari prototipe Figma Make IITRACK yang menjadi
+ * acuan tampilan PRD (bab 8): sidebar navy, aksen maroon, kartu putih dengan
+ * sudut membulat, dan badge status berwarna. Desktop-first, lebar acuan 1440px.
  *
- * Warna plum, oranye, dan violet disampel langsung dari berkas resmi Inkubator
- * IT (PRD, Project Charter, MoU), jadi ini identitas organisasi, bukan palet
- * karangan. Design Brief bab 1 adalah sumber kebenarannya.
- *
- * Mode gelap sengaja tidak ada. Design Brief bab 8 menyatakan mode gelap di
- * luar lingkup Fase 2.
+ * Mode gelap sengaja tidak ada; prototipe dan PRD tidak memintanya.
  */
 @theme {
-  --color-plum-900: #4a2545;
-  --color-plum-950: #521d4d;
-  --color-plum-400: #7a5f76;
-  /* Tint plum tipis untuk badge keadaan berjalan (Design Brief bab 4). */
-  --color-plum-50: #f2ecf1;
+  /* Aksen maroon Inkubator IT. */
+  --color-plum-700: #5a2549;
+  --color-plum-600: #6a2d59;
+  --color-plum-500: #895878;
+  --color-plum-300: #b89baf;
+  --color-plum-200: #d8c0d0;
+  --color-plum-50: #f3ebf1;
 
-  --color-orange-500: #e29752;
-  --color-violet-500: #7e67c1;
+  /* Sidebar navy. */
+  --color-navy-900: #162a3a;
+  --color-navy-800: #1e3548;
+  --color-navy-700: #2a4d5c;
+  --color-navy-300: #8a9baa;
+  --color-navy-400: #5a7080;
+  --color-navy-500: #4a6070;
 
-  --color-slate-500: #667085;
-  --color-slate-400: #6b7589;
+  --color-ink: #20242a;
+  --color-muted: #6b6870;
+  --color-subtle: #9b93a0;
+  --color-faint: #c5bbc8;
+  --color-line: #e4dfe5;
+  --color-surface: #f7f6f8;
+  --color-surface-2: #f1eff3;
 
-  --color-line: #c9cdd4;
-  --color-surface: #f4f5f7;
-  --color-surface-alt: #f7f7f9;
+  --color-success-bg: #edfaf3;
+  --color-success-line: #b3deca;
+  --color-success-text: #1a7048;
 
-  --color-amber-bg: #fdf2e6;
-  --color-amber-bg-soft: #fdf6ec;
-  --color-amber-text: #b26a00;
+  --color-warning-bg: #fdf5e4;
+  --color-warning-line: #e8c97a;
+  --color-warning-text: #92400e;
+  --color-warning-dot: #d39a3a;
 
-  /*
-   * Identitas IIT belum punya warna sukses dan bahaya. Keduanya diturunkan di
-   * sini pada tingkat kejenuhan yang setara dengan pasangan amber di atas,
-   * bukan hijau dan merah bawaan framework yang mencolok (Design Brief bab 1).
-   */
-  --color-success-bg: #e8f5ed;
-  --color-success-text: #2e6b45;
-  --color-danger-bg: #fceae6;
-  --color-danger-text: #a63a28;
+  --color-danger-bg: #fef2f2;
+  --color-danger-line: #fecaca;
+  --color-danger-text: #b91c1c;
+  --color-danger-dot: #dc2626;
 
-  /* Badan teks abu sangat gelap, bukan hitam murni (Design Brief bab 3). */
-  --color-ink: #1f2430;
-
-  --font-sans: var(--font-plus-jakarta), ui-sans-serif, system-ui, sans-serif;
-
-  --radius-card: 0.5rem;
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
 }
 
 /*
@@ -55,63 +56,38 @@
  * mewarisi identitas IIT tanpa disetel ulang satu per satu.
  */
 @theme inline {
-  --color-background: #ffffff;
+  --color-background: var(--color-surface);
   --color-foreground: var(--color-ink);
-  --color-primary: var(--color-plum-900);
+  --color-primary: var(--color-plum-600);
   --color-primary-foreground: #ffffff;
-  --color-secondary: var(--color-surface);
-  --color-secondary-foreground: var(--color-plum-900);
-  --color-muted: var(--color-surface-alt);
-  --color-muted-foreground: var(--color-slate-500);
-  --color-accent: var(--color-surface);
-  --color-accent-foreground: var(--color-plum-900);
-  --color-destructive: var(--color-danger-text);
   --color-border: var(--color-line);
   --color-input: var(--color-line);
-  --color-ring: var(--color-plum-400);
+  --color-ring: var(--color-plum-600);
   --color-card: #ffffff;
   --color-card-foreground: var(--color-ink);
-  --color-popover: #ffffff;
-  --color-popover-foreground: var(--color-ink);
 }
 
 @layer base {
   body {
-    background-color: var(--color-background);
-    color: var(--color-foreground);
-    /* Alat kerja administratif, dibaca berulang kali; 14px sesuai bab 3. */
+    background-color: var(--color-surface);
+    color: var(--color-ink);
     font-size: 14px;
     line-height: 1.5;
   }
 
-  h1,
-  h2,
-  h3,
-  h4 {
-    color: var(--color-plum-900);
-    font-weight: 600;
+  /* Angka uang, persentase, dan tanggal tetap lurus antar baris. */
+  th,
+  .tabular-nums {
+    font-variant-numeric: tabular-nums;
   }
 
-  /*
-   * Angka uang, persentase termin, jam, dan lama menunggu harus tetap lurus
-   * antar baris supaya bisa dibandingkan sekilas (Design Brief bab 3).
-   */
-  th,
-  .angka {
-    font-variant-numeric: tabular-nums;
+  button:not(:disabled),
+  [role="button"]:not(:disabled) {
+    cursor: pointer;
   }
 }
 
-/*
- * Pita gradien resmi, dari oranye di kiri ke plum di kanan. Maksimal satu per
- * halaman dan hanya sebagai pita tipis di kepala halaman; jangan dipakai
- * sebagai latar kartu, tombol, atau panel besar (Design Brief bab 1).
- */
-@utility pita-gradien {
-  height: 3px;
-  background-image: linear-gradient(
-    to right,
-    var(--color-orange-500),
-    var(--color-plum-900)
-  );
+@utility scrollbar-thin {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-navy-700) transparent;
 }
