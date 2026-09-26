@@ -14,7 +14,6 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { DashboardCharts } from "@/components/project/dashboard-charts";
 import { ProjectCard } from "@/components/project/project-card";
-import { URGENCY_TONE } from "@/components/project/tones";
 import { Avatar } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { buttonClass } from "@/components/ui/button";
@@ -53,18 +52,12 @@ import {
 
 export const metadata: Metadata = { title: "Dashboard" };
 
-const RESULT_ICON: Record<string, { cls: string; icon: LucideIcon }> = {
-  APPROVED: {
-    cls: "border-success-line bg-success-bg text-success-text",
-    icon: Check,
-  },
-  REJECTED: {
-    cls: "border-danger-line bg-danger-bg text-danger-text",
-    icon: X,
-  },
-  UPDATED: { cls: "border-plum-200 bg-plum-50 text-plum-500", icon: Dot },
-  SUBMITTED: { cls: "border-plum-200 bg-plum-50 text-plum-600", icon: ArrowUp },
-  CREATED: { cls: "border-plum-200 bg-plum-50 text-plum-600", icon: Plus },
+const RESULT_ICON: Record<string, LucideIcon> = {
+  APPROVED: Check,
+  REJECTED: X,
+  UPDATED: Dot,
+  SUBMITTED: ArrowUp,
+  CREATED: Plus,
 };
 
 export default async function DashboardPage() {
@@ -269,13 +262,13 @@ export default async function DashboardPage() {
         </div>
       </section>
 
-      <div className="grid grid-cols-[1fr_360px] gap-4">
+      <div className="space-y-8">
         <section>
           <div className="mb-3 flex items-center justify-between">
             <div className="flex items-center gap-2">
               <h2 className="font-bold text-ink text-sm">Deadline Terdekat</h2>
               {overdue > 0 ? (
-                <Badge tone="danger">{overdue} overdue</Badge>
+                <Badge tone="neutral">{overdue} overdue</Badge>
               ) : null}
             </div>
             <span className="text-[10px] text-subtle">
@@ -289,24 +282,17 @@ export default async function DashboardPage() {
               </div>
             ) : (
               deadlines.map((deadline) => {
-                const urgency = URGENCY_TONE[urgencyOf(deadline.date, now)];
                 return (
                   <Link
                     key={`${deadline.project.id}-${deadline.label}-${deadline.date.getTime()}`}
                     href={`/projects/${deadline.project.code}?stage=${deadline.stage}`}
                     className="flex items-center gap-4 border-surface border-b px-5 py-3.5 transition-colors last:border-0 hover:bg-surface"
                   >
-                    <div
-                      className={cn(
-                        "w-1 self-stretch shrink-0 rounded-full",
-                        urgency.bar,
-                      )}
-                    />
                     <div className="w-16 shrink-0 text-center">
                       <p className="font-bold text-ink text-xs leading-tight">
                         {formatDayMonthUpper(deadline.date)}
                       </p>
-                      <Badge tone={urgency.tone} className="mt-0.5 text-[10px]">
+                      <Badge tone="neutral" className="mt-0.5 text-[10px]">
                         {urgencyLabel(deadline.date, now)}
                       </Badge>
                     </div>
@@ -348,19 +334,13 @@ export default async function DashboardPage() {
               </div>
             ) : (
               activity.map((row) => {
-                const icon = RESULT_ICON[row.result] ?? RESULT_ICON.UPDATED;
-                const Icon = icon.icon;
+                const Icon = RESULT_ICON[row.result] ?? RESULT_ICON.UPDATED;
                 return (
                   <div
                     key={row.id}
                     className="flex gap-3 border-surface border-b px-4 py-3.5 last:border-0"
                   >
-                    <div
-                      className={cn(
-                        "mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-full border font-bold text-[10px]",
-                        icon.cls,
-                      )}
-                    >
+                    <div className="mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-full border border-line bg-surface text-muted">
                       <Icon
                         className="size-3.5"
                         strokeWidth={2.5}

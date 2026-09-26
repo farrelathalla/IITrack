@@ -1,19 +1,19 @@
 import { CalendarDays, ChevronRight, SquareCheck } from "lucide-react";
 import Link from "next/link";
 import { Avatar } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
 import { StageProgress } from "@/components/ui/progress";
 import { stageDefinition, TOTAL_STAGES } from "@/lib/project/catalog";
 import { pmOf } from "@/lib/project/snapshot";
+import { PROJECT_STATUS_LABELS } from "@/lib/project/status";
 import { formatDayMonth } from "@/lib/time";
-import { cn } from "@/lib/utils";
 import type { ProjectListItem } from "@/server/project/queries";
-import { ProjectIdChip, ProjectStatusChip } from "./status-chip";
-import { PROJECT_TOP_BAR } from "./tones";
+import { ProjectIdChip } from "./status-chip";
 
 /**
  * Kartu "Project Sedang Berjalan" di Dashboard (PRD bab 8.1): Project ID,
  * status, nama, client, PM, blok Stage, Deadline Terdekat, Next Action, dan
- * penanggung jawab saat ini. Garis atas merah bila Action Required.
+ * penanggung jawab saat ini.
  */
 export function ProjectCard({ item }: { item: ProjectListItem }) {
   const { project, summary } = item;
@@ -27,19 +27,15 @@ export function ProjectCard({ item }: { item: ProjectListItem }) {
       href={`/projects/${project.code}`}
       className="group block rounded-xl border border-line bg-white shadow-sm transition-[border-color,box-shadow] duration-200 ease-(--ease-out) hover:border-plum-200 hover:shadow-md"
     >
-      <div
-        className={cn(
-          "h-1 rounded-t-xl",
-          summary.status ? PROJECT_TOP_BAR[summary.status] : "bg-plum-600",
-        )}
-      />
       <div className="p-5">
         <div className="flex items-start gap-5">
           <div className="min-w-0 flex-1">
             <div className="mb-1.5 flex items-center gap-2">
               <ProjectIdChip code={project.code} />
               {summary.status ? (
-                <ProjectStatusChip status={summary.status} />
+                <Badge tone="neutral" dot>
+                  {PROJECT_STATUS_LABELS[summary.status]}
+                </Badge>
               ) : null}
             </div>
             <h3 className="font-bold text-sm text-ink transition-colors group-hover:text-plum-600">
@@ -81,7 +77,7 @@ export function ProjectCard({ item }: { item: ProjectListItem }) {
           <div className="w-60 shrink-0 border-surface-2 border-l pl-5">
             <div className="mb-2">
               <div className="mb-0.5 flex items-center gap-1.5">
-                <CalendarDays className="size-3 text-warning-dot" />
+                <CalendarDays className="size-3 text-subtle" />
                 <span className="font-semibold text-[10px] text-subtle uppercase tracking-wider">
                   Deadline Terdekat
                 </span>
