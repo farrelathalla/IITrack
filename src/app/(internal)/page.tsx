@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
+import { DashboardCharts } from "@/components/project/dashboard-charts";
 import { ProjectCard } from "@/components/project/project-card";
 import { URGENCY_TONE } from "@/components/project/tones";
 import { Avatar } from "@/components/ui/avatar";
@@ -26,11 +27,19 @@ import {
   PROJECT_ROLE_LABELS,
 } from "@/lib/auth/roles";
 import type { ProjectRole } from "@/lib/auth/types";
+import {
+  type ChartProject,
+  divisionBars,
+  sinceMonthStart,
+  statusSlices,
+  stockAt,
+} from "@/lib/project/dashboard-charts";
 import { urgencyLabel, urgencyOf } from "@/lib/project/status";
 import {
   formatDateTimeShort,
   formatDayMonthUpper,
   formatToday,
+  toDateInput,
   yearInWib,
 } from "@/lib/time";
 import { cn } from "@/lib/utils";
@@ -104,18 +113,38 @@ export default async function DashboardPage() {
     : past.filter((p) => p.project.closedAt && p.project.closedAt >= yearStart)
         .length;
 
+  const [year, month] = toDateInput(now).split("-");
+  const monthStart = new Date(`${year}-${month}-01T00:00:00+07:00`);
+  const chartProjects: ChartProject[] = [...items, ...past].map((item) => ({
+    closedAt: item.project.closedAt,
+    createdAt: item.project.createdAt,
+    stageNumber: item.summary.current.n,
+    stageStatus: item.summary.current.status,
+  }));
+  const chartsEmpty = chartProjects.length === 0;
+
   const stats = [
     {
       label: "Semua Project",
       value: counts.all,
-      sub: "di seluruh organisasi",
+      sub: seesAllProjects(viewer.role)
+        ? sinceMonthStart(
+            chartProjects.length,
+            stockAt(chartProjects, monthStart, "all"),
+          )
+        : "di seluruh organisasi",
       icon: FolderOpen,
       accent: "text-ink",
     },
     {
       label: "Project Aktif",
       value: items.length,
-      sub: "sedang berjalan",
+      sub: chartsEmpty
+        ? "belum ada project tercatat"
+        : sinceMonthStart(
+            items.length,
+            stockAt(chartProjects, monthStart, "active"),
+          ),
       icon: PlayCircle,
       accent: "text-plum-600",
     },
@@ -131,7 +160,9 @@ export default async function DashboardPage() {
     {
       label: "Project Selesai",
       value: completedThisYear,
-      sub: `tahun ${yearInWib(now)}`,
+      sub: chartsEmpty
+        ? "belum ada project tercatat"
+        : `tahun ${yearInWib(now)}`,
       icon: CircleCheck,
       accent: "text-success-text",
     },
@@ -141,10 +172,11 @@ export default async function DashboardPage() {
     <div className="mx-auto max-w-[1200px] space-y-5 p-6">
       <div className="flex items-start justify-between">
         <div>
-          <h1 className="font-bold text-ink text-xl">Dashboard</h1>
+          <h1 className="font-bold text-ink text-xl">
+            Selamat datang, {actor.name}
+          </h1>
           <p className="mt-0.5 text-muted text-xs">
-            Selamat datang,{" "}
-            <strong className="font-semibold text-ink">{actor.name}</strong>.
+            Ringkasan project yang sedang berjalan.
           </p>
         </div>
         <div className="pt-1 text-subtle text-xs">{formatToday(now)}</div>
@@ -180,6 +212,33 @@ export default async function DashboardPage() {
         </section>
       ) : null}
 
+      <section className="grid grid-cols-4 gap-3">
+        {stats.map((stat) => (
+          <div
+            key={stat.label}
+            className="rounded-2xl border border-line bg-white px-5 py-4 shadow-sm"
+          >
+            <div className="mb-2 flex items-start justify-between">
+              <p className="font-medium text-muted text-xs">{stat.label}</p>
+              <span className="flex size-8 items-center justify-center rounded-lg bg-plum-50">
+                <stat.icon
+                  aria-hidden="true"
+                  className={cn("size-4", stat.accent)}
+                />
+              </span>
+            </div>
+            <p className="font-bold text-2xl text-ink">{stat.value}</p>
+            <p className="mt-0.5 text-[11px] text-subtle">{stat.sub}</p>
+          </div>
+        ))}
+      </section>
+
+      <DashboardCharts
+        bars={divisionBars(chartProjects)}
+        slices={statusSlices(chartProjects)}
+        empty={chartsEmpty}
+      />
+
       <section>
         <div className="mb-3 flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -191,7 +250,7 @@ export default async function DashboardPage() {
             </span>
           </div>
           <Link
-            href="/projects"
+            href="/projects/all"
             className="font-medium text-plum-600 text-xs hover:underline"
           >
             Lihat semua →
@@ -208,27 +267,6 @@ export default async function DashboardPage() {
               .map((item) => <ProjectCard key={item.project.id} item={item} />)
           )}
         </div>
-      </section>
-
-      <section className="grid grid-cols-4 gap-3">
-        {stats.map((stat) => (
-          <div
-            key={stat.label}
-            className="rounded-xl border border-line bg-white px-5 py-4 shadow-sm"
-          >
-            <div className="mb-2 flex items-start justify-between">
-              <p className="font-medium text-muted text-xs">{stat.label}</p>
-              <stat.icon
-                aria-hidden="true"
-                className={cn("size-4", stat.accent)}
-              />
-            </div>
-            <p className={cn("font-bold text-2xl", stat.accent)}>
-              {stat.value}
-            </p>
-            <p className="mt-0.5 text-[11px] text-subtle">{stat.sub}</p>
-          </div>
-        ))}
       </section>
 
       <div className="grid grid-cols-[1fr_360px] gap-4">
