@@ -17,7 +17,6 @@ import {
   urgencyLabel,
   urgencyOf,
 } from "@/lib/project/status";
-import { daysUntil } from "@/lib/time";
 import { requireUser } from "@/server/auth/current";
 import { listProjects } from "@/server/project/queries";
 
@@ -55,49 +54,53 @@ export default async function ActiveProjectsPage() {
   const mine = seesAllProjects(viewer.role)
     ? items.length
     : items.filter((i) => i.myRole && i.myRole !== "C_LEVEL").length;
-  const dueThisWeek = items.filter((i) =>
-    i.deadlines.some((d) => {
-      const days = daysUntil(d.date, now);
-      return days >= 0 && days <= 7;
-    }),
-  ).length;
-  const overdue = items.filter((i) =>
-    i.deadlines.some((d) => daysUntil(d.date, now) < 0),
+  const onSchedule = items.filter(
+    (item) => item.summary.status === "ON_TRACK",
   ).length;
 
   return (
     <div className="mx-auto max-w-[1280px] space-y-5 p-6">
       <ProjectsHeader
-        active="active"
+        title="Active Projects"
+        subtitle="Projects currently assigned to you."
         canCreate={canGlobally(viewer, "project.create").allowed}
       />
-      <p className="text-muted text-xs">
-        Project aktif yang sedang menjadi tanggung jawabmu.
-      </p>
       <div className="grid grid-cols-4 gap-3">
         <StatCard
-          label="Project Aktif Saya"
+          label="My Active Projects"
           value={mine}
           sub="ditugaskan kepadamu"
+          accent="text-ink"
+        />
+        <StatCard
+          label="On Schedule"
+          value={onSchedule}
+          sub={
+            items.length === 0
+              ? "tidak ada project aktif"
+              : `${Math.round((onSchedule / items.length) * 100)}% dari total`
+          }
+        />
+        <StatCard
+          label="Needs Attention"
+          value={
+            items.filter(
+              (item) =>
+                item.summary.status === "AT_RISK" ||
+                item.summary.status === "ACTION_REQUIRED",
+            ).length
+          }
+          sub="at risk atau action required"
+          accent="text-warning-text"
+        />
+        <StatCard
+          label="Pending Approval"
+          value={
+            items.filter((item) => item.summary.status === "WAITING_APPROVAL")
+              .length
+          }
+          sub="menunggu persetujuan"
           accent="text-plum-600"
-        />
-        <StatCard
-          label="Deadline Minggu Ini"
-          value={dueThisWeek}
-          sub="dalam 7 hari ke depan"
-          accent="text-warning-dot"
-        />
-        <StatCard
-          label="Menunggu Aksi Saya"
-          value={items.filter((i) => i.awaitingMe).length}
-          sub="butuh tindakanmu"
-          accent="text-plum-600"
-        />
-        <StatCard
-          label="Overdue"
-          value={overdue}
-          sub="melewati batas waktu"
-          accent="text-danger-text"
         />
       </div>
       <ActiveProjectsTable rows={rows} />

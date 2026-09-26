@@ -42,7 +42,7 @@ function Header({
   const pm = pmOf(project);
   const percent = Math.round((summary.completed / TOTAL_STAGES) * 100);
   const color =
-    percent >= 70 ? "#1a7048" : percent >= 40 ? "#6a2d59" : "#d39a3a";
+    percent >= 70 ? "#1a7048" : percent >= 40 ? "#5b3f9a" : "#d39a3a";
   const deadline = summary.nearestDeadline;
 
   const info = [

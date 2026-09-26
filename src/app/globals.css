@@ -2,36 +2,36 @@
 @import "tw-animate-css";
 
 /*
- * Token visual IITrack, disampel dari prototipe Figma Make IITRACK yang menjadi
- * acuan tampilan PRD (bab 8): sidebar navy, aksen maroon, kartu putih dengan
- * sudut membulat, dan badge status berwarna. Desktop-first, lebar acuan 1440px.
+ * Token visual dari prototipe Figma Make IITRACK GRAH: latar ungu muda,
+ * aksen ungu #5B3F9A, kartu putih. Sidebar memakai gradien terpisah
+ * (#10091F → #241229 → #3B2020 → #5A310F), bukan warna datar.
  *
- * Mode gelap sengaja tidak ada; prototipe dan PRD tidak memintanya.
+ * Mode gelap sengaja tidak ada; prototipe tidak memintanya.
  */
 @theme {
-  /* Aksen maroon Inkubator IT. */
-  --color-plum-700: #5a2549;
-  --color-plum-600: #6a2d59;
-  --color-plum-500: #895878;
-  --color-plum-300: #b89baf;
-  --color-plum-200: #d8c0d0;
-  --color-plum-50: #f3ebf1;
+  /* Aksen ungu prototipe (tombol, badge, menu). */
+  --color-plum-700: #4a3480;
+  --color-plum-600: #5b3f9a;
+  --color-plum-500: #7c62b8;
+  --color-plum-300: #c4b6e0;
+  --color-plum-200: #ddd4f0;
+  --color-plum-50: #f3effa;
 
-  /* Sidebar navy. */
-  --color-navy-900: #162a3a;
-  --color-navy-800: #1e3548;
-  --color-navy-700: #2a4d5c;
-  --color-navy-300: #8a9baa;
-  --color-navy-400: #5a7080;
-  --color-navy-500: #4a6070;
+  /* Teks di atas sidebar gelap. */
+  --color-navy-900: #10091f;
+  --color-navy-800: #241229;
+  --color-navy-700: #3b2020;
+  --color-navy-300: #d9d3e2;
+  --color-navy-400: #b7aebf;
+  --color-navy-500: #8d8496;
 
-  --color-ink: #20242a;
-  --color-muted: #6b6870;
-  --color-subtle: #9b93a0;
-  --color-faint: #c5bbc8;
-  --color-line: #e4dfe5;
-  --color-surface: #f7f6f8;
-  --color-surface-2: #f1eff3;
+  --color-ink: #1a1530;
+  --color-muted: #6b6578;
+  --color-subtle: #9b93a8;
+  --color-faint: #c5bbd0;
+  --color-line: #e6e1ef;
+  --color-surface: #f5f4fa;
+  --color-surface-2: #eeeaf8;
 
   --color-success-bg: #edfaf3;
   --color-success-line: #b3deca;
@@ -85,6 +85,17 @@
   [role="button"]:not(:disabled) {
     cursor: pointer;
   }
+}
+
+/* Sidebar prototipe: indigo gelap di atas, plum, lalu cokelat gelap di bawah. */
+.sidebar-gradient {
+  background-image: linear-gradient(
+    180deg,
+    #10091f 0%,
+    #241229 33%,
+    #3b2020 66%,
+    #5a310f 100%
+  );
 }
 
 @utility scrollbar-thin {

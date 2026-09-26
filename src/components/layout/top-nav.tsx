@@ -197,6 +197,7 @@ export function TopNav({
 }) {
   return (
     <header className="sticky top-0 z-10 flex h-14 items-center gap-4 border-line border-b bg-white px-6">
+      <p className="font-semibold text-ink text-sm">IITrack</p>
       <div className="flex-1" />
       <ProjectSearch />
       <NotificationBell notifications={notifications} unread={unread} />

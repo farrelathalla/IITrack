@@ -3,52 +3,28 @@ import Link from "next/link";
 import { buttonClass } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
-/** Judul, subjudul, tab Aktif/Selesai, dan tombol Tambah Project (PRD bab 8.2). */
+/** Judul daftar project dan tombol Tambah Project. Pilihan daftar ada di sidebar. */
 export function ProjectsHeader({
-  active,
+  title,
+  subtitle,
   canCreate,
 }: {
-  active: "active" | "past";
+  title: string;
+  subtitle: string;
   canCreate: boolean;
 }) {
-  const tab = (href: string, label: string, current: boolean) => (
-    <Link
-      href={href}
-      aria-current={current ? "page" : undefined}
-      className={cn(
-        "-mb-px border-b-2 px-4 py-2.5 font-semibold text-sm transition-colors",
-        current
-          ? "border-plum-600 text-plum-600"
-          : "border-transparent text-muted hover:text-ink",
-      )}
-    >
-      {label}
-    </Link>
-  );
-
   return (
-    <div className="space-y-4">
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <h1 className="font-bold text-ink text-xl">Semua Project</h1>
-          <p className="mt-0.5 text-muted text-xs">
-            Direktori project organisasi Inkubator IT
-          </p>
-        </div>
-        {canCreate ? (
-          <Link href="/projects/new" className={buttonClass("primary")}>
-            <Plus className="size-4" />
-            Tambah Project
-          </Link>
-        ) : null}
+    <div className="flex items-start justify-between gap-4">
+      <div>
+        <h1 className="font-bold text-ink text-xl">{title}</h1>
+        <p className="mt-0.5 text-muted text-xs">{subtitle}</p>
       </div>
-      <nav
-        className="flex border-line border-b"
-        aria-label="Pilihan daftar project"
-      >
-        {tab("/projects", "Project Aktif", active === "active")}
-        {tab("/projects/past", "Project Selesai", active === "past")}
-      </nav>
+      {canCreate ? (
+        <Link href="/projects/new" className={buttonClass("primary")}>
+          <Plus className="size-4" />
+          Tambah Project
+        </Link>
+      ) : null}
     </div>
   );
 }
@@ -65,9 +41,9 @@ export function StatCard({
   accent?: string;
 }) {
   return (
-    <div className="rounded-xl border border-line bg-white px-5 py-4 shadow-sm">
+    <div className="rounded-2xl border border-line bg-white px-5 py-4 shadow-sm">
       <p className="mb-2 font-medium text-muted text-xs">{label}</p>
-      <p className={cn("font-bold text-2xl", accent ?? "text-ink")}>{value}</p>
+      <p className={cn("font-bold text-2xl text-ink", accent)}>{value}</p>
       <p className="mt-0.5 text-[11px] text-subtle">{sub}</p>
     </div>
   );

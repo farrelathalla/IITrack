@@ -44,12 +44,10 @@ export default async function PastProjectsPage() {
   return (
     <div className="mx-auto max-w-[1280px] space-y-5 p-6">
       <ProjectsHeader
-        active="past"
+        title="Past Projects"
+        subtitle="Riwayat project yang pernah kamu tangani."
         canCreate={canGlobally(viewer, "project.create").allowed}
       />
-      <p className="text-muted text-xs">
-        Riwayat project yang pernah kamu tangani.
-      </p>
       <div className="grid grid-cols-3 gap-3">
         <StatCard
           label="Project selesai"
