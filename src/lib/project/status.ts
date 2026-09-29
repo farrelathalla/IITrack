@@ -143,9 +143,13 @@ function documentApproval(
   const name = kind === "MOU" ? "MoU" : "Project Charter";
 
   if (sub?.status === "PENDING") {
+    const charterNeedsTech =
+      kind === "PROJECT_CHARTER" &&
+      Boolean(sub.opsApprovedAt) &&
+      !sub.techApprovedAt;
     return {
       label: `Menunggu persetujuan ${name}`,
-      responsible: OPS_LEAD,
+      responsible: charterNeedsTech ? TECH_LEAD : OPS_LEAD,
       stage,
     };
   }

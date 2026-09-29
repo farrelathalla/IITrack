@@ -56,6 +56,7 @@ const APPROVER_ROLES: Record<
   { primary: RoleName[]; delegate: RoleName[] }
 > = {
   PROJECT_CHARTER: { primary: ["COO"], delegate: ["VICE_COO"] },
+  CHARTER_TECH: { primary: ["CTO"], delegate: ["VICE_CTO"] },
   MOU: { primary: ["COO"], delegate: ["VICE_COO"] },
   PROGRAMMER_CONTRACT: { primary: ["CTO"], delegate: ["VICE_CTO"] },
   INVOICE: { primary: ["FINANCE_POC"], delegate: ["CFO", "VICE_CFO"] },

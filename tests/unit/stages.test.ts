@@ -4,6 +4,7 @@ import {
   defaultPanelStage,
   deriveStages,
   newlyCompletedStages,
+  requirementMetAt,
   type StageStatus,
 } from "@/lib/project/stages";
 import {
@@ -94,6 +95,24 @@ describe("PRD 4.1: sembilan stage berjalan berurutan", () => {
       "completed",
       "not-started",
     ]);
+  });
+
+  it("Stage 2 tetap menunggu CTO bila baru COO yang menyetujui", () => {
+    const charter = doc("PROJECT_CHARTER");
+    const project = emptyProject({
+      stage1DoneAt: day("2026-08-05"),
+      documents: [doc("REQUIREMENT_GATHERING"), charter],
+      submissions: [
+        submission("PROJECT_CHARTER", charter, "PENDING", {
+          opsApprovedAt: day("2026-09-02"),
+          opsApprovedByName: "Ghazy",
+        }),
+      ],
+    });
+    const stage = deriveStages(project, NOW)[1];
+    expect(stage.status).toBe("waiting-approval");
+    expect(stage.waitingFor).toBe("CTO / Vice CTO");
+    expect(requirementMetAt(project, 2, NOW)).toBeNull();
   });
 
   it("Stage 3 berstatus Disetujui sampai MoU ditandatangani", () => {

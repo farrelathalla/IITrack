@@ -40,6 +40,83 @@ import { PaymentFlow, TermCard, TermsEditor, termDueLabel } from "./terms";
 
 const MANUAL_STATUS = ["MISSING", "IN_PROGRESS", "SUBMITTED", "DONE"] as const;
 
+function openGaps(
+  project: ReturnType<typeof useProject>["project"],
+  kind: "MOU" | "PROGRAMMER_CONTRACT",
+  label: string,
+  developerId = "",
+): string[] {
+  const doc = documentOf(project, kind, developerId);
+  const latest = latestSubmission(project, doc?.id);
+  if (!doc?.url) return [`Tautan ${label} belum diisi.`];
+  if (!latest) return [`${label} belum diajukan untuk persetujuan.`];
+  if (latest.status === "REJECTED") {
+    return [`${label} ditolak. Perbaiki lalu ajukan ulang.`];
+  }
+  if (latest.status === "PENDING") {
+    return [`${label} masih menunggu persetujuan.`];
+  }
+  if (!doc.signedAt) {
+    return [
+      `Tanda tangan ${label} belum dicatat. Tombol Tandai Ditandatangani ada di kartu dokumen, di bawah status Disetujui.`,
+    ];
+  }
+  return [];
+}
+
+function StageNeeds({ stage }: { stage: number }) {
+  const { project } = useProject();
+  const gaps: string[] = [];
+  if (stage === 1 && !documentOf(project, "REQUIREMENT_GATHERING")?.url) {
+    gaps.push("Tautan Requirement Gathering belum diisi.");
+  }
+  if (stage === 2) {
+    const charter = documentOf(project, "PROJECT_CHARTER");
+    const latest = latestSubmission(project, charter?.id);
+    if (!charter?.url) gaps.push("Tautan Project Charter belum diisi.");
+    if (!latest) gaps.push("Project Charter belum diajukan.");
+    if (latest?.status === "PENDING" && !latest.opsApprovedAt) {
+      gaps.push("Persetujuan COO atau Vice COO belum ada.");
+    }
+    if (latest?.status === "PENDING" && !latest.techApprovedAt) {
+      gaps.push("Persetujuan CTO atau Vice CTO belum ada.");
+    }
+    if (latest?.status === "REJECTED") {
+      gaps.push("Project Charter ditolak. Ajukan ulang setelah diperbaiki.");
+    }
+  }
+  if (stage === 3) gaps.push(...openGaps(project, "MOU", "MoU"));
+  if (stage === 4) {
+    const developers = developersOf(project);
+    if (developers.length === 0) {
+      gaps.push("Belum ada developer yang ditugaskan.");
+    }
+    for (const developer of developers) {
+      gaps.push(
+        ...openGaps(
+          project,
+          "PROGRAMMER_CONTRACT",
+          `Kontrak Programmer ${developer.name}`,
+          developer.userId,
+        ),
+      );
+    }
+  }
+  if (gaps.length === 0) return null;
+  return (
+    <div className="rounded-lg border border-line bg-surface px-4 py-3">
+      <p className="font-semibold text-ink text-sm">
+        Yang masih kurang sebelum tahap ini selesai
+      </p>
+      <ul className="mt-2 list-disc space-y-1 pl-5 text-ink text-sm">
+        {gaps.map((gap) => (
+          <li key={gap}>{gap}</li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
 function Stage1() {
   const { project, can } = useProject();
   const { run, pending, error } = useRunner();
@@ -73,7 +150,7 @@ function Stage1() {
 }
 
 function Stage2() {
-  const { can } = useProject();
+  const { can, namedApprovers } = useProject();
   const editable = can["charter.edit"];
   return (
     <>
@@ -83,13 +160,22 @@ function Stage2() {
       <Subsection title="Dokumen Pendukung (Opsional)">
         <DocumentCard kind="GANTT_CHART" editable={editable} />
       </Subsection>
-      <p className="text-subtle text-xs">Perlu persetujuan COO / Vice COO.</p>
+      <div className="rounded-lg border border-line bg-white px-4 py-3 text-sm">
+        <p className="font-semibold text-ink">
+          Stage ini selesai setelah COO atau Vice COO dan CTO atau Vice CTO
+          sama-sama menyetujui.
+        </p>
+        <p className="mt-1 text-ink">
+          {`Approver yang ditunjuk: COO ${namedApprovers.charterOps ?? "belum dipilih"}, CTO ${namedApprovers.charterTech ?? "belum dipilih"}. Siapa pun yang sedang menjabat jabatan itu tetap bisa memutuskan.`}
+        </p>
+      </div>
       <SubmissionBar
         kind="PROJECT_CHARTER"
         label="Project Charter"
-        approverLabel="COO / Vice COO"
+        approverLabel="COO / Vice COO dan CTO / Vice CTO"
         canSubmit={editable}
         canDecide={can["charter.decide"]}
+        canDecideTech={can["charter.decideTech"]}
       />
     </>
   );
@@ -220,9 +306,10 @@ function Stage3() {
         signable
       />
       {latest?.status === "APPROVED" && !mou?.signedAt ? (
-        <p className="text-subtle text-xs">
+        <p className="rounded-lg border border-warning-line bg-warning-bg px-4 py-3 text-ink text-sm">
           Kirim MoU ke client, ganti tautan dengan versi bertanda tangan, lalu
-          klik Tandai Ditandatangani.
+          klik Tandai Ditandatangani. Tanpa tanda tangan, stage berikutnya tetap
+          terkunci.
         </p>
       ) : null}
     </>
@@ -529,6 +616,7 @@ export function StagePanel({
           />
         ) : (
           <>
+            <StageNeeds stage={state.n} />
             {state.n === 1 ? <Stage1 /> : null}
             {state.n === 2 ? <Stage2 /> : null}
             {state.n === 3 ? <Stage3 /> : null}

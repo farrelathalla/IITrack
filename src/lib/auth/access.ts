@@ -38,6 +38,7 @@ export type ProjectAction =
   | "stage1.edit"
   | "charter.edit"
   | "charter.decide"
+  | "charter.decideTech"
   | "mou.edit"
   | "mou.decide"
   | "terms.edit"
@@ -56,6 +57,8 @@ export type ProjectAction =
 
 export type GlobalAction =
   | "project.create"
+  | "project.editDetails"
+  | "project.delete"
   | "users.view"
   | "users.manage"
   | "settings.view"
@@ -140,6 +143,11 @@ export function canOnProject(
         ? ALLOW
         : deny("Hanya COO atau Vice COO yang bisa memutuskan pengajuan ini.");
 
+    case "charter.decideTech":
+      return isTechLead(role)
+        ? ALLOW
+        : deny("Hanya CTO atau Vice CTO yang bisa menyetujui Project Charter.");
+
     case "terms.edit":
       if (project.mouSigned) {
         return isFinanceLead(role)
@@ -200,6 +208,14 @@ export function canGlobally(viewer: Viewer, action: GlobalAction): Decision {
       return isOpsLead(role)
         ? ALLOW
         : deny("Hanya COO dan Vice COO yang dapat membuat project.");
+    case "project.editDetails":
+      return isOpsLead(role)
+        ? ALLOW
+        : deny("Hanya COO dan Vice COO yang dapat mengubah detail project.");
+    case "project.delete":
+      return isOpsLead(role)
+        ? ALLOW
+        : deny("Hanya COO dan Vice COO yang dapat menghapus project.");
     case "users.view":
     case "settings.view":
       return role === "SUPER_ADMIN" || isCLevel(role)

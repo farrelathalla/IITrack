@@ -52,7 +52,7 @@ export function LockedBox({ reason }: { reason: string }) {
       </div>
       <div>
         <p className="font-semibold text-ink text-sm">Stage ini terkunci</p>
-        <p className="text-muted text-xs">{reason}</p>
+        <p className="mt-1 text-ink text-sm">{reason}</p>
       </div>
     </div>
   );

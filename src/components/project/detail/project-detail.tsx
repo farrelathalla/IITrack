@@ -28,6 +28,7 @@ import { ActivityDrawer } from "./activity-drawer";
 import { AssignmentModal, type AssignmentMode } from "./assignment-modal";
 import { ProjectProvider, useProject } from "./context";
 import { DivisionTabs } from "./division-tabs";
+import { ProjectDetailsMenu } from "./project-details-menu";
 import { StagePanel } from "./stage-panel";
 import { WorkflowStepper } from "./stepper";
 
@@ -110,6 +111,7 @@ function Header({
             </Link>
           </div>
         </div>
+        <ProjectDetailsMenu />
 
         {summary.needsReassignment.length > 0 ? (
           <div className="mt-4 flex items-center gap-2 rounded-lg border border-danger-line bg-danger-bg px-3 py-2 text-danger-text text-xs">
@@ -193,7 +195,14 @@ function Detail({ activity }: { activity: ActivityItem[] }) {
       <Header onHistory={() => setHistory(true)} onAssign={setAssignment} />
       <WorkflowStepper selected={stage} onSelect={select} />
       <StagePanel stage={stage} onAssign={setAssignment} />
-      <DivisionTabs onAssign={setAssignment} />
+      <details className="rounded-xl border border-line bg-white p-4 shadow-sm">
+        <summary className="cursor-pointer font-semibold text-ink text-sm">
+          Tampilan divisi (PM, Tech, Finance)
+        </summary>
+        <div className="mt-4">
+          <DivisionTabs onAssign={setAssignment} />
+        </div>
+      </details>
       <AssignmentModal mode={assignment} onClose={() => setAssignment(null)} />
       <ActivityDrawer open={history} onClose={closeHistory} items={activity} />
     </div>

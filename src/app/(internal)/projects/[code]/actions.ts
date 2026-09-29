@@ -17,6 +17,7 @@ import {
   assignPm,
   replaceDeveloper,
 } from "@/server/project/assignments";
+import { deleteProject, updateProjectDetails } from "@/server/project/create";
 import {
   completeStage1,
   decideSubmission,
@@ -342,6 +343,33 @@ export async function markDisbursedAction(code: string) {
     code,
     (actor) => markDisbursed({ actor, projectId: code }),
     "Ditandai dicairkan.",
+  );
+}
+
+export async function updateProjectDetailsAction(
+  code: string,
+  input: {
+    name: string;
+    client: string;
+    type?: string;
+    source?: string;
+    targetStart: string;
+    targetEnd: string;
+    internalNote?: string;
+  },
+) {
+  return act(
+    code,
+    (actor) => updateProjectDetails({ actor, projectId: code, input }),
+    "Detail project diperbarui.",
+  );
+}
+
+export async function deleteProjectAction(code: string) {
+  return act(
+    code,
+    (actor) => deleteProject({ actor, projectId: code }),
+    "Project dihapus dari daftar.",
   );
 }
 

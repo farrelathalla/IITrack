@@ -34,7 +34,12 @@ export const SNAPSHOT_INCLUDE = {
   documents: { include: { owner: USER_NAME } },
   submissions: {
     orderBy: { submittedAt: "asc" },
-    include: { submittedBy: USER_NAME, decidedBy: USER_NAME },
+    include: {
+      submittedBy: USER_NAME,
+      decidedBy: USER_NAME,
+      opsApprovedBy: USER_NAME,
+      techApprovedBy: USER_NAME,
+    },
   },
   staffing: true,
   techInfo: true,
@@ -133,6 +138,10 @@ export function toSnapshot(
       decidedByName: s.decidedBy?.name ?? null,
       decidedAt: s.decidedAt,
       feedback: s.feedback,
+      opsApprovedAt: s.opsApprovedAt,
+      opsApprovedByName: s.opsApprovedBy?.name ?? null,
+      techApprovedAt: s.techApprovedAt,
+      techApprovedByName: s.techApprovedBy?.name ?? null,
     })),
     staffing: row.staffing && {
       technicalNeeds: row.staffing.technicalNeeds,
@@ -224,7 +233,10 @@ export async function loadSnapshot(
   client: Tx | typeof prisma = prisma,
 ): Promise<ProjectSnapshot | null> {
   const row = await client.project.findFirst({
-    where: { OR: [{ code: codeOrId }, { id: codeOrId }] },
+    where: {
+      deletedAt: null,
+      OR: [{ code: codeOrId }, { id: codeOrId }],
+    },
     include: SNAPSHOT_INCLUDE,
   });
   if (!row) return null;

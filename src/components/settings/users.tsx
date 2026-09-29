@@ -280,21 +280,20 @@ export function UsersSection({
       >
         <form
           action={(fd) =>
-            run(
-              () =>
-                addUserAction({
-                  name: String(fd.get("name") ?? ""),
-                  email: String(fd.get("email") ?? ""),
-                  role: String(fd.get("role") ?? "") as RoleName,
-                  periodId: String(fd.get("periodId") ?? ""),
-                  password: String(fd.get("password") ?? ""),
-                }),
-              close,
+            run(() =>
+              addUserAction({
+                name: String(fd.get("name") ?? ""),
+                email: String(fd.get("email") ?? ""),
+                role: String(fd.get("role") ?? "") as RoleName,
+                periodId: String(fd.get("periodId") ?? ""),
+                password: String(fd.get("password") ?? ""),
+              }),
             )
           }
           className="space-y-3"
         >
           {error ? <Alert tone="danger">{error}</Alert> : null}
+          {message ? <Alert tone="success">{message}</Alert> : null}
           <TextField label="Nama" name="name" required />
           <TextField label="Email IIT" name="email" type="email" required />
           <RoleSelect />
@@ -306,7 +305,7 @@ export function UsersSection({
             autoComplete="new-password"
             minLength={8}
             required
-            hint="Bisa diganti pemilik akun di Profil."
+            hint="Sandi awal ini bisa dipakai langsung. Setelah simpan, salin tautan undangan yang muncul dan kirimkan. Email otomatis belum ada."
           />
           <div className="flex justify-end gap-2">
             <Button variant="ghost" onClick={close}>

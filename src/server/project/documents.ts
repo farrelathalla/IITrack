@@ -1,5 +1,7 @@
 import { z } from "zod";
 import type { ProjectAction } from "@/lib/auth/access";
+import { activeRole } from "@/lib/auth/period";
+import { isOpsLead, isTechLead } from "@/lib/auth/roles";
 import type { Actor, RoleName } from "@/lib/auth/types";
 import { checkTermScheme } from "@/lib/finance/terms";
 import {
@@ -426,11 +428,24 @@ export async function decideSubmission(params: {
   });
   if (!submission) throw new ActionError("Pengajuan tidak ditemukan.");
   const approver = APPROVERS[submission.kind];
+  const charterSide =
+    submission.kind === "PROJECT_CHARTER"
+      ? isOpsLead(activeRole(params.actor, new Date()))
+        ? "ops"
+        : isTechLead(activeRole(params.actor, new Date()))
+          ? "tech"
+          : null
+      : null;
+  if (submission.kind === "PROJECT_CHARTER" && !charterSide) {
+    throw new ActionError(
+      "Project Charter disetujui oleh COO atau Vice COO, dan juga oleh CTO atau Vice CTO.",
+    );
+  }
 
   await mutateProject({
     actor: params.actor,
     projectId: submission.projectId,
-    action: approver.decide,
+    action: charterSide === "tech" ? "charter.decideTech" : approver.decide,
     run: async (context) => {
       const { tx, project, now } = context;
       const target = project.submissions.find(
@@ -441,42 +456,104 @@ export async function decideSubmission(params: {
       }
 
       const approved = decision.decision === "APPROVE";
+      const charter = target.kind === "PROJECT_CHARTER";
+      const opsDone = Boolean(target.opsApprovedAt) || charterSide === "ops";
+      const techDone = Boolean(target.techApprovedAt) || charterSide === "tech";
+      const charterComplete = charter && approved && opsDone && techDone;
+      const finalStatus = !approved
+        ? "REJECTED"
+        : !charter || charterComplete
+          ? "APPROVED"
+          : "PENDING";
+
+      if (
+        charter &&
+        approved &&
+        charterSide === "ops" &&
+        target.opsApprovedAt
+      ) {
+        throw new ActionError(
+          "COO atau Vice COO sudah menyetujui. Menunggu CTO atau Vice CTO.",
+        );
+      }
+      if (
+        charter &&
+        approved &&
+        charterSide === "tech" &&
+        target.techApprovedAt
+      ) {
+        throw new ActionError(
+          "CTO atau Vice CTO sudah menyetujui. Menunggu COO atau Vice COO.",
+        );
+      }
+
       const updated = await tx.submission.updateMany({
-        where: { id: target.id, status: "PENDING" },
+        where:
+          charter && approved && charterSide === "ops"
+            ? { id: target.id, status: "PENDING", opsApprovedAt: null }
+            : charter && approved && charterSide === "tech"
+              ? { id: target.id, status: "PENDING", techApprovedAt: null }
+              : { id: target.id, status: "PENDING" },
         data: {
-          status: approved ? "APPROVED" : "REJECTED",
-          decidedById: params.actor.userId,
-          decidedAt: now,
+          status: finalStatus,
+          decidedById: finalStatus === "PENDING" ? null : params.actor.userId,
+          decidedAt: finalStatus === "PENDING" ? null : now,
           feedback: approved ? null : decision.feedback,
+          ...(charter && approved && charterSide === "ops"
+            ? {
+                opsApprovedAt: now,
+                opsApprovedById: params.actor.userId,
+              }
+            : {}),
+          ...(charter && approved && charterSide === "tech"
+            ? {
+                techApprovedAt: now,
+                techApprovedById: params.actor.userId,
+              }
+            : {}),
         },
       });
       if (updated.count === 0) {
-        const verb = target.status === "APPROVED" ? "Disetujui" : "Ditolak";
+        const fresh = await tx.submission.findUnique({
+          where: { id: target.id },
+        });
+        if (fresh?.status === "PENDING") {
+          throw new ActionError(
+            charterSide === "tech"
+              ? "CTO atau Vice CTO sudah menyetujui. Menunggu COO atau Vice COO."
+              : "COO atau Vice COO sudah menyetujui. Menunggu CTO atau Vice CTO.",
+          );
+        }
+        const verb = fresh?.status === "APPROVED" ? "Disetujui" : "Ditolak";
         throw new ActionError(
           `Pengajuan ini sudah diputuskan. ${verb} oleh ${target.decidedByName ?? "approver lain"}.`,
         );
       }
 
       const doc = project.documents.find((d) => d.id === target.documentId);
-      if (doc) {
+      if (doc && finalStatus !== "PENDING") {
         await tx.document.update({
           where: { id: doc.id },
-          data: { status: approved ? "DONE" : "IN_PROGRESS" },
+          data: { status: finalStatus === "APPROVED" ? "DONE" : "IN_PROGRESS" },
         });
       }
       const devName = doc ? developerName(context, doc.developerId) : undefined;
       const label = devName ? `${approver.label} ${devName}` : approver.label;
       const stage = doc ? DOCUMENTS[doc.kind].stage : undefined;
 
+      const partial = approved && finalStatus === "PENDING";
       await recordActivity(tx, {
         projectId: project.id,
         actorId: params.actor.userId,
         action: approved ? "submission.approved" : "submission.rejected",
-        summary: approved
-          ? `Menyetujui ${label}`
-          : `Menolak pengajuan ${label}`,
+        summary: !approved
+          ? `Menolak pengajuan ${label}`
+          : partial
+            ? `Menyetujui ${label} sebagai ${charterSide === "ops" ? "COO / Vice COO" : "CTO / Vice CTO"}. Menunggu persetujuan sisi yang lain.`
+            : `Menyetujui ${label}`,
         stage,
-        result: approved ? "APPROVED" : "REJECTED",
+        result:
+          approved && !partial ? "APPROVED" : approved ? "UPDATED" : "REJECTED",
         feedback: approved ? null : decision.feedback,
         objectType: "submission",
         objectId: target.id,

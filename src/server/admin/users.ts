@@ -1,3 +1,4 @@
+import { createHash, randomBytes } from "node:crypto";
 import { z } from "zod";
 import { canGlobally } from "@/lib/auth/access";
 import { hashPassword } from "@/lib/auth/password";
@@ -101,11 +102,14 @@ export async function addUser(params: {
   actor: Actor;
   input: z.input<typeof addUserSchema>;
   now?: Date;
-}): Promise<void> {
+}): Promise<string> {
   const now = params.now ?? new Date();
   requireSuperAdmin(params.actor, now);
   const input = parseInput(addUserSchema, params.input);
   const passwordHash = await hashPassword(input.password);
+  const token = randomBytes(24).toString("hex");
+  const inviteTokenHash = createHash("sha256").update(token).digest("hex");
+  const inviteExpiresAt = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
 
   await prisma.$transaction(async (tx) => {
     const period = await tx.period.findUnique({
@@ -128,6 +132,8 @@ export async function addUser(params: {
         email: input.email,
         passwordHash,
         status: "ACTIVE",
+        inviteTokenHash,
+        inviteExpiresAt,
         roleAssignments: {
           create: {
             role: input.role,
@@ -152,6 +158,37 @@ export async function addUser(params: {
       message: `Akses IITrack Anda aktif sebagai ${ROLE_LABELS[input.role]} periode ${period.name}.`,
       href: "/settings/profile",
     });
+  });
+  return `/undang/${token}`;
+}
+
+/** Orang yang menerima tautan mengatur kata sandinya sendiri. */
+export async function acceptInvite(params: {
+  token: string;
+  password: string;
+  now?: Date;
+}): Promise<void> {
+  const now = params.now ?? new Date();
+  const password = parseInput(
+    z.string().min(8, "Kata sandi minimal 8 karakter."),
+    params.password,
+  );
+  const inviteTokenHash = createHash("sha256")
+    .update(params.token)
+    .digest("hex");
+  const user = await prisma.user.findUnique({ where: { inviteTokenHash } });
+  if (!user?.inviteExpiresAt || user.inviteExpiresAt < now) {
+    throw new ActionError(
+      "Tautan undangan tidak berlaku atau sudah kedaluwarsa.",
+    );
+  }
+  await prisma.user.update({
+    where: { id: user.id },
+    data: {
+      passwordHash: await hashPassword(password),
+      inviteTokenHash: null,
+      inviteExpiresAt: null,
+    },
   });
 }
 

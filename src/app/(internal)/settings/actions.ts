@@ -46,7 +46,13 @@ export async function addUserAction(input: {
   periodId: string;
   password: string;
 }) {
-  return act((actor) => addUser({ actor, input }), "Akun ditambahkan.");
+  const result = await runAction(async () => {
+    const { actor } = await requireActionUser();
+    const path = await addUser({ actor, input });
+    return `Akun ditambahkan. Salin tautan ini dan kirim ke orangnya (berlaku 7 hari, belum ada email otomatis): ${path}`;
+  });
+  if (result.ok) revalidatePath("/", "layout");
+  return result;
 }
 
 export async function editRoleAction(input: {

@@ -48,6 +48,11 @@ export function WorkflowSection({
 
   return (
     <div className="space-y-3">
+      <p className="text-ink text-sm">
+        Pilih nama approver di sini. Project Charter selesai hanya jika sisi COO
+        dan sisi CTO sama-sama menyetujui. Wewenang tetap mengikuti jabatan:
+        wakil yang sedang menjabat juga bisa memutuskan.
+      </p>
       {error ? <Alert tone="danger">{error}</Alert> : null}
       {message ? <Alert tone="success">{message}</Alert> : null}
       <div className="overflow-x-auto rounded-xl border border-line bg-white shadow-sm">
@@ -158,7 +163,10 @@ export function WorkflowSection({
           </tbody>
         </table>
       </div>
-      <p className="text-[11px] text-subtle">Keputusan pertama yang berlaku.</p>
+      <p className="text-muted text-sm">
+        MoU dan Kontrak Programmer: keputusan pertama yang berlaku. Project
+        Charter: kedua sisi harus setuju, dan salah satu sisi bisa menolak.
+      </p>
       {canManage ? (
         <div className="flex justify-end">
           <Button

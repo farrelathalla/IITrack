@@ -216,11 +216,28 @@ function activityOf(project: ProjectSnapshot, n: StageNumber): Activity {
     }
     case 2: {
       const charter = documentOf(project, "PROJECT_CHARTER");
-      const sub = fromSubmission(
-        latestSubmission(project, charter?.id),
-        "COO / Vice COO",
-      );
+      const latest = latestSubmission(project, charter?.id);
+      const waitingFor =
+        latest?.status === "PENDING"
+          ? !latest.opsApprovedAt && !latest.techApprovedAt
+            ? "COO / Vice COO dan CTO / Vice CTO"
+            : !latest.opsApprovedAt
+              ? "COO / Vice COO"
+              : !latest.techApprovedAt
+                ? "CTO / Vice CTO"
+                : null
+          : null;
+      const partial =
+        latest?.status === "PENDING" && waitingFor
+          ? {
+              status: "waiting-approval" as const,
+              rejection: null,
+              waitingFor,
+            }
+          : null;
+      const sub = fromSubmission(latest, "COO / Vice COO dan CTO / Vice CTO");
       return strongest([
+        partial,
         sub,
         touched(charter) || touched(documentOf(project, "GANTT_CHART"))
           ? IN_PROGRESS
