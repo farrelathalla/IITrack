@@ -10,6 +10,7 @@ import { revokeAllSessionsFor } from "@/server/auth/session";
 import { prisma } from "@/server/db";
 import { notify, notifyRoles } from "@/server/notify";
 import { ActionError, parseInput } from "@/server/project/mutate";
+import { createInvitation } from "./invitations";
 
 function requireSuperAdmin(actor: Actor, now: Date) {
   const decision = canGlobally(viewerOf(actor, now), "users.manage");
@@ -31,6 +32,10 @@ export interface UserRow {
   active: boolean;
   revokedAt: Date | null;
   revokeReason: string | null;
+  /** Sudah punya kata sandi (lewat link undangan atau diisi Super Admin). */
+  activated: boolean;
+  /** Link undangan yang masih berlaku, bila ada. */
+  inviteExpiresAt: Date | null;
 }
 
 export async function listUsers(now: Date = new Date()): Promise<UserRow[]> {
@@ -40,6 +45,13 @@ export async function listUsers(now: Date = new Date()): Promise<UserRow[]> {
       email: true,
       revokedAt: true,
       revokeReason: true,
+      passwordHash: true,
+      invitations: {
+        where: { usedAt: null, revokedAt: null, expiresAt: { gt: now } },
+        orderBy: { createdAt: "desc" },
+        take: 1,
+        select: { expiresAt: true },
+      },
       roleAssignments: {
         orderBy: { createdAt: "desc" },
         select: {
@@ -71,6 +83,8 @@ export async function listUsers(now: Date = new Date()): Promise<UserRow[]> {
       active: role !== null,
       revokedAt: user.revokedAt,
       revokeReason: user.revokeReason,
+      activated: user.passwordHash !== null,
+      inviteExpiresAt: user.invitations[0]?.expiresAt ?? null,
     };
   });
 }
@@ -90,24 +104,36 @@ const addUserSchema = z.object({
   email: z.string().trim().toLowerCase().email("Email tidak valid."),
   role: roleSchema,
   periodId: z.string().min(1, "Pilih periode jabatan."),
-  password: z.string().min(8, "Kata sandi awal minimal 8 karakter."),
+  /** Kosong berarti anggota membuat kata sandinya sendiri lewat link undangan. */
+  password: z
+    .string()
+    .optional()
+    .transform((value) => value || undefined)
+    .refine(
+      (value) => value === undefined || value.length >= 8,
+      "Kata sandi awal minimal 8 karakter.",
+    ),
 });
 
 /**
- * Tambah User (PRD bab 2.5). Akun langsung aktif dan bisa login dengan kata
- * sandi awal yang disampaikan Super Admin kepada pemiliknya.
+ * Tambah User. Akun langsung aktif. Bila kata sandi awal tidak diisi, sistem
+ * membuat link undangan sekali pakai (berlaku 7 hari) yang dikirim Super Admin
+ * sendiri lewat WA atau email; anggota membuat kata sandinya lewat link itu.
+ * Mengembalikan token undangan, atau `null` bila kata sandi diisi langsung.
  */
 export async function addUser(params: {
   actor: Actor;
   input: z.input<typeof addUserSchema>;
   now?: Date;
-}): Promise<void> {
+}): Promise<string | null> {
   const now = params.now ?? new Date();
   requireSuperAdmin(params.actor, now);
   const input = parseInput(addUserSchema, params.input);
-  const passwordHash = await hashPassword(input.password);
+  const passwordHash = input.password
+    ? await hashPassword(input.password)
+    : null;
 
-  await prisma.$transaction(async (tx) => {
+  return prisma.$transaction(async (tx) => {
     const period = await tx.period.findUnique({
       where: { id: input.periodId },
     });
@@ -152,6 +178,14 @@ export async function addUser(params: {
       message: `Akses IITrack Anda aktif sebagai ${ROLE_LABELS[input.role]} periode ${period.name}.`,
       href: "/settings/profile",
     });
+
+    return passwordHash
+      ? null
+      : createInvitation(tx, {
+          userId: user.id,
+          createdById: params.actor.userId,
+          now,
+        });
   });
 }
 
@@ -331,7 +365,11 @@ async function notifyReassignment(
   now: Date,
 ) {
   const assignments = await tx.projectAssignment.findMany({
-    where: { userId, endedAt: null, project: { closedAt: null } },
+    where: {
+      userId,
+      endedAt: null,
+      project: { closedAt: null, deletedAt: null },
+    },
     select: { role: true, projectId: true },
   });
   if (assignments.length === 0) return;

@@ -23,11 +23,25 @@ export function uniqueEmail(prefix: string): string {
 }
 
 /**
- * Periode uji yang sedang berjalan, dengan kode empat digit unik (9xxx)
- * supaya Project ID tiap eksekusi tidak bertabrakan.
+ * Periode uji yang sedang berjalan, dengan kode empat digit unik (5000-9999)
+ * supaya Project ID tiap eksekusi tidak bertabrakan. Periode tidak pernah
+ * dihapus, jadi kode dipilih dari yang belum terpakai, bukan diacak buta:
+ * acakan buta makin sering bentrok seiring basis data uji bertambah.
  */
 export async function testPeriod(): Promise<{ id: string; code: string }> {
-  const code = `9${String(Math.floor(Math.random() * 1000)).padStart(3, "0")}`;
+  const used = new Set(
+    (await testDb.period.findMany({ select: { code: true } })).map(
+      (p) => p.code,
+    ),
+  );
+  const free: string[] = [];
+  for (let n = 5000; n <= 9999; n += 1) {
+    if (!used.has(String(n))) free.push(String(n));
+  }
+  if (free.length === 0) {
+    throw new Error("Kode periode uji habis. Reset basis data uji.");
+  }
+  const code = free[Math.floor(Math.random() * free.length)];
   const now = Date.now();
   return testDb.period.create({
     data: {

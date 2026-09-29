@@ -12,8 +12,8 @@ export async function generateMetadata({
   params: Promise<{ code: string }>;
 }): Promise<Metadata> {
   const { code } = await params;
-  const project = await prisma.project.findUnique({
-    where: { code },
+  const project = await prisma.project.findFirst({
+    where: { code, deletedAt: null },
     select: { name: true },
   });
   return { title: project?.name ?? "Project" };

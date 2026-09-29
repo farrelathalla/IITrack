@@ -4,7 +4,7 @@ import { editRole, revokeAccess } from "@/server/admin/users";
 import { viewerOf } from "@/server/auth/actor";
 import { assignPm } from "@/server/project/assignments";
 import { createProject } from "@/server/project/create";
-import { saveDocument, submitDocument } from "@/server/project/documents";
+import { saveDocument } from "@/server/project/documents";
 import { closeProject } from "@/server/project/operations";
 import { loadSnapshot } from "@/server/project/snapshot";
 import { transitionTerm } from "@/server/project/terms";
@@ -178,40 +178,18 @@ describe("PRD 2.4 dan 13: izin diperiksa di server, termasuk bila dipanggil lang
 });
 
 describe("PRD 2.3: keputusan pertama yang berlaku", () => {
-  it("COO dan Vice COO memutuskan bersamaan: satu berhasil, yang lain ditolak", async () => {
+  it("COO dan Vice COO memutuskan MoU bersamaan: satu berhasil, yang lain ditolak", async () => {
     const team = await createTeam();
     const code = await newProject(team);
-    await saveDocument({
-      actor: team.pm,
-      projectId: code,
-      input: { kind: "REQUIREMENT_GATHERING", url: "https://example.com/rgd" },
-    });
-    const { completeStage1 } = await import("@/server/project/documents");
-    await completeStage1({ actor: team.pm, projectId: code });
-    await saveDocument({
-      actor: team.pm,
-      projectId: code,
-      input: { kind: "PROJECT_CHARTER", url: "https://example.com/charter" },
-    });
-    await submitDocument({
-      actor: team.pm,
-      projectId: code,
-      kind: "PROJECT_CHARTER",
-    });
+    await throughMouSubmitted(team, code);
 
     const results = await Promise.allSettled([
-      decidePending(code, "PROJECT_CHARTER", team.coo, "APPROVE"),
-      decidePending(
-        code,
-        "PROJECT_CHARTER",
-        team.vcoo,
-        "REJECT",
-        "Perlu revisi",
-      ),
+      decidePending(code, "MOU", team.coo, "APPROVE"),
+      decidePending(code, "MOU", team.vcoo, "REJECT", "Perlu revisi"),
     ]);
     expect(results.filter((r) => r.status === "fulfilled")).toHaveLength(1);
     const decided = await testDb.submission.findMany({
-      where: { project: { code }, kind: "PROJECT_CHARTER" },
+      where: { project: { code }, kind: "MOU" },
     });
     expect(decided).toHaveLength(1);
     expect(decided[0].status).not.toBe("PENDING");

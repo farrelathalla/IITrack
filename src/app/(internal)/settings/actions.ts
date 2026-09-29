@@ -1,8 +1,10 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { headers } from "next/headers";
 import type { Actor, RoleName } from "@/lib/auth/types";
 import { changeOwnPassword, updateOwnName } from "@/server/account";
+import { invitationPath, issueInvitation } from "@/server/admin/invitations";
 import { saveApprovers, saveTolerance } from "@/server/admin/settings";
 import {
   addUser,
@@ -39,14 +41,45 @@ export async function changePasswordAction(current: string, next: string) {
   );
 }
 
+/** Hasil aksi yang bisa membawa link undangan untuk disalin Super Admin. */
+export type LinkResult = ActionResult & { link?: string };
+
+/** Origin aplikasi dari permintaan saat ini, untuk link undangan lengkap. */
+async function appOrigin(): Promise<string> {
+  const fromEnv = process.env.APP_URL?.replace(/\/$/, "");
+  if (fromEnv) return fromEnv;
+  const h = await headers();
+  const host = h.get("x-forwarded-host") ?? h.get("host") ?? "localhost:3000";
+  const proto =
+    h.get("x-forwarded-proto") ??
+    (host.startsWith("localhost") ? "http" : "https");
+  return `${proto}://${host}`;
+}
+
 export async function addUserAction(input: {
   name: string;
   email: string;
   role: RoleName;
   periodId: string;
   password: string;
-}) {
-  return act((actor) => addUser({ actor, input }), "Akun ditambahkan.");
+}): Promise<LinkResult> {
+  let token: string | null = null;
+  const result = await act(async (actor) => {
+    token = await addUser({ actor, input });
+  }, "Akun ditambahkan.");
+  if (!result.ok || !token) return result;
+  return { ...result, link: `${await appOrigin()}${invitationPath(token)}` };
+}
+
+export async function issueInvitationAction(
+  userId: string,
+): Promise<LinkResult> {
+  let token = "";
+  const result = await act(async (actor) => {
+    token = await issueInvitation({ actor, userId });
+  }, "Link baru dibuat. Link sebelumnya tidak berlaku lagi.");
+  if (!result.ok) return result;
+  return { ...result, link: `${await appOrigin()}${invitationPath(token)}` };
 }
 
 export async function editRoleAction(input: {

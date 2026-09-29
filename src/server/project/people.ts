@@ -48,7 +48,7 @@ export async function candidatesFor(
         take: 1,
       },
       assignments: {
-        where: { endedAt: null, project: { closedAt: null } },
+        where: { endedAt: null, project: { closedAt: null, deletedAt: null } },
         select: { projectId: true },
       },
     },

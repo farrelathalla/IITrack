@@ -39,25 +39,36 @@ const optionalEnum = <T extends Record<string, string>>(values: T) =>
     )
     .transform((value) => value as keyof T | null);
 
-export const createProjectSchema = z
-  .object({
-    name: z.string().trim().min(1, "Nama project wajib diisi."),
-    client: z.string().trim().min(1, "Client wajib diisi."),
-    type: optionalEnum(PROJECT_TYPE_LABELS),
-    source: optionalEnum(PROJECT_SOURCE_LABELS),
-    pmUserId: z.string().trim().min(1, "Project Manager wajib dipilih."),
-    targetStart: dateField("Target mulai"),
-    targetEnd: dateField("Target selesai"),
-    internalNote: z
-      .string()
-      .trim()
-      .optional()
-      .transform((value) => (value ? value : null)),
-  })
-  .refine((data) => data.targetEnd >= data.targetStart, {
+/** Detail awal project, dipakai form Tambah Project dan Edit Detail. */
+export const projectDetailFields = {
+  name: z.string().trim().min(1, "Nama project wajib diisi."),
+  client: z.string().trim().min(1, "Client wajib diisi."),
+  type: optionalEnum(PROJECT_TYPE_LABELS),
+  source: optionalEnum(PROJECT_SOURCE_LABELS),
+  targetStart: dateField("Target mulai"),
+  targetEnd: dateField("Target selesai"),
+  internalNote: z
+    .string()
+    .trim()
+    .optional()
+    .transform((value) => (value ? value : null)),
+};
+
+export const targetOrder = {
+  check: (data: { targetStart: Date; targetEnd: Date }) =>
+    data.targetEnd >= data.targetStart,
+  params: {
     path: ["targetEnd"],
     message: "Target selesai harus setelah target mulai.",
-  });
+  },
+};
+
+export const createProjectSchema = z
+  .object({
+    ...projectDetailFields,
+    pmUserId: z.string().trim().min(1, "Project Manager wajib dipilih."),
+  })
+  .refine(targetOrder.check, targetOrder.params);
 
 export type CreateProjectInput = z.input<typeof createProjectSchema>;
 

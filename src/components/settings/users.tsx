@@ -1,10 +1,12 @@
 "use client";
 
-import { Plus, Search } from "lucide-react";
+import { Check, Copy, Link2, Plus, Search } from "lucide-react";
 import { useState } from "react";
 import {
   addUserAction,
   editRoleAction,
+  issueInvitationAction,
+  type LinkResult,
   resetPasswordAction,
   revokeAccessAction,
 } from "@/app/(internal)/settings/actions";
@@ -26,7 +28,7 @@ import {
   ROLE_ORDER,
 } from "@/lib/auth/roles";
 import type { RoleName } from "@/lib/auth/types";
-import { formatDateTime } from "@/lib/time";
+import { formatDate, formatDateTime } from "@/lib/time";
 import { cn } from "@/lib/utils";
 import type { UserRow } from "@/server/admin/users";
 
@@ -86,6 +88,82 @@ function PeriodSelect({
   );
 }
 
+interface InviteInfo {
+  name: string;
+  email: string;
+  link: string;
+  reset: boolean;
+}
+
+function inviteMessage(invite: InviteInfo): string {
+  return invite.reset
+    ? `Halo ${invite.name}, ini link untuk mengatur ulang kata sandi IITrack kamu (berlaku 7 hari, sekali pakai):\n${invite.link}\n\nEmail login: ${invite.email}`
+    : `Halo ${invite.name}, akun IITrack kamu sudah dibuat. Buka link ini untuk membuat kata sandi dan langsung masuk (berlaku 7 hari, sekali pakai):\n${invite.link}\n\nEmail login: ${invite.email}`;
+}
+
+function CopyButton({ text, label }: { text: string; label: string }) {
+  const [copied, setCopied] = useState(false);
+  return (
+    <Button
+      variant="secondary"
+      onClick={async () => {
+        try {
+          await navigator.clipboard.writeText(text);
+          setCopied(true);
+          setTimeout(() => setCopied(false), 1500);
+        } catch {
+          window.prompt("Salin teks ini:", text);
+        }
+      }}
+    >
+      {copied ? <Check className="size-3.5" /> : <Copy className="size-3.5" />}
+      {copied ? "Tersalin" : label}
+    </Button>
+  );
+}
+
+/** Link undangan yang baru dibuat, siap disalin dan dikirim lewat WA/email. */
+function InviteDialog({
+  invite,
+  onClose,
+}: {
+  invite: InviteInfo;
+  onClose: () => void;
+}) {
+  const message = inviteMessage(invite);
+  return (
+    <Dialog
+      open
+      onOpenChange={(o) => !o && onClose()}
+      title={invite.reset ? "Link atur ulang kata sandi" : "Link undangan siap"}
+    >
+      <div className="space-y-3">
+        <p className="text-muted text-xs leading-relaxed">
+          IITrack tidak mengirim email. Kirim link ini sendiri ke{" "}
+          <strong className="text-ink">{invite.name}</strong> lewat WA atau
+          email. Link berlaku 7 hari dan hanya bisa dipakai sekali; bila hilang,
+          buat link baru dari tabel pengguna.
+        </p>
+        <input
+          readOnly
+          value={invite.link}
+          aria-label="Link undangan"
+          onFocus={(e) => e.currentTarget.select()}
+          className={cn(FIELD_CONTROL, "font-mono text-[11px]")}
+        />
+        <pre className="whitespace-pre-wrap break-all rounded-lg bg-surface px-3 py-2 font-sans text-ink text-xs leading-relaxed">
+          {message}
+        </pre>
+        <div className="flex justify-end gap-2">
+          <CopyButton text={invite.link} label="Salin link" />
+          <CopyButton text={message} label="Salin pesan" />
+          <Button onClick={onClose}>Selesai</Button>
+        </div>
+      </div>
+    </Dialog>
+  );
+}
+
 /**
  * Users & Roles (PRD bab 2.5 dan 8.7). Super Admin menambah, mengubah
  * jabatan, dan mencabut akses; C-Level hanya melihat divisinya.
@@ -106,6 +184,20 @@ export function UsersSection({
   const [status, setStatus] = useState("");
   const [dialog, setDialog] = useState<DialogState>(null);
   const { run, pending, error, message } = useRunner();
+  const [invite, setInvite] = useState<InviteInfo | null>(null);
+
+  /** Jalankan aksi yang mengembalikan link undangan, lalu tampilkan linknya. */
+  function runWithLink(
+    fn: () => Promise<LinkResult>,
+    user: { name: string; email: string; reset: boolean },
+    onSuccess?: () => void,
+  ) {
+    run(async () => {
+      const result = await fn();
+      if (result.ok && result.link) setInvite({ ...user, link: result.link });
+      return result;
+    }, onSuccess);
+  }
 
   const filtered = users.filter((u) => {
     const q = query.trim().toLowerCase();
@@ -164,6 +256,7 @@ export function UsersSection({
         ) : null}
       </div>
       {message ? <Alert tone="success">{message}</Alert> : null}
+      {error && dialog === null ? <Alert tone="danger">{error}</Alert> : null}
 
       <div className="overflow-x-auto rounded-xl border border-line bg-white shadow-sm">
         <table className="w-full text-left text-xs">
@@ -225,9 +318,20 @@ export function UsersSection({
                     {u.period ?? "-"}
                   </td>
                   <td className="px-4 py-3">
-                    <Badge tone={u.active ? "success" : "neutral"} dot>
-                      {u.active ? "Aktif" : "Nonaktif"}
-                    </Badge>
+                    {u.active && !u.activated ? (
+                      <Badge tone="warning" dot>
+                        Belum aktivasi
+                      </Badge>
+                    ) : (
+                      <Badge tone={u.active ? "success" : "neutral"} dot>
+                        {u.active ? "Aktif" : "Nonaktif"}
+                      </Badge>
+                    )}
+                    {u.active && !u.activated && u.inviteExpiresAt ? (
+                      <span className="mt-0.5 block text-[10px] text-subtle">
+                        Link berlaku s.d. {formatDate(u.inviteExpiresAt)}
+                      </span>
+                    ) : null}
                   </td>
                   <td className="whitespace-nowrap px-4 py-3">
                     <div className="flex gap-1">
@@ -247,6 +351,23 @@ export function UsersSection({
                           >
                             Edit Role
                           </Button>
+                          {u.active && !u.activated ? (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              disabled={pending}
+                              onClick={() =>
+                                runWithLink(() => issueInvitationAction(u.id), {
+                                  name: u.name,
+                                  email: u.email,
+                                  reset: false,
+                                })
+                              }
+                            >
+                              <Link2 className="size-3.5" />
+                              Link Undangan
+                            </Button>
+                          ) : null}
                           {u.active && u.id !== selfId ? (
                             <Button
                               variant="ghost"
@@ -280,7 +401,7 @@ export function UsersSection({
       >
         <form
           action={(fd) =>
-            run(
+            runWithLink(
               () =>
                 addUserAction({
                   name: String(fd.get("name") ?? ""),
@@ -289,6 +410,11 @@ export function UsersSection({
                   periodId: String(fd.get("periodId") ?? ""),
                   password: String(fd.get("password") ?? ""),
                 }),
+              {
+                name: String(fd.get("name") ?? ""),
+                email: String(fd.get("email") ?? ""),
+                reset: false,
+              },
               close,
             )
           }
@@ -299,15 +425,26 @@ export function UsersSection({
           <TextField label="Email IIT" name="email" type="email" required />
           <RoleSelect />
           <PeriodSelect periods={periods} />
-          <TextField
-            label="Kata sandi awal"
-            name="password"
-            type="password"
-            autoComplete="new-password"
-            minLength={8}
-            required
-            hint="Bisa diganti pemilik akun di Profil."
-          />
+          <p className="rounded-lg bg-surface px-3 py-2 text-muted text-xs leading-relaxed">
+            Setelah disimpan, kamu dapat <strong>link undangan</strong> untuk
+            dikirim ke anggota lewat WA atau email. Anggota membuat kata
+            sandinya sendiri lewat link itu.
+          </p>
+          <details className="text-xs">
+            <summary className="cursor-pointer text-muted hover:text-ink">
+              Atau isi kata sandi awal sendiri
+            </summary>
+            <div className="mt-2">
+              <TextField
+                label="Kata sandi awal (opsional)"
+                name="password"
+                type="password"
+                autoComplete="new-password"
+                minLength={8}
+                hint="Kosongkan untuk memakai link undangan."
+              />
+            </div>
+          </details>
           <div className="flex justify-end gap-2">
             <Button variant="ghost" onClick={close}>
               Batal
@@ -348,15 +485,44 @@ export function UsersSection({
               <InfoRow label="Alasan">{dialog.user.revokeReason}</InfoRow>
             ) : null}
           </div>
-          {canManage ? (
-            <Button
-              variant="secondary"
-              size="sm"
-              className="mt-3"
-              onClick={() => setDialog({ kind: "password", user: dialog.user })}
-            >
-              Atur Ulang Kata Sandi
-            </Button>
+          {error ? (
+            <Alert tone="danger" className="mt-3">
+              {error}
+            </Alert>
+          ) : null}
+          {canManage && dialog.user.active ? (
+            <div className="mt-3 flex flex-wrap gap-2">
+              <Button
+                variant="secondary"
+                size="sm"
+                disabled={pending}
+                onClick={() =>
+                  runWithLink(
+                    () => issueInvitationAction(dialog.user.id),
+                    {
+                      name: dialog.user.name,
+                      email: dialog.user.email,
+                      reset: dialog.user.activated,
+                    },
+                    close,
+                  )
+                }
+              >
+                <Link2 className="size-3.5" />
+                {dialog.user.activated
+                  ? "Buat Link Atur Ulang Kata Sandi"
+                  : "Buat Link Undangan Baru"}
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() =>
+                  setDialog({ kind: "password", user: dialog.user })
+                }
+              >
+                Isi Kata Sandi Manual
+              </Button>
+            </div>
           ) : null}
         </Dialog>
       ) : null}
@@ -480,6 +646,9 @@ export function UsersSection({
             </div>
           </form>
         </Dialog>
+      ) : null}
+      {invite ? (
+        <InviteDialog invite={invite} onClose={() => setInvite(null)} />
       ) : null}
     </div>
   );

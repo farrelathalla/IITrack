@@ -1,8 +1,6 @@
 "use client";
 
-import { Check, Lock, X } from "lucide-react";
-import { STAGE_TONE } from "@/components/project/tones";
-import { TONE_DOT } from "@/components/ui/badge";
+import { Check, Lock, PenLine, X } from "lucide-react";
 import { stageDefinition } from "@/lib/project/catalog";
 import { STAGE_STATUS_LABELS, type StageStatus } from "@/lib/project/stages";
 import { cn } from "@/lib/utils";
@@ -10,7 +8,7 @@ import { useProject } from "./context";
 
 const BORDER: Record<StageStatus, string> = {
   completed: "border-success-text",
-  approved: "border-success-text",
+  approved: "border-warning-dot",
   "in-progress": "border-plum-600",
   "waiting-approval": "border-warning-dot",
   "revision-required": "border-red-400",
@@ -33,18 +31,21 @@ export function WorkflowStepper({
 
   return (
     <div className="rounded-xl border border-line bg-white p-5 shadow-sm">
-      <div className="mb-5 flex items-center justify-between">
-        <h2 className="font-bold text-ink text-sm">Alur Workflow Project</h2>
+      <div className="mb-4 flex items-center justify-between">
+        <h2 className="font-bold text-ink text-sm">Alur Workflow</h2>
         <span className="text-[11px] text-subtle">
-          9 stage global · pilih untuk detail
+          Klik stage untuk melihat isinya
         </span>
       </div>
       <div className="flex items-start">
         {stages.map((stage, index) => {
           const def = stageDefinition(stage.n);
-          const done =
-            stage.status === "completed" || stage.status === "approved";
+          // Hanya stage yang benar-benar selesai yang dicentang. Stage yang
+          // dokumennya sudah disetujui tetapi belum ditandatangani belum lanjut.
+          const done = stage.status === "completed";
           const locked = stage.status === "locked";
+          // Disetujui tetapi belum lanjut: tinggal tanda tangan (Stage 3 dan 4).
+          const signing = stage.status === "approved";
           const revision = stage.status === "revision-required";
           const active = stage.n === selected;
           return (
@@ -57,6 +58,7 @@ export function WorkflowStepper({
                 onClick={() => onSelect(stage.n)}
                 aria-current={active ? "step" : undefined}
                 aria-label={`Stage ${stage.n} ${def.name}: ${STAGE_STATUS_LABELS[stage.status]}`}
+                title={`${def.name}: ${STAGE_STATUS_LABELS[stage.status]}`}
                 className="group flex w-20 flex-col items-center gap-1.5"
               >
                 <span
@@ -64,11 +66,13 @@ export function WorkflowStepper({
                     "relative flex size-10 items-center justify-center rounded-full border-2 bg-white transition-[transform,border-color,box-shadow] duration-200 ease-(--ease-out)",
                     done && "bg-success-bg",
                     revision && "bg-danger-bg",
+                    signing && "bg-warning-bg",
                     active
                       ? cn(BORDER[stage.status], "scale-110 shadow-md")
                       : "border-line group-hover:border-plum-200",
                     !active && done && "border-success-line",
                     !active && revision && "border-danger-line",
+                    !active && signing && "border-warning-line",
                     locked && "opacity-40",
                   )}
                 >
@@ -78,6 +82,8 @@ export function WorkflowStepper({
                     <Lock className="size-3.5 text-subtle" />
                   ) : revision ? (
                     <X className="size-4 text-danger-text" />
+                  ) : signing ? (
+                    <PenLine className="size-4 text-warning-text" />
                   ) : (
                     <span
                       className={cn(
@@ -120,22 +126,6 @@ export function WorkflowStepper({
             </div>
           );
         })}
-      </div>
-      <div className="mt-5 flex flex-wrap gap-x-4 gap-y-1.5 border-surface border-t pt-4">
-        {(Object.keys(STAGE_STATUS_LABELS) as StageStatus[]).map((status) => (
-          <span
-            key={status}
-            className="flex items-center gap-1.5 text-[11px] text-muted"
-          >
-            <span
-              className={cn(
-                "size-2 rounded-full",
-                TONE_DOT[STAGE_TONE[status]],
-              )}
-            />
-            {STAGE_STATUS_LABELS[status]}
-          </span>
-        ))}
       </div>
     </div>
   );

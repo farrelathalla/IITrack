@@ -60,6 +60,23 @@ export async function notifyRoles(
   });
 }
 
+/**
+ * Beri tahu approver sebuah pengajuan: orang yang dipilih di Workflow &
+ * Approver bila ada, selain itu semua pemegang jabatan approver.
+ */
+export async function notifyApprovers(
+  tx: Tx,
+  chosen: readonly string[] | undefined,
+  roles: readonly RoleName[],
+  input: Omit<NotificationInput, "userIds">,
+): Promise<void> {
+  if (chosen && chosen.length > 0) {
+    await notify(tx, { ...input, userIds: chosen });
+  } else {
+    await notifyRoles(tx, roles, input);
+  }
+}
+
 /** Tautan tujuan notifikasi: project pada stage dan tab yang relevan. */
 export function projectHref(
   code: string,

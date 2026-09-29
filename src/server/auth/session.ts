@@ -25,10 +25,11 @@ function sessionSecret(): string {
 }
 
 /**
- * Yang disimpan di basis data adalah HMAC-nya, bukan tokennya. Dengan begitu
- * salinan basis data saja tidak cukup untuk memakai sesi orang lain.
+ * Yang disimpan di basis data adalah HMAC-nya, bukan tokennya, baik untuk
+ * sesi maupun link undangan. Dengan begitu salinan basis data saja tidak
+ * cukup untuk memakai sesi atau undangan orang lain.
  */
-function hashToken(token: string): string {
+export function hashToken(token: string): string {
   return createHmac("sha256", sessionSecret())
     .update(token)
     .digest("base64url");

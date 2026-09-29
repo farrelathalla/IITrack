@@ -145,9 +145,25 @@ describe("PRD 8.1: deadline terdekat dan next action", () => {
       submissions: [submission("PROJECT_CHARTER", charter, "PENDING")],
     });
     const action = nextAction(project, deriveStages(project, NOW), NOW);
-    expect(action?.responsible.name).toBe("COO / Vice COO");
+    // Project Charter menunggu dua sisi (jawaban CTO, 29 Sep).
+    expect(action?.responsible.name).toBe("COO / Vice COO dan CTO / Vice CTO");
     expect(isAwaitingUser(action, "siapa", "VICE_COO")).toBe(true);
+    expect(isAwaitingUser(action, "siapa", "VICE_CTO")).toBe(true);
     expect(isAwaitingUser(action, PM_ID, "PROJECT_MANAGER")).toBe(false);
+
+    const opsDone = emptyProject({
+      stage1DoneAt: day("2026-08-05"),
+      documents: [doc("REQUIREMENT_GATHERING"), charter],
+      submissions: [
+        submission("PROJECT_CHARTER", charter, "PENDING", {
+          opsApprovedAt: day("2026-09-01"),
+          opsApprovedByName: "Ghazy",
+        }),
+      ],
+    });
+    const next = nextAction(opsDone, deriveStages(opsDone, NOW), NOW);
+    expect(next?.responsible.name).toBe("CTO / Vice CTO");
+    expect(isAwaitingUser(next, "siapa", "COO")).toBe(false);
   });
 
   it("tanpa Finance POC, CFO/VCFO diminta menunjuk Finance POC", () => {

@@ -1,5 +1,7 @@
 import {
+  type ApprovalKind,
   canEditTab,
+  canManageApprover,
   canOnProject,
   canSeeAmounts,
   canSeeContractLink,
@@ -19,18 +21,24 @@ import type { ProjectSnapshot } from "@/lib/project/snapshot";
 import {
   deriveStages,
   newlyCompletedStages,
+  type StageRequirement,
   type StageState,
+  stageRequirements,
 } from "@/lib/project/stages";
 import { type ProjectSummary, summarize } from "@/lib/project/status";
 import { prisma } from "@/server/db";
+import { loadApproverRules } from "@/server/settings";
 import { accessOf, loadSnapshot, syncStageCompletion } from "./snapshot";
 
 const ACTIONS: ProjectAction[] = [
   "project.assignPm",
+  "project.edit",
+  "project.delete",
   "project.close",
   "stage1.edit",
   "charter.edit",
   "charter.decide",
+  "charter.decideTech",
   "mou.edit",
   "mou.decide",
   "terms.edit",
@@ -65,6 +73,12 @@ export interface ProjectView {
   disbursementMissing: string[];
   /** Dokumen yang tautannya ada tetapi disembunyikan dari pengguna ini. */
   hiddenDocumentIds: string[];
+  /** Syarat selesai tiap stage, untuk checklist di panel stage. */
+  requirements: Record<number, StageRequirement[]>;
+  /** Nama approver yang dipilih di Workflow & Approver, bila ada. */
+  approverNames: Partial<Record<ApprovalKind, string>>;
+  /** Jenis pengajuan yang approvernya boleh diatur pengguna ini. */
+  manageableApprovers: ApprovalKind[];
 }
 
 /**
@@ -94,7 +108,8 @@ export async function loadProjectView(
     project = (await loadSnapshot(code)) ?? project;
   }
 
-  const access = accessOf(project);
+  const approvers = await loadApproverRules(prisma, now);
+  const access = { ...accessOf(project), approvers };
   const stages = deriveStages(project, now);
   const summary = summarize(project, stages, now);
   const can = Object.fromEntries(
@@ -149,5 +164,21 @@ export async function loadProjectView(
     checklist: closureChecklist(project, now),
     disbursementMissing: readiness.ready ? [] : readiness.missing,
     hiddenDocumentIds,
+    requirements: Object.fromEntries(
+      stages.map((s) => [s.n, stageRequirements(project, s.n, now)]),
+    ),
+    approverNames: Object.fromEntries(
+      Object.entries(approvers).map(([kind, rule]) => [kind, rule.names]),
+    ),
+    manageableApprovers: (
+      [
+        "PROJECT_CHARTER",
+        "CHARTER_TECH",
+        "MOU",
+        "PROGRAMMER_CONTRACT",
+        "INVOICE",
+        "DISBURSEMENT",
+      ] as const
+    ).filter((kind) => canManageApprover(viewer.role, kind)),
   };
 }

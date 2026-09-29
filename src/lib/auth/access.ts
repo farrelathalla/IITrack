@@ -23,6 +23,29 @@ export interface Viewer {
   role: RoleName | null;
 }
 
+/** Jenis pengajuan di Pengaturan > Workflow & Approver. */
+export type ApprovalKind =
+  | "PROJECT_CHARTER"
+  | "CHARTER_TECH"
+  | "MOU"
+  | "PROGRAMMER_CONTRACT"
+  | "INVOICE"
+  | "DISBURSEMENT";
+
+/**
+ * Approver yang dipilih di Pengaturan > Workflow & Approver. Bila ada, hanya
+ * orang-orang ini yang boleh memutuskan; bila tidak ada, semua pemegang
+ * jabatan approver boleh. Untuk INVOICE isinya cadangan Finance POC saja,
+ * karena Finance POC project selalu boleh.
+ */
+export interface ApproverRule {
+  userIds: readonly string[];
+  /** "Rina (COO) atau Dimas (Vice COO)", untuk pesan penolakan dan label. */
+  names: string;
+}
+
+export type ApproverRules = Partial<Record<ApprovalKind, ApproverRule>>;
+
 /** Siapa saja yang ditugaskan di project, untuk keputusan izin. */
 export interface ProjectAccess {
   closed: boolean;
@@ -30,14 +53,18 @@ export interface ProjectAccess {
   developerUserIds: readonly string[];
   financePocUserId: string | null;
   mouSigned: boolean;
+  approvers?: ApproverRules;
 }
 
 export type ProjectAction =
   | "project.assignPm"
+  | "project.edit"
+  | "project.delete"
   | "project.close"
   | "stage1.edit"
   | "charter.edit"
   | "charter.decide"
+  | "charter.decideTech"
   | "mou.edit"
   | "mou.decide"
   | "terms.edit"
@@ -88,6 +115,32 @@ export function isFinancePoc(viewer: Viewer, project: ProjectAccess): boolean {
 const ONLY_PM =
   "Hanya PM yang ditugaskan di project ini yang bisa melakukannya.";
 
+/** Menyempitkan izin approver ke orang yang dipilih di Workflow & Approver. */
+function approverGate(
+  viewer: Viewer,
+  project: ProjectAccess,
+  kind: ApprovalKind,
+  base: Decision,
+): Decision {
+  const rule = project.approvers?.[kind];
+  if (!base.allowed || !rule || rule.userIds.length === 0) return base;
+  return rule.userIds.includes(viewer.userId)
+    ? ALLOW
+    : deny(
+        `Pengajuan ini diputuskan oleh ${rule.names}, sesuai Pengaturan > Workflow & Approver.`,
+      );
+}
+
+/** Finance POC project, atau CFO/VCFO sebagai cadangan (bisa dipersempit). */
+function isFinanceActor(viewer: Viewer, project: ProjectAccess): boolean {
+  if (isFinancePoc(viewer, project)) return true;
+  if (!isFinanceLead(viewer.role)) return false;
+  const rule = project.approvers?.INVOICE;
+  return !rule || rule.userIds.length === 0
+    ? true
+    : rule.userIds.includes(viewer.userId);
+}
+
 /**
  * Menentukan boleh tidaknya aksi pada satu project. Pesan penolakan menyebut
  * alasan dan siapa yang berwenang (PRD bab 1.1).
@@ -111,13 +164,25 @@ export function canOnProject(
   }
 
   const pm = isPm(viewer, project);
-  const finance = isFinancePoc(viewer, project) || isFinanceLead(role);
+  const finance = isFinanceActor(viewer, project);
 
   switch (action) {
     case "project.assignPm":
       return isOpsLead(role)
         ? ALLOW
         : deny("Hanya COO atau Vice COO yang bisa mengganti PM.");
+
+    case "project.edit":
+      return pm || isOpsLead(role)
+        ? ALLOW
+        : deny(
+            "Hanya PM project atau COO/Vice COO yang bisa mengubah detail project.",
+          );
+
+    case "project.delete":
+      return isOpsLead(role)
+        ? ALLOW
+        : deny("Hanya COO atau Vice COO yang bisa menghapus project.");
 
     case "project.close":
       return pm || isOpsLead(role)
@@ -136,9 +201,26 @@ export function canOnProject(
 
     case "charter.decide":
     case "mou.decide":
-      return isOpsLead(role)
-        ? ALLOW
-        : deny("Hanya COO atau Vice COO yang bisa memutuskan pengajuan ini.");
+      return approverGate(
+        viewer,
+        project,
+        action === "charter.decide" ? "PROJECT_CHARTER" : "MOU",
+        isOpsLead(role)
+          ? ALLOW
+          : deny("Hanya COO atau Vice COO yang bisa memutuskan pengajuan ini."),
+      );
+
+    case "charter.decideTech":
+      return approverGate(
+        viewer,
+        project,
+        "CHARTER_TECH",
+        isTechLead(role)
+          ? ALLOW
+          : deny(
+              "Persetujuan sisi Tech untuk Project Charter hanya bisa diberikan CTO atau Vice CTO.",
+            ),
+      );
 
     case "terms.edit":
       if (project.mouSigned) {
@@ -156,17 +238,23 @@ export function canOnProject(
         : deny("Hanya CTO atau Vice CTO yang bisa menugaskan developer.");
 
     case "contract.decide":
-      return isTechLead(role)
-        ? ALLOW
-        : deny(
-            "Hanya CTO atau Vice CTO yang bisa memutuskan Kontrak Programmer.",
-          );
+      return approverGate(
+        viewer,
+        project,
+        "PROGRAMMER_CONTRACT",
+        isTechLead(role)
+          ? ALLOW
+          : deny(
+              "Hanya CTO atau Vice CTO yang bisa memutuskan Kontrak Programmer.",
+            ),
+      );
 
+    // PM ikut boleh: laporan tech mengalir lewat PM (jawaban CTO, 29 Sep).
     case "tech.edit":
-      return isTechLead(role) || isAssignedDeveloper(viewer, project)
+      return pm || isTechLead(role) || isAssignedDeveloper(viewer, project)
         ? ALLOW
         : deny(
-            "Hanya developer yang ditugaskan di project ini, CTO, atau Vice CTO yang bisa mengubah data teknis.",
+            "Hanya PM atau developer yang ditugaskan di project ini, CTO, atau Vice CTO yang bisa mengubah data teknis.",
           );
 
     case "financePoc.assign":
@@ -176,18 +264,24 @@ export function canOnProject(
 
     case "term.finance":
     case "disbursement.finance":
-      return finance
-        ? ALLOW
-        : deny(
-            "Hanya Finance POC project ini, atau CFO/Vice CFO sebagai cadangan, yang bisa memperbarui status ini.",
-          );
+      if (finance) return ALLOW;
+      return deny(
+        isFinanceLead(role) && project.approvers?.INVOICE
+          ? `Cadangan Finance POC untuk pengajuan ini adalah ${project.approvers.INVOICE.names}, sesuai Pengaturan > Workflow & Approver.`
+          : "Hanya Finance POC project ini, atau CFO/Vice CFO sebagai cadangan, yang bisa memperbarui status ini.",
+      );
 
     case "disbursement.decide":
-      return isFinanceLead(role)
-        ? ALLOW
-        : deny(
-            "Hanya CFO atau Vice CFO yang bisa memutuskan Finance Disbursement.",
-          );
+      return approverGate(
+        viewer,
+        project,
+        "DISBURSEMENT",
+        isFinanceLead(role)
+          ? ALLOW
+          : deny(
+              "Hanya CFO atau Vice CFO yang bisa memutuskan Finance Disbursement.",
+            ),
+      );
   }
 }
 
@@ -214,6 +308,28 @@ export function canGlobally(viewer: Viewer, action: GlobalAction): Decision {
       return role === "SUPER_ADMIN"
         ? ALLOW
         : deny("Hanya Super Admin yang bisa mengubah akun dan pengaturan.");
+  }
+}
+
+/**
+ * Siapa yang boleh mengatur approver per jenis pengajuan: Super Admin semua
+ * jenis, C-Level hanya jenis pengajuan divisinya.
+ */
+export function canManageApprover(
+  role: RoleName | null,
+  kind: ApprovalKind,
+): boolean {
+  if (role === "SUPER_ADMIN") return true;
+  switch (kind) {
+    case "PROJECT_CHARTER":
+    case "MOU":
+      return isOpsLead(role);
+    case "CHARTER_TECH":
+    case "PROGRAMMER_CONTRACT":
+      return isTechLead(role);
+    case "INVOICE":
+    case "DISBURSEMENT":
+      return isFinanceLead(role);
   }
 }
 
@@ -273,7 +389,11 @@ export function canEditTab(
     case "pm":
       return isPm(viewer, project);
     case "tech":
-      return isTechLead(viewer.role) || isAssignedDeveloper(viewer, project);
+      return (
+        isPm(viewer, project) ||
+        isTechLead(viewer.role) ||
+        isAssignedDeveloper(viewer, project)
+      );
     case "finance":
       return isFinanceLead(viewer.role) || isFinancePoc(viewer, project);
   }

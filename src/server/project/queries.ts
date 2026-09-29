@@ -36,6 +36,7 @@ export async function listProjects(
   const now = options.now ?? new Date();
   const rows = await prisma.project.findMany({
     where: {
+      deletedAt: null,
       closedAt: options.closed ? { not: null } : null,
       ...(seesAllProjects(viewer.role)
         ? {}
@@ -78,6 +79,7 @@ export async function listPastProjects(
   }
   const rows = await prisma.project.findMany({
     where: {
+      deletedAt: null,
       closedAt: { not: null },
       assignments: { some: { userId: viewer.userId } },
     },
@@ -117,9 +119,11 @@ export interface CountSummary {
 
 export async function projectCounts(yearStart: Date): Promise<CountSummary> {
   const [all, active, completedThisYear] = await Promise.all([
-    prisma.project.count(),
-    prisma.project.count({ where: { closedAt: null } }),
-    prisma.project.count({ where: { closedAt: { gte: yearStart } } }),
+    prisma.project.count({ where: { deletedAt: null } }),
+    prisma.project.count({ where: { deletedAt: null, closedAt: null } }),
+    prisma.project.count({
+      where: { deletedAt: null, closedAt: { gte: yearStart } },
+    }),
   ]);
   return { all, active, completedThisYear };
 }
@@ -167,7 +171,7 @@ export async function recentActivity(
   const rows = await prisma.activityLog.findMany({
     where:
       projectIds === "all"
-        ? { projectId: { not: null } }
+        ? { projectId: { not: null }, project: { deletedAt: null } }
         : { projectId: { in: projectIds } },
     orderBy: { createdAt: "desc" },
     take,
@@ -199,6 +203,7 @@ export async function searchProjects(query: string) {
   if (!q) return [];
   return prisma.project.findMany({
     where: {
+      deletedAt: null,
       OR: [
         { code: { contains: q, mode: "insensitive" } },
         { name: { contains: q, mode: "insensitive" } },

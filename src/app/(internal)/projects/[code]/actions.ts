@@ -7,6 +7,7 @@
  */
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import type { Actor, ProjectRole } from "@/lib/auth/types";
 import type { TermAction } from "@/lib/finance/terms";
 import type { DocumentKind, UatStatus } from "@/lib/project/catalog";
@@ -17,6 +18,11 @@ import {
   assignPm,
   replaceDeveloper,
 } from "@/server/project/assignments";
+import {
+  deleteProject,
+  type ProjectDetailsInput,
+  updateProjectDetails,
+} from "@/server/project/details";
 import {
   completeStage1,
   decideSubmission,
@@ -78,6 +84,31 @@ export async function candidatesAction(
 ): Promise<Candidate[]> {
   await requireActionUser();
   return candidatesFor(role);
+}
+
+// ─── Detail project ───────────────────────────────────────────────────────
+
+export async function updateDetailsAction(
+  code: string,
+  input: ProjectDetailsInput,
+) {
+  return act(
+    code,
+    (actor) => updateProjectDetails({ actor, projectId: code, input }),
+    "Detail project disimpan.",
+  );
+}
+
+export async function deleteProjectAction(
+  code: string,
+  reason: string,
+): Promise<ActionResult> {
+  const result = await act(code, (actor) =>
+    deleteProject({ actor, projectId: code, reason }),
+  );
+  // redirect melempar ke luar, jadi harus di luar runAction.
+  if (result.ok) redirect("/projects?dihapus=1");
+  return result;
 }
 
 // ─── Dokumen dan pengajuan ────────────────────────────────────────────────

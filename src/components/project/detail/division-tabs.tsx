@@ -1,7 +1,6 @@
 "use client";
 
-import { Code2, FolderKanban, UserCog, Wallet } from "lucide-react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { UserCog } from "lucide-react";
 import { STAGE_TONE } from "@/components/project/tones";
 import { Avatar } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -365,81 +364,26 @@ function FinanceTab({
   );
 }
 
-const TABS: {
-  key: DivisionTab;
-  label: string;
-  icon: typeof Wallet;
-}[] = [
-  { key: "pm", label: "Project Manager", icon: FolderKanban },
-  { key: "tech", label: "Technology Dev", icon: Code2 },
-  { key: "finance", label: "Finance", icon: Wallet },
-];
-
 /** Tampilan Divisi: data yang sama dari sudut pandang tiap divisi (PRD bab 8.3). */
-export function DivisionTabs({
+export function DivisionView({
+  tab,
   onAssign,
 }: {
+  tab: DivisionTab;
   onAssign: (mode: AssignmentMode) => void;
 }) {
   const { editableTabs, project } = useProject();
-  const router = useRouter();
-  const params = useSearchParams();
-  const raw = params.get("tab");
-  const tab: DivisionTab = raw === "tech" || raw === "finance" ? raw : "pm";
-
-  function select(next: DivisionTab) {
-    const search = new URLSearchParams(params.toString());
-    search.set("tab", next);
-    router.replace(`?${search.toString()}`, { scroll: false });
-  }
 
   return (
-    <div
-      id="tampilan-divisi"
-      className="overflow-hidden rounded-xl border border-line bg-white shadow-sm"
-    >
-      <div className="flex items-end justify-between gap-4 border-line border-b bg-surface px-5 pt-4">
-        <div className="pb-3">
-          <p className="font-bold text-ink text-sm">Tampilan Divisi</p>
-          <p className="text-muted text-xs">
-            Data yang sama, dilihat per divisi
-          </p>
-        </div>
-        <div className="flex" role="tablist">
-          {TABS.map((t) => (
-            <button
-              key={t.key}
-              type="button"
-              role="tab"
-              aria-selected={tab === t.key}
-              onClick={() => select(t.key)}
-              className={cn(
-                "-mb-px flex items-center gap-1.5 rounded-t-lg border-b-2 px-4 py-2.5 font-semibold text-sm transition-colors",
-                tab === t.key
-                  ? "border-plum-600 bg-white text-plum-600"
-                  : "border-transparent text-muted hover:text-ink",
-              )}
-            >
-              <t.icon className="size-4" aria-hidden="true" />
-              {t.label}
-            </button>
-          ))}
-        </div>
-      </div>
-      <div className="space-y-4 p-5">
-        <p className="text-subtle text-xs">
-          Terhubung dengan workflow di atas. Perubahan di satu divisi langsung
-          terlihat di divisi lain.
-        </p>
-        {!editableTabs[tab] ? (
-          <ReadOnlyBanner>
-            {readOnlyBanner(Boolean(project.closedAt), tab)}
-          </ReadOnlyBanner>
-        ) : null}
-        {tab === "pm" ? <PmTab /> : null}
-        {tab === "tech" ? <TechTab onAssign={onAssign} /> : null}
-        {tab === "finance" ? <FinanceTab onAssign={onAssign} /> : null}
-      </div>
+    <div className="space-y-4 rounded-xl border border-line bg-white p-5 shadow-sm">
+      {!editableTabs[tab] ? (
+        <ReadOnlyBanner>
+          {readOnlyBanner(Boolean(project.closedAt), tab)}
+        </ReadOnlyBanner>
+      ) : null}
+      {tab === "pm" ? <PmTab /> : null}
+      {tab === "tech" ? <TechTab onAssign={onAssign} /> : null}
+      {tab === "finance" ? <FinanceTab onAssign={onAssign} /> : null}
     </div>
   );
 }
