@@ -97,14 +97,34 @@ export function SubmissionBar({
   const {
     project,
     viewer,
+    can,
     hiddenDocumentIds,
     approverNames,
     manageableApprovers,
   } = useProject();
   const approvalKind = kind as ApprovalKind;
-  const approver = approverNames[approvalKind] ?? approverLabel;
   const doc = documentOf(project, kind, developerId);
   const latest = latestSubmission(project, doc?.id);
+  const charter = kind === "PROJECT_CHARTER";
+  // Project Charter disetujui dua sisi; tiap sisi punya nama approvernya.
+  const opsName = approverNames.PROJECT_CHARTER ?? "COO / Vice COO";
+  const techName = approverNames.CHARTER_TECH ?? "CTO / Vice CTO";
+  const approver = charter
+    ? latest?.opsApprovedAt
+      ? techName
+      : latest?.techApprovedAt
+        ? opsName
+        : `${opsName} dan ${techName}`
+    : (approverNames[approvalKind] ?? approverLabel);
+  const decidable = charter
+    ? (can["charter.decide"] && !latest?.opsApprovedAt) ||
+      (can["charter.decideTech"] && !latest?.techApprovedAt)
+    : canDecide;
+  const manageable = charter
+    ? manageableApprovers.some(
+        (k) => k === "PROJECT_CHARTER" || k === "CHARTER_TECH",
+      )
+    : manageableApprovers.includes(approvalKind);
   const { run, pending, error } = useRunner();
   const [rejecting, setRejecting] = useState(false);
   const docUrl = doc?.url ?? null;
@@ -161,14 +181,44 @@ export function SubmissionBar({
           </>
         ) : null}
 
-        {latest?.status === "PENDING" && !canDecide ? (
+        {charter && latest?.status === "PENDING" ? (
+          <ul className="w-full space-y-1 rounded-lg border border-line bg-surface px-3 py-2 text-xs">
+            {[
+              {
+                side: "COO / Vice COO",
+                at: latest.opsApprovedAt,
+                by: latest.opsApprovedByName,
+              },
+              {
+                side: "CTO / Vice CTO",
+                at: latest.techApprovedAt,
+                by: latest.techApprovedByName,
+              },
+            ].map((row) => (
+              <li key={row.side} className="flex items-center gap-2">
+                {row.at ? (
+                  <Check className="size-3.5 text-success-text" />
+                ) : (
+                  <Clock className="size-3.5 text-warning-text" />
+                )}
+                <span className="font-medium text-ink">{row.side}</span>
+                <span className="text-muted">
+                  {row.at
+                    ? `menyetujui${row.by ? ` (${row.by})` : ""}, ${formatDateTime(row.at)}`
+                    : "belum memutuskan"}
+                </span>
+              </li>
+            ))}
+          </ul>
+        ) : null}
+
+        {latest?.status === "PENDING" && !decidable ? (
           <span className="inline-flex items-center gap-1.5 rounded-lg bg-warning-bg px-3 py-2 font-medium text-warning-text text-xs">
             <Clock className="size-3.5" />
             Menunggu persetujuan dari {approver}
           </span>
         ) : null}
-        {latest?.status !== "APPROVED" &&
-        manageableApprovers.includes(approvalKind) ? (
+        {latest?.status !== "APPROVED" && manageable ? (
           <Link
             href="/settings/workflow"
             className="text-plum-600 text-xs hover:underline"
@@ -177,7 +227,7 @@ export function SubmissionBar({
           </Link>
         ) : null}
 
-        {latest?.status === "PENDING" && canDecide ? (
+        {latest?.status === "PENDING" && decidable ? (
           <div className="flex flex-wrap items-center gap-2 rounded-lg border border-warning-line bg-warning-bg px-3 py-2">
             <span className="font-medium text-warning-text text-xs">
               Sebagai {viewer.role ? ROLE_LABELS[viewer.role] : "approver"},
@@ -210,7 +260,9 @@ export function SubmissionBar({
 
         {latest?.status === "APPROVED" ? (
           <span className="text-success-text text-xs">
-            Disetujui oleh {latest.decidedByName}
+            {charter && latest.opsApprovedByName && latest.techApprovedByName
+              ? `Disetujui ${latest.opsApprovedByName} (Operasional) dan ${latest.techApprovedByName} (Tech)`
+              : `Disetujui oleh ${latest.decidedByName}`}
             {latest.decidedAt ? `, ${formatDateTime(latest.decidedAt)}` : ""}
           </span>
         ) : null}

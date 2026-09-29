@@ -50,6 +50,14 @@ const TECH_LEAD: Responsible = {
   roles: ["CTO", "VICE_CTO"],
 };
 
+/** Project Charter menunggu dua sisi sekaligus. */
+const OPS_AND_TECH_LEAD: Responsible = {
+  userId: null,
+  name: "COO / Vice COO dan CTO / Vice CTO",
+  divisionLabel: "Operasional + Tech Development",
+  roles: ["COO", "VICE_COO", "CTO", "VICE_CTO"],
+};
+
 const FINANCE_LEAD: Responsible = {
   userId: null,
   name: "CFO / Vice CFO",
@@ -143,9 +151,17 @@ function documentApproval(
   const name = kind === "MOU" ? "MoU" : "Project Charter";
 
   if (sub?.status === "PENDING") {
+    const responsible =
+      kind === "MOU"
+        ? OPS_LEAD
+        : sub.opsApprovedAt
+          ? TECH_LEAD
+          : sub.techApprovedAt
+            ? OPS_LEAD
+            : OPS_AND_TECH_LEAD;
     return {
       label: `Menunggu persetujuan ${name}`,
-      responsible: OPS_LEAD,
+      responsible,
       stage,
     };
   }

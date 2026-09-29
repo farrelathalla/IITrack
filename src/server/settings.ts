@@ -14,6 +14,7 @@ export type { ApprovalKind } from "@/lib/auth/access";
 /** Jenis pengajuan di Pengaturan > Workflow & Approver (PRD bab 8.7). */
 export const APPROVAL_KINDS: readonly ApprovalKind[] = [
   "PROJECT_CHARTER",
+  "CHARTER_TECH",
   "MOU",
   "PROGRAMMER_CONTRACT",
   "INVOICE",
@@ -27,6 +28,7 @@ export const APPROVAL_KINDS: readonly ApprovalKind[] = [
  */
 export const APPROVER_ROLES: Record<ApprovalKind, readonly RoleName[]> = {
   PROJECT_CHARTER: ["COO", "VICE_COO"],
+  CHARTER_TECH: ["CTO", "VICE_CTO"],
   MOU: ["COO", "VICE_COO"],
   PROGRAMMER_CONTRACT: ["CTO", "VICE_CTO"],
   INVOICE: ["CFO", "VICE_CFO"],
@@ -43,10 +45,16 @@ export const APPROVAL_KIND_INFO: Record<
   }
 > = {
   PROJECT_CHARTER: {
-    label: "Project Charter Review",
+    label: "Project Charter (sisi Operasional)",
     approverLabel: "COO / Vice COO",
     primaryHint: "COO",
     delegateHint: "Vice COO",
+  },
+  CHARTER_TECH: {
+    label: "Project Charter (sisi Tech)",
+    approverLabel: "CTO / Vice CTO",
+    primaryHint: "CTO",
+    delegateHint: "Vice CTO",
   },
   MOU: {
     label: "MoU Review",

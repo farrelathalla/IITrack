@@ -354,6 +354,19 @@ berubah cukup satu berkas di `src/lib` atau `src/server` beserta testnya.
   COO/VCOO lewat menu Kelola; setiap perubahan dicatat nilai lama dan barunya.
 - **Technical Blocker bisa ditambah sejak Stage 4**, sama dengan Update
   Progress, karena hambatan bisa muncul begitu developer ditugaskan.
+- **Project Charter disetujui dua sisi: COO/VCOO dan CTO/VCTO** (jawaban CTO,
+  29 Sep 2026). Tiap sisi tercatat di `submissions.opsApprovedAt` dan
+  `techApprovedAt`; status baru APPROVED setelah keduanya terisi, dan penolakan
+  dari salah satu sisi langsung REJECTED. Pengajuan memberi tahu kedua sisi.
+  Dua approver yang menekan bersamaan aman: UPDATE pertama mengunci baris dan
+  transaksi kedua yang menutup pengajuan. Sisi Tech punya baris sendiri di
+  Workflow & Approver (`CHARTER_TECH`). Lihat `approveCharterSide` di
+  `src/server/project/documents.ts`.
+- **CTO dan VCTO berwenang sama** (jawaban CTO): siapa pun yang sedang menjabat
+  boleh memutuskan, kecuali approver dipersempit di Workflow & Approver.
+- **Laporan tech mengalir lewat PM** (jawaban CTO): PM project ikut boleh
+  Update Progress dan menambah Technical Blocker (`tech.edit`), di samping
+  developer yang ditugaskan dan CTO/VCTO.
 - **Stage berstatus "Disetujui, Belum TTD" tidak ditampilkan sebagai selesai.**
   MoU dan Kontrak Programmer yang disetujui masih harus ditandai
   ditandatangani; panel stage menampilkan checklist syarat

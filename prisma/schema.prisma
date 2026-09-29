@@ -69,6 +69,8 @@ model User {
   documentsUpdated   Document[]          @relation("DocumentUpdatedBy")
   submissionsMade    Submission[]        @relation("SubmissionSubmitter")
   submissionsDecided Submission[]        @relation("SubmissionDecider")
+  charterOpsApprovals  Submission[]      @relation("CharterOpsApprover")
+  charterTechApprovals Submission[]      @relation("CharterTechApprover")
   blockers           TechBlocker[]
   projectsDeleted    Project[]           @relation("ProjectDeletedBy")
   invitations        Invitation[]        @relation("InvitationFor")
@@ -370,6 +372,17 @@ model Submission {
   decidedBy     User?     @relation("SubmissionDecider", fields: [decidedById], references: [id], onDelete: Restrict)
   decidedAt     DateTime?
   feedback      String?
+
+  /// Project Charter butuh dua persetujuan: COO/VCOO (sisi Operasional) dan
+  /// CTO/VCTO (sisi Tech). Masing-masing tercatat di sini; status baru menjadi
+  /// APPROVED setelah keduanya terisi. Penolakan dari salah satu sisi langsung
+  /// REJECTED.
+  opsApprovedAt    DateTime?
+  opsApprovedById  String?
+  opsApprovedBy    User?     @relation("CharterOpsApprover", fields: [opsApprovedById], references: [id], onDelete: Restrict)
+  techApprovedAt   DateTime?
+  techApprovedById String?
+  techApprovedBy   User?     @relation("CharterTechApprover", fields: [techApprovedById], references: [id], onDelete: Restrict)
 
   @@index([projectId, kind])
   @@index([status])

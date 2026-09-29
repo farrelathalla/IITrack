@@ -89,7 +89,9 @@ describe("PRD 2.4: matriks hak akses per bagian", () => {
     expect(allowed("TECH_DEVELOPER", DEV_ID, "tech.edit")).toBe(true);
     expect(allowed("TECH_DEVELOPER", DEV2_ID, "tech.edit")).toBe(false);
     expect(allowed("CTO", "c", "tech.edit")).toBe(true);
-    expect(allowed("PROJECT_MANAGER", PM_ID, "tech.edit")).toBe(false);
+    // Laporan tech mengalir lewat PM, jadi PM project ikut boleh.
+    expect(allowed("PROJECT_MANAGER", PM_ID, "tech.edit")).toBe(true);
+    expect(allowed("PROJECT_MANAGER", "pm-lain", "tech.edit")).toBe(false);
   });
 
   it("status termin diubah Finance POC project, dengan CFO/VCFO sebagai cadangan", () => {

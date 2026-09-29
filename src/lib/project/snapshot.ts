@@ -55,6 +55,12 @@ export interface SubmissionSnapshot {
   decidedByName: string | null;
   decidedAt: Date | null;
   feedback: string | null;
+  /** Project Charter: persetujuan sisi COO/VCOO. */
+  opsApprovedAt: Date | null;
+  opsApprovedByName: string | null;
+  /** Project Charter: persetujuan sisi CTO/VCTO. */
+  techApprovedAt: Date | null;
+  techApprovedByName: string | null;
 }
 
 export interface TermSnapshot {

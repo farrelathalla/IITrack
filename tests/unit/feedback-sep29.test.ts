@@ -172,3 +172,34 @@ describe("Feedback 29 Sep: syarat stage terlihat, termasuk tanda tangan", () => 
     expect(deriveStages(fresh, NOW)[0].status).toBe("not-started");
   });
 });
+
+describe("Jawaban CTO 29 Sep: checklist Charter dua sisi", () => {
+  it("persetujuan COO saja mencentang sisi COO, sisi CTO masih kurang", () => {
+    const charter = doc("PROJECT_CHARTER");
+    const project = emptyProject({
+      documents: [doc("REQUIREMENT_GATHERING"), charter],
+      submissions: [
+        submission("PROJECT_CHARTER", charter, "PENDING", {
+          opsApprovedAt: NOW,
+          opsApprovedByName: "Ghazy",
+        }),
+      ],
+    });
+    const open = stageRequirements(project, 2, NOW).filter((i) => !i.done);
+    expect(open.map((i) => i.label)).toEqual(["Disetujui CTO / Vice CTO"]);
+    expect(requirementMetAt(project, 2, NOW)).toBeNull();
+  });
+
+  it("sisi Tech Charter hanya CTO/VCTO, dan pilihan approvernya berlaku", () => {
+    expect(allowed("CTO", "cto", "charter.decideTech")).toBe(true);
+    expect(allowed("VICE_CTO", "vcto", "charter.decideTech")).toBe(true);
+    expect(allowed("COO", "coo", "charter.decideTech")).toBe(false);
+    const rules: ApproverRules = {
+      CHARTER_TECH: { userIds: ["vcto"], names: "V (Vice CTO)" },
+    };
+    expect(allowed("CTO", "cto", "charter.decideTech", rules)).toBe(false);
+    expect(allowed("VICE_CTO", "vcto", "charter.decideTech", rules)).toBe(true);
+    expect(canManageApprover("CTO", "CHARTER_TECH")).toBe(true);
+    expect(canManageApprover("COO", "CHARTER_TECH")).toBe(false);
+  });
+});

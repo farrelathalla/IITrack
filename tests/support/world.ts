@@ -129,6 +129,7 @@ export async function throughMouSubmitted(team: Team, code: string) {
   });
   await submitDocument({ actor: pm, projectId: code, kind: "PROJECT_CHARTER" });
   await decidePending(code, "PROJECT_CHARTER", team.coo, "APPROVE");
+  await decidePending(code, "PROJECT_CHARTER", team.cto, "APPROVE");
   await saveDocument({
     actor: pm,
     projectId: code,

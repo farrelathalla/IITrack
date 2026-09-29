@@ -90,11 +90,13 @@ function Stage2() {
       <Subsection title="Dokumen Pendukung (Opsional)">
         <DocumentCard kind="GANTT_CHART" editable={editable} />
       </Subsection>
-      <p className="text-subtle text-xs">Perlu persetujuan COO / Vice COO.</p>
+      <p className="text-subtle text-xs">
+        Perlu persetujuan dua sisi: COO / Vice COO dan CTO / Vice CTO.
+      </p>
       <SubmissionBar
         kind="PROJECT_CHARTER"
         label="Project Charter"
-        approverLabel="COO / Vice COO"
+        approverLabel="COO / Vice COO dan CTO / Vice CTO"
         canSubmit={editable}
         canDecide={can["charter.decide"]}
       />

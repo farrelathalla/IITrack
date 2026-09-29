@@ -1,5 +1,5 @@
 import { z } from "zod";
-import type { ProjectAction } from "@/lib/auth/access";
+import { canOnProject, type ProjectAction } from "@/lib/auth/access";
 import type { Actor, RoleName } from "@/lib/auth/types";
 import { checkTermScheme } from "@/lib/finance/terms";
 import {
@@ -14,6 +14,7 @@ import {
   latestSubmission,
   pmOf,
   type SubmissionKind,
+  type SubmissionSnapshot,
 } from "@/lib/project/snapshot";
 import { parseDateInput } from "@/lib/time";
 import { feedbackSchema, isValidLink } from "@/lib/validation";
@@ -392,18 +393,28 @@ export async function submitDocument(params: {
         objectType: "document",
         objectId: doc.id,
       });
+      const waitingMessage = {
+        message: `${approver.label} Project ${project.name} menunggu persetujuan Anda.`,
+        href: projectHref(project.code, {
+          stage: def.stage,
+          tab: TAB_OF_STAGE[def.stage],
+        }),
+      };
       await notifyApprovers(
         tx,
         context.access.approvers?.[submissionKind]?.userIds,
         approver.roles,
-        {
-          message: `${approver.label} Project ${project.name} menunggu persetujuan Anda.`,
-          href: projectHref(project.code, {
-            stage: def.stage,
-            tab: TAB_OF_STAGE[def.stage],
-          }),
-        },
+        waitingMessage,
       );
+      // Project Charter juga menunggu sisi Tech (CTO/VCTO).
+      if (submissionKind === "PROJECT_CHARTER") {
+        await notifyApprovers(
+          tx,
+          context.access.approvers?.CHARTER_TECH?.userIds,
+          ["CTO", "VICE_CTO"],
+          waitingMessage,
+        );
+      }
     },
   });
 }
@@ -437,10 +448,15 @@ export async function decideSubmission(params: {
   if (!submission) throw new ActionError("Pengajuan tidak ditemukan.");
   const approver = APPROVERS[submission.kind];
 
+  const charter = submission.kind === "PROJECT_CHARTER";
+
   await mutateProject({
     actor: params.actor,
     projectId: submission.projectId,
-    action: approver.decide,
+    // Project Charter: cukup salah satu sisi yang boleh (COO/VCOO atau CTO/VCTO).
+    action: charter
+      ? ["charter.decide", "charter.decideTech"]
+      : approver.decide,
     run: async (context) => {
       const { tx, project, now } = context;
       const target = project.submissions.find(
@@ -451,39 +467,51 @@ export async function decideSubmission(params: {
       }
 
       const approved = decision.decision === "APPROVE";
-      const updated = await tx.submission.updateMany({
-        where: { id: target.id, status: "PENDING" },
-        data: {
-          status: approved ? "APPROVED" : "REJECTED",
-          decidedById: params.actor.userId,
-          decidedAt: now,
-          feedback: approved ? null : decision.feedback,
-        },
+      const doc = project.documents.find((d) => d.id === target.documentId);
+      const devName = doc ? developerName(context, doc.developerId) : undefined;
+      const label = devName ? `${approver.label} ${devName}` : approver.label;
+      const stage = doc ? DOCUMENTS[doc.kind].stage : undefined;
+      const href = projectHref(project.code, {
+        stage,
+        tab: stage ? TAB_OF_STAGE[stage] : undefined,
       });
-      if (updated.count === 0) {
-        const verb = target.status === "APPROVED" ? "Disetujui" : "Ditolak";
-        throw new ActionError(
-          `Pengajuan ini sudah diputuskan. ${verb} oleh ${target.decidedByName ?? "approver lain"}.`,
-        );
+
+      if (charter && approved) {
+        const finished = await approveCharterSide(context, target, label);
+        if (!finished) return;
+      } else {
+        const updated = await tx.submission.updateMany({
+          where: { id: target.id, status: "PENDING" },
+          data: {
+            status: approved ? "APPROVED" : "REJECTED",
+            decidedById: params.actor.userId,
+            decidedAt: now,
+            feedback: approved ? null : decision.feedback,
+          },
+        });
+        if (updated.count === 0) {
+          const verb = target.status === "APPROVED" ? "Disetujui" : "Ditolak";
+          throw new ActionError(
+            `Pengajuan ini sudah diputuskan. ${verb} oleh ${target.decidedByName ?? "approver lain"}.`,
+          );
+        }
       }
 
-      const doc = project.documents.find((d) => d.id === target.documentId);
       if (doc) {
         await tx.document.update({
           where: { id: doc.id },
           data: { status: approved ? "DONE" : "IN_PROGRESS" },
         });
       }
-      const devName = doc ? developerName(context, doc.developerId) : undefined;
-      const label = devName ? `${approver.label} ${devName}` : approver.label;
-      const stage = doc ? DOCUMENTS[doc.kind].stage : undefined;
 
       await recordActivity(tx, {
         projectId: project.id,
         actorId: params.actor.userId,
         action: approved ? "submission.approved" : "submission.rejected",
         summary: approved
-          ? `Menyetujui ${label}`
+          ? charter
+            ? `Menyetujui ${label}; kedua sisi sudah setuju`
+            : `Menyetujui ${label}`
           : `Menolak pengajuan ${label}`,
         stage,
         result: approved ? "APPROVED" : "REJECTED",
@@ -494,13 +522,89 @@ export async function decideSubmission(params: {
       await notify(tx, {
         userIds: [target.submittedById, pmOf(project)?.userId],
         message: `${label} Project ${project.name} ${approved ? "disetujui" : "ditolak"}.`,
-        href: projectHref(project.code, {
-          stage,
-          tab: stage ? TAB_OF_STAGE[stage] : undefined,
-        }),
+        href,
       });
     },
   });
+}
+
+/**
+ * Catat persetujuan satu sisi Project Charter, lalu tutup pengajuannya bila
+ * sisi lain sudah setuju. Mengembalikan `true` bila pengajuan kini APPROVED.
+ *
+ * Aman dari dua approver yang menekan bersamaan: UPDATE pertama mengunci baris,
+ * sehingga transaksi kedua menunggu, lalu membaca ulang baris yang sudah terisi
+ * dan menjadi yang menutup pengajuan.
+ */
+async function approveCharterSide(
+  context: MutationContext,
+  target: SubmissionSnapshot,
+  label: string,
+): Promise<boolean> {
+  const { tx, project, viewer, access, actor, now } = context;
+  const canOps = canOnProject(viewer, "charter.decide", access).allowed;
+  const canTech = canOnProject(viewer, "charter.decideTech", access).allowed;
+  const side =
+    canOps && !target.opsApprovedAt
+      ? "ops"
+      : canTech && !target.techApprovedAt
+        ? "tech"
+        : null;
+  if (!side) {
+    throw new ActionError(
+      target.status === "PENDING"
+        ? `Sisi ${canOps ? "COO / Vice COO" : "CTO / Vice CTO"} sudah menyetujui. Menunggu sisi ${canOps ? "CTO / Vice CTO" : "COO / Vice COO"}.`
+        : `Pengajuan ini sudah diputuskan oleh ${target.decidedByName ?? "approver lain"}.`,
+    );
+  }
+  const sideLabel = side === "ops" ? "COO / Vice COO" : "CTO / Vice CTO";
+
+  const claimed = await tx.submission.updateMany({
+    where:
+      side === "ops"
+        ? { id: target.id, status: "PENDING", opsApprovedAt: null }
+        : { id: target.id, status: "PENDING", techApprovedAt: null },
+    data:
+      side === "ops"
+        ? { opsApprovedAt: now, opsApprovedById: actor.userId }
+        : { techApprovedAt: now, techApprovedById: actor.userId },
+  });
+  if (claimed.count === 0) {
+    throw new ActionError(
+      `Pengajuan ini sudah diputuskan, atau sisi ${sideLabel} sudah menyetujui. Muat ulang halaman.`,
+    );
+  }
+
+  const fresh = await tx.submission.findUniqueOrThrow({
+    where: { id: target.id },
+    select: { opsApprovedAt: true, techApprovedAt: true },
+  });
+  if (fresh.opsApprovedAt && fresh.techApprovedAt) {
+    await tx.submission.updateMany({
+      where: { id: target.id, status: "PENDING" },
+      data: { status: "APPROVED", decidedById: actor.userId, decidedAt: now },
+    });
+    return true;
+  }
+
+  const other = side === "ops" ? "CTO / Vice CTO" : "COO / Vice COO";
+  await recordActivity(tx, {
+    projectId: project.id,
+    actorId: actor.userId,
+    action: "submission.approved_partial",
+    summary: `Menyetujui ${label} sebagai ${sideLabel}; menunggu ${other}`,
+    stage: 2,
+    result: "UPDATED",
+    objectType: "submission",
+    objectId: target.id,
+  });
+  await notify(tx, {
+    userIds: [target.submittedById, pmOf(project)?.userId],
+    message: `${label} Project ${project.name} disetujui ${sideLabel}, menunggu ${other}.`,
+    href: projectHref(project.code, { stage: 2, tab: "pm" }),
+    exceptUserId: actor.userId,
+  });
+  return false;
 }
 
 const SIGNABLE = ["MOU", "PROGRAMMER_CONTRACT", "BAST"] as const;

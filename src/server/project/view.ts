@@ -38,6 +38,7 @@ const ACTIONS: ProjectAction[] = [
   "stage1.edit",
   "charter.edit",
   "charter.decide",
+  "charter.decideTech",
   "mou.edit",
   "mou.decide",
   "terms.edit",
@@ -172,6 +173,7 @@ export async function loadProjectView(
     manageableApprovers: (
       [
         "PROJECT_CHARTER",
+        "CHARTER_TECH",
         "MOU",
         "PROGRAMMER_CONTRACT",
         "INVOICE",

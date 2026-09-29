@@ -26,6 +26,7 @@ export interface Viewer {
 /** Jenis pengajuan di Pengaturan > Workflow & Approver. */
 export type ApprovalKind =
   | "PROJECT_CHARTER"
+  | "CHARTER_TECH"
   | "MOU"
   | "PROGRAMMER_CONTRACT"
   | "INVOICE"
@@ -63,6 +64,7 @@ export type ProjectAction =
   | "stage1.edit"
   | "charter.edit"
   | "charter.decide"
+  | "charter.decideTech"
   | "mou.edit"
   | "mou.decide"
   | "terms.edit"
@@ -208,6 +210,18 @@ export function canOnProject(
           : deny("Hanya COO atau Vice COO yang bisa memutuskan pengajuan ini."),
       );
 
+    case "charter.decideTech":
+      return approverGate(
+        viewer,
+        project,
+        "CHARTER_TECH",
+        isTechLead(role)
+          ? ALLOW
+          : deny(
+              "Persetujuan sisi Tech untuk Project Charter hanya bisa diberikan CTO atau Vice CTO.",
+            ),
+      );
+
     case "terms.edit":
       if (project.mouSigned) {
         return isFinanceLead(role)
@@ -235,11 +249,12 @@ export function canOnProject(
             ),
       );
 
+    // PM ikut boleh: laporan tech mengalir lewat PM (jawaban CTO, 29 Sep).
     case "tech.edit":
-      return isTechLead(role) || isAssignedDeveloper(viewer, project)
+      return pm || isTechLead(role) || isAssignedDeveloper(viewer, project)
         ? ALLOW
         : deny(
-            "Hanya developer yang ditugaskan di project ini, CTO, atau Vice CTO yang bisa mengubah data teknis.",
+            "Hanya PM atau developer yang ditugaskan di project ini, CTO, atau Vice CTO yang bisa mengubah data teknis.",
           );
 
     case "financePoc.assign":
@@ -309,6 +324,7 @@ export function canManageApprover(
     case "PROJECT_CHARTER":
     case "MOU":
       return isOpsLead(role);
+    case "CHARTER_TECH":
     case "PROGRAMMER_CONTRACT":
       return isTechLead(role);
     case "INVOICE":
@@ -373,7 +389,11 @@ export function canEditTab(
     case "pm":
       return isPm(viewer, project);
     case "tech":
-      return isTechLead(viewer.role) || isAssignedDeveloper(viewer, project);
+      return (
+        isPm(viewer, project) ||
+        isTechLead(viewer.role) ||
+        isAssignedDeveloper(viewer, project)
+      );
     case "finance":
       return isFinanceLead(viewer.role) || isFinancePoc(viewer, project);
   }

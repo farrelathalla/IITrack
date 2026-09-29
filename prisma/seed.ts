@@ -201,6 +201,7 @@ async function main() {
       kind: "PROJECT_CHARTER",
     });
     await decide(code, "PROJECT_CHARTER", ghazy, "APPROVE");
+    await decide(code, "PROJECT_CHARTER", adnan, "APPROVE");
     await saveDocument({
       actor: pm,
       projectId: code,
@@ -533,7 +534,7 @@ async function main() {
     "Scope pada MoU belum sesuai Project Charter. Perbaiki bagian deliverables dan pastikan nilai kontrak sesuai cost estimation terbaru.",
   );
 
-  // 4. Logismart: Project Charter menunggu persetujuan COO.
+  // 4. Logismart: Project Charter menunggu persetujuan COO dan CTO.
   const logismart = await createProject({
     actor: keisha,
     input: {

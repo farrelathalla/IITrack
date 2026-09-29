@@ -129,6 +129,13 @@ const IN_PROGRESS: Activity = {
   waitingFor: null,
 };
 
+/** Sisi Project Charter yang belum menyetujui, untuk teks "Menunggu …". */
+export function charterWaitingFor(sub: SubmissionSnapshot | null): string {
+  if (sub?.opsApprovedAt && !sub.techApprovedAt) return "CTO / Vice CTO";
+  if (sub?.techApprovedAt && !sub.opsApprovedAt) return "COO / Vice COO";
+  return "COO / Vice COO dan CTO / Vice CTO";
+}
+
 // ─── Syarat selesai per stage ──────────────────────────────────────────────
 
 /** Waktu syarat stage terpenuhi, atau `null` bila belum. */
@@ -216,10 +223,8 @@ function activityOf(project: ProjectSnapshot, n: StageNumber): Activity {
     }
     case 2: {
       const charter = documentOf(project, "PROJECT_CHARTER");
-      const sub = fromSubmission(
-        latestSubmission(project, charter?.id),
-        "COO / Vice COO",
-      );
+      const latest = latestSubmission(project, charter?.id);
+      const sub = fromSubmission(latest, charterWaitingFor(latest));
       return strongest([
         sub,
         touched(charter) || touched(documentOf(project, "GANTT_CHART"))
@@ -556,10 +561,19 @@ export function stageRequirements(
     }
     case 2: {
       const charter = documentOf(project, "PROJECT_CHARTER");
+      const latest = latestSubmission(project, charter?.id);
+      const pendingCharter = latest?.status === "PENDING" ? latest : null;
       return [
         { label: "Tautkan Project Charter", done: Boolean(charter?.url) },
         { label: "Ajukan untuk persetujuan", done: submitted(charter) },
-        { label: "Disetujui COO / Vice COO", done: approved(charter) },
+        {
+          label: "Disetujui COO / Vice COO",
+          done: approved(charter) || Boolean(pendingCharter?.opsApprovedAt),
+        },
+        {
+          label: "Disetujui CTO / Vice CTO",
+          done: approved(charter) || Boolean(pendingCharter?.techApprovedAt),
+        },
       ];
     }
     case 3: {

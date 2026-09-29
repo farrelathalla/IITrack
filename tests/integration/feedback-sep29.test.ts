@@ -1,5 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { verifyPassword } from "@/lib/auth/password";
+import { deriveStages } from "@/lib/project/stages";
 import {
   acceptInvitation,
   issueInvitation,
@@ -13,7 +14,7 @@ import { deleteProject, updateProjectDetails } from "@/server/project/details";
 import { saveDocument, submitDocument } from "@/server/project/documents";
 import { listProjects, searchProjects } from "@/server/project/queries";
 import { loadSnapshot } from "@/server/project/snapshot";
-import { addBlocker } from "@/server/project/tech";
+import { addBlocker, updateTechInfo } from "@/server/project/tech";
 import { loadProjectView } from "@/server/project/view";
 import { createActor, testDb, uniqueEmail } from "../support/database";
 import {
@@ -358,5 +359,134 @@ describe("Feedback 29 Sep: link undangan untuk anggota baru", () => {
       },
     });
     expect(token).toBeNull();
+  });
+});
+
+describe("Jawaban CTO 29 Sep: Project Charter disetujui COO/VCOO dan CTO/VCTO", () => {
+  let team: Team;
+  beforeAll(async () => {
+    team = await createTeam();
+  });
+
+  async function charterSubmitted(name: string): Promise<string> {
+    const code = await newProject(team, name);
+    await saveDocument({
+      actor: team.pm,
+      projectId: code,
+      input: { kind: "REQUIREMENT_GATHERING", url: "https://example.com/r" },
+    });
+    const { completeStage1 } = await import("@/server/project/documents");
+    await completeStage1({ actor: team.pm, projectId: code });
+    await saveDocument({
+      actor: team.pm,
+      projectId: code,
+      input: { kind: "PROJECT_CHARTER", url: "https://example.com/c" },
+    });
+    await submitDocument({
+      actor: team.pm,
+      projectId: code,
+      kind: "PROJECT_CHARTER",
+    });
+    return code;
+  }
+
+  async function charterRow(code: string) {
+    return testDb.submission.findFirstOrThrow({
+      where: { project: { code }, kind: "PROJECT_CHARTER" },
+      orderBy: { submittedAt: "desc" },
+    });
+  }
+
+  it("pengajuan memberi tahu kedua sisi; satu sisi saja belum membuka Stage 3", async () => {
+    const code = await charterSubmitted("Charter Dua Sisi");
+    const notified = await testDb.notification.findMany({
+      where: {
+        message: { contains: "Project Charter Project Charter Dua Sisi" },
+        href: { contains: code },
+      },
+      select: { userId: true },
+    });
+    const recipients = notified.map((n) => n.userId);
+    expect(recipients).toEqual(
+      expect.arrayContaining([
+        team.coo.userId,
+        team.vcoo.userId,
+        team.cto.userId,
+      ]),
+    );
+
+    await decidePending(code, "PROJECT_CHARTER", team.coo, "APPROVE");
+    expect((await charterRow(code)).status).toBe("PENDING");
+    let project = await loadSnapshot(code);
+    if (!project) throw new Error("project hilang");
+    expect(deriveStages(project, new Date())[2].status).toBe("locked");
+
+    await expect(
+      decidePending(code, "PROJECT_CHARTER", team.vcoo, "APPROVE"),
+    ).rejects.toThrow(/Sisi COO \/ Vice COO sudah menyetujui/);
+    await expect(
+      decidePending(code, "PROJECT_CHARTER", team.pm, "APPROVE"),
+    ).rejects.toThrow();
+
+    await decidePending(code, "PROJECT_CHARTER", team.cto, "APPROVE");
+    const row = await charterRow(code);
+    expect(row.status).toBe("APPROVED");
+    expect(row.opsApprovedById).toBe(team.coo.userId);
+    expect(row.techApprovedById).toBe(team.cto.userId);
+    project = await loadSnapshot(code);
+    if (!project) throw new Error("project hilang");
+    expect(deriveStages(project, new Date())[1].status).toBe("completed");
+  });
+
+  it("COO dan CTO menyetujui bersamaan: pengajuan tetap tertutup sebagai Disetujui", async () => {
+    const code = await charterSubmitted("Charter Bersamaan");
+    const results = await Promise.allSettled([
+      decidePending(code, "PROJECT_CHARTER", team.coo, "APPROVE"),
+      decidePending(code, "PROJECT_CHARTER", team.cto, "APPROVE"),
+    ]);
+    expect(results.every((r) => r.status === "fulfilled")).toBe(true);
+    const row = await charterRow(code);
+    expect(row.status).toBe("APPROVED");
+    expect(row.opsApprovedAt).not.toBeNull();
+    expect(row.techApprovedAt).not.toBeNull();
+  });
+
+  it("penolakan dari salah satu sisi langsung menjadi Revisi Diperlukan", async () => {
+    const code = await charterSubmitted("Charter Ditolak CTO");
+    await decidePending(code, "PROJECT_CHARTER", team.coo, "APPROVE");
+    await decidePending(
+      code,
+      "PROJECT_CHARTER",
+      team.cto,
+      "REJECT",
+      "Estimasi teknis belum realistis",
+    );
+    const row = await charterRow(code);
+    expect(row.status).toBe("REJECTED");
+    expect(row.feedback).toBe("Estimasi teknis belum realistis");
+  });
+});
+
+describe("Jawaban CTO 29 Sep: laporan tech lewat PM", () => {
+  it("PM project bisa Update Progress dan menambah blocker; PM lain tidak", async () => {
+    const team = await createTeam();
+    const code = await newProject(team, "Laporan Lewat PM");
+    await throughStage4(team, code);
+    await updateTechInfo({
+      actor: team.pm,
+      projectId: code,
+      input: { currentSprint: "Sprint 2", progressPercent: "40" },
+    });
+    await addBlocker({
+      actor: team.pm,
+      projectId: code,
+      description: "Menunggu akses API client",
+    });
+    const project = await loadSnapshot(code);
+    expect(project?.techInfo?.progressPercent).toBe(40);
+    expect(project?.blockers).toHaveLength(1);
+    await expect(
+      addBlocker({ actor: team.otherPm, projectId: code, description: "x" }),
+    ).rejects.toThrow(/Hanya PM atau developer/);
   });
 });
