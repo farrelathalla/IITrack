@@ -224,7 +224,7 @@ export async function loadSnapshot(
   client: Tx | typeof prisma = prisma,
 ): Promise<ProjectSnapshot | null> {
   const row = await client.project.findFirst({
-    where: { OR: [{ code: codeOrId }, { id: codeOrId }] },
+    where: { OR: [{ code: codeOrId }, { id: codeOrId }], deletedAt: null },
     include: SNAPSHOT_INCLUDE,
   });
   if (!row) return null;

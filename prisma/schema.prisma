@@ -70,6 +70,9 @@ model User {
   submissionsMade    Submission[]        @relation("SubmissionSubmitter")
   submissionsDecided Submission[]        @relation("SubmissionDecider")
   blockers           TechBlocker[]
+  projectsDeleted    Project[]           @relation("ProjectDeletedBy")
+  invitations        Invitation[]        @relation("InvitationFor")
+  invitationsCreated Invitation[]        @relation("InvitationCreatedBy")
 
   @@map("users")
 }
@@ -128,6 +131,26 @@ model Session {
   @@map("sessions")
 }
 
+/// Link undangan sekali pakai. Anggota baru membuka link ini untuk membuat
+/// kata sandinya sendiri; IITrack tidak mengirim email, Super Admin yang
+/// menyalin dan mengirim linknya. Yang disimpan hanya HMAC tokennya.
+model Invitation {
+  id          String    @id @default(cuid())
+  userId      String
+  user        User      @relation("InvitationFor", fields: [userId], references: [id], onDelete: Restrict)
+  tokenHash   String    @unique
+  expiresAt   DateTime
+  usedAt      DateTime?
+  /// Terisi saat link diganti dengan link baru sebelum sempat dipakai.
+  revokedAt   DateTime?
+  createdById String
+  createdBy   User      @relation("InvitationCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
+  createdAt   DateTime  @default(now())
+
+  @@index([userId])
+  @@map("invitations")
+}
+
 // ─── Project ───────────────────────────────────────────────────────────────
 
 enum ProjectType {
@@ -176,6 +199,14 @@ model Project {
   // Penanda stage yang butuh tombol eksplisit dari PM (PRD bab 4.1).
   stage1DoneAt       DateTime?
   developmentDoneAt  DateTime?
+
+  /// Soft delete oleh COO/VCOO. Project yang dihapus hilang dari semua daftar
+  /// dan tidak bisa dibuka, tetapi barisnya (dan riwayatnya) tetap ada dan
+  /// Project ID-nya tidak pernah dipakai ulang.
+  deletedAt    DateTime?
+  deletedById  String?
+  deletedBy    User?     @relation("ProjectDeletedBy", fields: [deletedById], references: [id], onDelete: Restrict)
+  deleteReason String?
 
   createdById String
   createdBy   User     @relation(fields: [createdById], references: [id], onDelete: Restrict)

@@ -192,7 +192,9 @@ export async function addBlocker(params: {
     projectId: params.projectId,
     action: "tech.edit",
     run: async ({ tx, project, stages }) => {
-      requireStageOpen(stages, 6);
+      // Sama dengan Update Progress: hambatan teknis bisa muncul sejak
+      // developer ditugaskan, tidak perlu menunggu Stage 6.
+      requireStageOpen(stages, 4);
       await tx.techBlocker.create({
         data: {
           projectId: project.id,

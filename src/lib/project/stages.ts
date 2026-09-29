@@ -44,7 +44,7 @@ export const STAGE_STATUS_LABELS: Record<StageStatus, string> = {
   "in-progress": "Sedang Berjalan",
   "waiting-approval": "Menunggu Persetujuan",
   "revision-required": "Revisi Diperlukan",
-  approved: "Disetujui",
+  approved: "Disetujui, Belum TTD",
   completed: "Selesai",
 };
 
@@ -516,4 +516,149 @@ function maxDate(dates: (Date | null)[]): Date | null {
     if (date && (!best || date > best)) best = date;
   }
   return best;
+}
+
+// ─── Syarat yang terlihat di panel stage ──────────────────────────────────
+
+export interface StageRequirement {
+  label: string;
+  done: boolean;
+}
+
+/**
+ * Daftar syarat selesai stage dalam bahasa tombol, supaya jelas langkah mana
+ * yang masih kurang, misalnya "Tandai MoU Ditandatangani". Mengikuti
+ * `requirementMetAt`; bila keduanya berbeda, `requirementMetAt` yang benar.
+ */
+export function stageRequirements(
+  project: ProjectSnapshot,
+  n: StageNumber,
+  now: Date,
+): StageRequirement[] {
+  const approved = (doc: DocumentSnapshot | null) =>
+    latestSubmission(project, doc?.id)?.status === "APPROVED";
+  const submitted = (doc: DocumentSnapshot | null) =>
+    Boolean(latestSubmission(project, doc?.id));
+
+  switch (n) {
+    case 1: {
+      const doc = documentOf(project, "REQUIREMENT_GATHERING");
+      return [
+        {
+          label: "Tautkan Requirement Gathering Document",
+          done: Boolean(doc?.url),
+        },
+        {
+          label: "PM klik Tandai Selesai",
+          done: Boolean(project.stage1DoneAt),
+        },
+      ];
+    }
+    case 2: {
+      const charter = documentOf(project, "PROJECT_CHARTER");
+      return [
+        { label: "Tautkan Project Charter", done: Boolean(charter?.url) },
+        { label: "Ajukan untuk persetujuan", done: submitted(charter) },
+        { label: "Disetujui COO / Vice COO", done: approved(charter) },
+      ];
+    }
+    case 3: {
+      const mou = documentOf(project, "MOU");
+      return [
+        { label: "Tautkan MoU", done: Boolean(mou?.url) },
+        { label: "Isi termin pembayaran", done: project.terms.length > 0 },
+        { label: "Ajukan MoU untuk persetujuan", done: submitted(mou) },
+        { label: "Disetujui COO / Vice COO", done: approved(mou) },
+        {
+          label: "Klik Tandai Ditandatangani setelah client tanda tangan",
+          done: Boolean(mou?.signedAt),
+        },
+      ];
+    }
+    case 4: {
+      const developers = developersOf(project);
+      const items: StageRequirement[] = [
+        { label: "PM kirim Request SDM", done: Boolean(project.staffing) },
+        {
+          label: "CTO / Vice CTO menugaskan developer",
+          done:
+            project.staffing?.status === "DEVELOPER_ASSIGNED" &&
+            developers.length > 0,
+        },
+      ];
+      for (const developer of developers) {
+        const contract = documentOf(
+          project,
+          "PROGRAMMER_CONTRACT",
+          developer.userId,
+        );
+        items.push(
+          {
+            label: `Kontrak ${developer.name} disetujui CTO / Vice CTO`,
+            done: approved(contract),
+          },
+          {
+            label: `Tandai Kontrak ${developer.name} Ditandatangani`,
+            done: Boolean(contract?.signedAt),
+          },
+        );
+      }
+      return items;
+    }
+    case 5: {
+      const dp = project.terms.find((t) => t.sequence === 1);
+      return [
+        {
+          label: "Finance POC ditunjuk CFO / Vice CFO",
+          done: Boolean(financePocOf(project)),
+        },
+        { label: "Termin DP berstatus Selesai", done: dp?.step === "DONE" },
+      ];
+    }
+    case 6:
+      return [
+        {
+          label: "PM klik Tandai Pengembangan Selesai",
+          done: Boolean(project.developmentDoneAt),
+        },
+      ];
+    case 7: {
+      const bast = documentOf(project, "BAST");
+      const total = project.terms.length;
+      const final = project.terms.find((t) => t.sequence === total);
+      return [
+        { label: "Tautkan BAST", done: Boolean(bast?.url) },
+        {
+          label: "Klik Tandai BAST Ditandatangani",
+          done: Boolean(bast?.signedAt),
+        },
+        {
+          label: "Termin final berstatus Selesai",
+          done: final?.step === "DONE",
+        },
+        {
+          label: "Masa garansi berakhir",
+          done: warrantyStatus(project.handover, now) === "DONE",
+        },
+      ];
+    }
+    case 8:
+      return [
+        {
+          label: "Client Feedback ditautkan dan berstatus Selesai",
+          done: isFeedbackComplete(documentOf(project, "CLIENT_FEEDBACK")),
+        },
+        {
+          label: "Programmer Feedback ditautkan dan berstatus Selesai",
+          done: isFeedbackComplete(documentOf(project, "PROGRAMMER_FEEDBACK")),
+        },
+      ];
+    case 9:
+      return [
+        {
+          label: "Lengkapi Closure Checklist lalu klik Tutup Project",
+          done: Boolean(project.closedAt),
+        },
+      ];
+  }
 }

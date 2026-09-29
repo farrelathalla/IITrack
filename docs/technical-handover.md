@@ -190,12 +190,15 @@ bentuknya. Jangan menuliskan nilai sungguhan di dokumen, issue, PR, maupun chat.
 | `DATABASE_URL` | ya | `postgresql://pengguna:sandi@host:5432/basisdata` | `src/server/db.ts`, `prisma.config.ts`, `tests/support/load-env.ts` | Aplikasi gagal start dengan pesan bahwa `DATABASE_URL` belum diisi |
 | `SESSION_SECRET` | ya | teks acak, minimal 32 karakter | `src/server/auth/session.ts` | Permintaan yang menyentuh sesi melempar kesalahan bahwa secret belum diisi atau terlalu pendek |
 | `TEST_DATABASE_URL` | tidak | sama dengan `DATABASE_URL` | `tests/support/load-env.ts` | Bila kosong, test integrasi menulis ke `DATABASE_URL` dan data pengembangan ikut bertambah |
+| `APP_URL` | tidak | `https://iitrack.contoh.id` | `src/app/(internal)/settings/actions.ts` | Bila kosong, link undangan memakai host dari permintaan; isi bila aplikasi berada di balik proxy yang tidak meneruskan host aslinya |
 
 `SESSION_SECRET` dipakai sebagai kunci HMAC token sesi. Yang disimpan di basis
 data adalah hasil HMAC-nya, bukan tokennya, sehingga salinan basis data saja
 tidak cukup untuk memakai sesi orang lain. Konsekuensinya: **mengganti
 `SESSION_SECRET` membuat seluruh sesi yang sedang berjalan tidak lagi dikenali**
-dan semua orang harus masuk ulang. Ganti hanya bila memang diniatkan.
+dan semua orang harus masuk ulang. Link undangan yang belum dipakai juga
+ikut tidak berlaku karena memakai HMAC yang sama. Ganti hanya bila memang
+diniatkan.
 
 Sejak Prisma 7, `.env` tidak lagi dibaca Prisma sendiri. `prisma.config.ts` dan
 `tests/support/load-env.ts` yang memuatnya lewat `process.loadEnvFile`, dan
@@ -326,14 +329,36 @@ berubah cukup satu berkas di `src/lib` atau `src/server` beserta testnya.
   diganti PM dengan versi bertanda tangan sebelum Tandai Ditandatangani.
 - **Akhir garansi inklusif**: garansi Selesai sehari setelah tanggal akhir (WIB).
 - **Toleransi Status Final default 7 hari**, bisa diubah di Pengaturan > System.
-- **Approver utama dan delegasi hanya untuk tampilan.** Wewenang memutuskan
-  mengikuti jabatan, sehingga jabatan utama dan wakil sama-sama bisa memutuskan
-  dan keputusan pertama yang berlaku (PRD bab 2.3).
+- **Approver utama dan delegasi berlaku** (feedback uji 29 Sep 2026). Bila
+  dipilih di Pengaturan > Workflow & Approver, hanya merekalah yang bisa
+  Setujui/Tolak dan menerima notifikasi; bila dikosongkan, semua pemegang
+  jabatan approver boleh. Approver yang jabatannya sudah berakhir diabaikan
+  supaya pengajuan tidak tersangkut. Super Admin mengatur semua jenis, C-Level
+  hanya jenis divisinya. Untuk Invoice, Finance POC project selalu boleh; yang
+  dipilih adalah cadangannya. Lihat `approverGate` di `src/lib/auth/access.ts`
+  dan `loadApproverRules` di `src/server/settings.ts`.
 - **Role Permissions ditampilkan, tidak diedit.** Matriksnya diturunkan dari
   aturan server supaya halaman dan penegakan tidak bisa berbeda.
-- **Akun dibuat dengan kata sandi awal dari Super Admin**, karena undangan email
-  di luar MVP (PRD bab 1.2). Pemilik akun bisa menggantinya di Profil. Foto
-  profil belum dibangun karena IITrack tidak menyimpan berkas.
+- **Akun baru diaktifkan lewat link undangan**, bukan email: Tambah User
+  menghasilkan link sekali pakai (berlaku 7 hari, tabel `invitations`, yang
+  disimpan hanya HMAC tokennya) yang disalin Super Admin dan dikirim sendiri
+  lewat WA/email. Anggota membuat kata sandinya di `/undangan/[token]` lalu
+  langsung masuk. Link yang sama dipakai untuk lupa kata sandi. Kata sandi
+  awal manual tetap bisa diisi. Foto profil belum dibangun karena IITrack tidak
+  menyimpan berkas.
+- **Project dihapus secara soft delete** oleh COO/VCOO dengan alasan
+  (`projects.deletedAt`). Project hilang dari semua daftar, pencarian, dan
+  halaman detail, tetapi baris dan riwayatnya tetap ada karena `activity_logs`
+  append-only, dan Project ID-nya tidak dipakai ulang. Detail awal project
+  (nama, client, tipe, sumber, target, catatan) bisa diubah PM project atau
+  COO/VCOO lewat menu Kelola; setiap perubahan dicatat nilai lama dan barunya.
+- **Technical Blocker bisa ditambah sejak Stage 4**, sama dengan Update
+  Progress, karena hambatan bisa muncul begitu developer ditugaskan.
+- **Stage berstatus "Disetujui, Belum TTD" tidak ditampilkan sebagai selesai.**
+  MoU dan Kontrak Programmer yang disetujui masih harus ditandai
+  ditandatangani; panel stage menampilkan checklist syarat
+  (`stageRequirements` di `src/lib/project/stages.ts`) dan kotak tanda tangan
+  yang mencolok.
 - **Akhir periode tidak memicu notifikasi terjadwal.** Tidak ada penjadwal di
   MVP; project dengan penugasan ke akun yang sudah tidak aktif langsung tampil
   "Perlu Penugasan Ulang" di Dashboard C-Level dan header project. Notifikasi

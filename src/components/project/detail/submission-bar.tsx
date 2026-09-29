@@ -9,6 +9,7 @@ import {
   Send,
   X,
 } from "lucide-react";
+import Link from "next/link";
 import { useState } from "react";
 import {
   decideSubmissionAction,
@@ -18,11 +19,12 @@ import {
 import { Button, buttonClass } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
 import { TextArea } from "@/components/ui/text-area";
+import type { ApprovalKind } from "@/lib/auth/access";
 import { ROLE_LABELS } from "@/lib/auth/roles";
 import type { DocumentKind } from "@/lib/project/catalog";
 import { documentOf, latestSubmission } from "@/lib/project/snapshot";
 import { formatDateTime } from "@/lib/time";
-import { ErrorText, FeedbackCard } from "./bits";
+import { ErrorText, FeedbackCard, SignCallout } from "./bits";
 import { useProject, useRunner } from "./context";
 
 /** Dialog Tolak: feedback wajib diisi (PRD bab 6 dan 10). */
@@ -92,7 +94,15 @@ export function SubmissionBar({
   canDecide: boolean;
   signable?: boolean;
 }) {
-  const { project, viewer, hiddenDocumentIds } = useProject();
+  const {
+    project,
+    viewer,
+    hiddenDocumentIds,
+    approverNames,
+    manageableApprovers,
+  } = useProject();
+  const approvalKind = kind as ApprovalKind;
+  const approver = approverNames[approvalKind] ?? approverLabel;
   const doc = documentOf(project, kind, developerId);
   const latest = latestSubmission(project, doc?.id);
   const { run, pending, error } = useRunner();
@@ -109,7 +119,7 @@ export function SubmissionBar({
       {latest?.status === "REJECTED" && latest.feedback ? (
         <FeedbackCard
           feedback={latest.feedback}
-          reviewer={latest.decidedByName ?? approverLabel}
+          reviewer={latest.decidedByName ?? approver}
           decidedAt={latest.decidedAt}
         />
       ) : null}
@@ -154,8 +164,17 @@ export function SubmissionBar({
         {latest?.status === "PENDING" && !canDecide ? (
           <span className="inline-flex items-center gap-1.5 rounded-lg bg-warning-bg px-3 py-2 font-medium text-warning-text text-xs">
             <Clock className="size-3.5" />
-            Menunggu persetujuan dari {approverLabel}
+            Menunggu persetujuan dari {approver}
           </span>
+        ) : null}
+        {latest?.status !== "APPROVED" &&
+        manageableApprovers.includes(approvalKind) ? (
+          <Link
+            href="/settings/workflow"
+            className="text-plum-600 text-xs hover:underline"
+          >
+            Atur approver
+          </Link>
         ) : null}
 
         {latest?.status === "PENDING" && canDecide ? (
@@ -196,33 +215,31 @@ export function SubmissionBar({
           </span>
         ) : null}
 
-        {signable &&
-        latest?.status === "APPROVED" &&
-        !doc?.signedAt &&
-        canSubmit ? (
-          <Button
-            variant="secondary"
-            disabled={pending}
-            onClick={() =>
-              run(() =>
-                markSignedAction(
-                  project.code,
-                  kind as "MOU" | "PROGRAMMER_CONTRACT",
-                  developerId || undefined,
-                ),
-              )
-            }
-          >
-            <PenLine className="size-3.5" />
-            Tandai Ditandatangani
-          </Button>
-        ) : null}
         {doc?.signedAt ? (
-          <span className="text-success-text text-xs">
+          <span className="inline-flex items-center gap-1 text-success-text text-xs">
+            <PenLine className="size-3.5" />
             Ditandatangani {formatDateTime(doc.signedAt)}
           </span>
         ) : null}
       </div>
+
+      {signable && latest?.status === "APPROVED" && !doc?.signedAt ? (
+        <SignCallout
+          label={label}
+          canSign={canSubmit}
+          pending={pending}
+          signerHint={kind === "MOU" ? "client" : "developer"}
+          onSign={() =>
+            run(() =>
+              markSignedAction(
+                project.code,
+                kind as "MOU" | "PROGRAMMER_CONTRACT",
+                developerId || undefined,
+              ),
+            )
+          }
+        />
+      ) : null}
 
       {latest?.status === "REJECTED" && latest.decidedByName ? (
         <p className="text-[11px] text-subtle">

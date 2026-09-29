@@ -5,6 +5,7 @@ import {
 } from "@/components/project/active-projects-table";
 import { ProjectsHeader, StatCard } from "@/components/project/projects-header";
 import { PROJECT_TONE, URGENCY_TONE } from "@/components/project/tones";
+import { Alert } from "@/components/ui/alert";
 import {
   canGlobally,
   MY_ROLE_LABELS,
@@ -22,7 +23,12 @@ import { listProjects } from "@/server/project/queries";
 
 export const metadata: Metadata = { title: "Project Aktif" };
 
-export default async function ActiveProjectsPage() {
+export default async function ActiveProjectsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ dihapus?: string }>;
+}) {
+  const { dihapus } = await searchParams;
   const { viewer } = await requireUser();
   const now = new Date();
   const items = await listProjects(viewer, { closed: false, now });
@@ -65,6 +71,11 @@ export default async function ActiveProjectsPage() {
         subtitle="Projects currently assigned to you."
         canCreate={canGlobally(viewer, "project.create").allowed}
       />
+      {dihapus ? (
+        <Alert tone="success">
+          Project dihapus. Riwayatnya tetap tersimpan.
+        </Alert>
+      ) : null}
       <div className="grid grid-cols-4 gap-3">
         <StatCard
           label="My Active Projects"

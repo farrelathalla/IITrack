@@ -19,7 +19,12 @@ import { parseDateInput } from "@/lib/time";
 import { feedbackSchema, isValidLink } from "@/lib/validation";
 import { recordActivity } from "@/server/activity";
 import { prisma } from "@/server/db";
-import { notify, notifyRoles, projectHref } from "@/server/notify";
+import {
+  notify,
+  notifyApprovers,
+  notifyRoles,
+  projectHref,
+} from "@/server/notify";
 import {
   ActionError,
   type MutationContext,
@@ -387,13 +392,18 @@ export async function submitDocument(params: {
         objectType: "document",
         objectId: doc.id,
       });
-      await notifyRoles(tx, approver.roles, {
-        message: `${approver.label} Project ${project.name} menunggu persetujuan Anda.`,
-        href: projectHref(project.code, {
-          stage: def.stage,
-          tab: TAB_OF_STAGE[def.stage],
-        }),
-      });
+      await notifyApprovers(
+        tx,
+        context.access.approvers?.[submissionKind]?.userIds,
+        approver.roles,
+        {
+          message: `${approver.label} Project ${project.name} menunggu persetujuan Anda.`,
+          href: projectHref(project.code, {
+            stage: def.stage,
+            tab: TAB_OF_STAGE[def.stage],
+          }),
+        },
+      );
     },
   });
 }

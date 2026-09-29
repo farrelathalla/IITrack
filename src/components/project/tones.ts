@@ -11,7 +11,7 @@ export const STAGE_TONE: Record<StageStatus, Tone> = {
   "in-progress": "brand",
   "waiting-approval": "warning",
   "revision-required": "danger",
-  approved: "success",
+  approved: "warning",
   completed: "success",
 };
 

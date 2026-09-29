@@ -1,6 +1,6 @@
 "use client";
 
-import { Check, CheckCircle2, Pencil, PenLine, X } from "lucide-react";
+import { Check, CheckCircle2, Pencil, X } from "lucide-react";
 import { useState } from "react";
 import {
   completeStage1Action,
@@ -24,7 +24,14 @@ import { isFeedbackComplete, STAGE_STATUS_LABELS } from "@/lib/project/stages";
 import { formatDate } from "@/lib/time";
 import { cn } from "@/lib/utils";
 import type { AssignmentMode } from "./assignment-modal";
-import { ErrorText, InfoGrid, LockedBox, Subsection } from "./bits";
+import {
+  ErrorText,
+  InfoGrid,
+  LockedBox,
+  RequirementList,
+  SignCallout,
+  Subsection,
+} from "./bits";
 import { useProject, useRunner } from "./context";
 import { ChecklistRow, ClosureBlock, DisbursementBlock } from "./disbursement";
 import { DocumentCard } from "./document-card";
@@ -219,12 +226,6 @@ function Stage3() {
         canDecide={can["mou.decide"]}
         signable
       />
-      {latest?.status === "APPROVED" && !mou?.signedAt ? (
-        <p className="text-subtle text-xs">
-          Kirim MoU ke client, ganti tautan dengan versi bertanda tangan, lalu
-          klik Tandai Ditandatangani.
-        </p>
-      ) : null}
     </>
   );
 }
@@ -356,15 +357,14 @@ function Stage7() {
             editable={can["ops.edit"] && !bast?.signedAt}
           />
           <ErrorText error={error} />
-          {can["ops.edit"] && bast?.url && !bast.signedAt ? (
-            <Button
-              variant="secondary"
-              disabled={pending}
-              onClick={() => run(() => markSignedAction(project.code, "BAST"))}
-            >
-              <PenLine className="size-3.5" />
-              Tandai BAST Ditandatangani
-            </Button>
+          {bast?.url && !bast.signedAt ? (
+            <SignCallout
+              label="BAST"
+              canSign={can["ops.edit"]}
+              pending={pending}
+              signerHint="client"
+              onSign={() => run(() => markSignedAction(project.code, "BAST"))}
+            />
           ) : null}
         </div>
       </Subsection>
@@ -445,11 +445,13 @@ export function StagePanel({
   stage: number;
   onAssign: (mode: AssignmentMode) => void;
 }) {
-  const { stages } = useProject();
+  const { stages, requirements } = useProject();
   const state = stages.find((s) => s.n === stage) ?? stages[0];
   const def = stageDefinition(state.n);
   const locked = state.status === "locked";
-  const done = state.status === "completed" || state.status === "approved";
+  // "Disetujui" belum berarti selesai: MoU atau kontrak yang disetujui masih
+  // harus ditandai ditandatangani. Tampil sebagai berjalan, bukan hijau.
+  const done = state.status === "completed";
   const revision = state.status === "revision-required";
 
   return (
@@ -529,6 +531,9 @@ export function StagePanel({
           />
         ) : (
           <>
+            {!done ? (
+              <RequirementList items={requirements[state.n] ?? []} />
+            ) : null}
             {state.n === 1 ? <Stage1 /> : null}
             {state.n === 2 ? <Stage2 /> : null}
             {state.n === 3 ? <Stage3 /> : null}

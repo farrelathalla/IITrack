@@ -20,20 +20,17 @@ export interface WorkflowRow {
   primaryOptions: { id: string; name: string; email: string }[];
   delegateOptions: { id: string; name: string; email: string }[];
   value: ApproverSetting;
+  /** Pengguna boleh mengubah baris ini (Super Admin, atau C-Level divisinya). */
+  editable: boolean;
 }
 
 /**
- * Workflow & Approver (PRD bab 8.7). Nama approver utama dan delegasi dipakai
- * untuk teks "Menunggu persetujuan dari …"; wewenang memutuskan tetap mengikuti
- * jabatan, sehingga jabatan utama dan wakil sama-sama bisa memutuskan.
+ * Workflow & Approver. Bila approver utama atau delegasi dipilih, hanya
+ * merekalah yang bisa Setujui/Tolak dan yang menerima notifikasi pengajuan.
+ * Bila dikosongkan, semua pemegang jabatan approver boleh memutuskan.
  */
-export function WorkflowSection({
-  rows,
-  canManage,
-}: {
-  rows: WorkflowRow[];
-  canManage: boolean;
-}) {
+export function WorkflowSection({ rows }: { rows: WorkflowRow[] }) {
+  const canManage = rows.some((row) => row.editable);
   const [values, setValues] = useState(
     () =>
       Object.fromEntries(rows.map((r) => [r.kind, r.value])) as Record<
@@ -85,7 +82,7 @@ export function WorkflowSection({
                   <td className="px-4 py-3 text-xs">
                     {row.primaryFixed ? (
                       <span className="text-muted">{row.primaryHint}</span>
-                    ) : canManage ? (
+                    ) : row.editable ? (
                       <select
                         aria-label={`Approver utama ${row.label}`}
                         value={value.primaryUserId ?? ""}
@@ -100,7 +97,7 @@ export function WorkflowSection({
                         }
                         className={cn(FIELD_CONTROL, "py-1.5 text-xs")}
                       >
-                        <option value="">{row.primaryHint}</option>
+                        <option value="">Semua {row.approverLabel}</option>
                         {row.primaryOptions.map((o) => (
                           <option key={o.id} value={o.id}>
                             {o.name}
@@ -115,11 +112,13 @@ export function WorkflowSection({
                         <span className="text-subtle">{primary.email}</span>
                       </span>
                     ) : (
-                      <span className="text-subtle">{row.primaryHint}</span>
+                      <span className="text-subtle">
+                        Semua {row.approverLabel}
+                      </span>
                     )}
                   </td>
                   <td className="px-4 py-3 text-xs">
-                    {canManage ? (
+                    {row.editable ? (
                       <select
                         aria-label={`Delegasi ${row.label}`}
                         value={value.delegateUserId ?? ""}
@@ -134,7 +133,11 @@ export function WorkflowSection({
                         }
                         className={cn(FIELD_CONTROL, "py-1.5 text-xs")}
                       >
-                        <option value="">{row.delegateHint}</option>
+                        <option value="">
+                          {row.primaryFixed
+                            ? "Semua CFO / Vice CFO"
+                            : "Tidak ada delegasi"}
+                        </option>
                         {row.delegateOptions.map((o) => (
                           <option key={o.id} value={o.id}>
                             {o.name}
@@ -149,7 +152,11 @@ export function WorkflowSection({
                         <span className="text-subtle">{delegate.email}</span>
                       </span>
                     ) : (
-                      <span className="text-subtle">{row.delegateHint}</span>
+                      <span className="text-subtle">
+                        {row.primaryFixed
+                          ? "Semua CFO / Vice CFO"
+                          : "Tidak ada delegasi"}
+                      </span>
                     )}
                   </td>
                 </tr>
@@ -158,12 +165,28 @@ export function WorkflowSection({
           </tbody>
         </table>
       </div>
-      <p className="text-[11px] text-subtle">Keputusan pertama yang berlaku.</p>
+      <p className="text-[11px] text-subtle leading-relaxed">
+        Bila approver dipilih, hanya approver utama dan delegasinya yang bisa
+        Setujui/Tolak dan menerima notifikasi; keputusan pertama yang berlaku.
+        Bila dikosongkan, semua pemegang jabatan tersebut bisa memutuskan. Untuk
+        Invoice dan Pembayaran, Finance POC project selalu bisa; yang dipilih di
+        sini adalah cadangannya.
+      </p>
       {canManage ? (
         <div className="flex justify-end">
           <Button
             disabled={pending}
-            onClick={() => run(() => saveApproversAction(values))}
+            onClick={() =>
+              run(() =>
+                saveApproversAction(
+                  Object.fromEntries(
+                    rows
+                      .filter((row) => row.editable)
+                      .map((row) => [row.kind, values[row.kind]]),
+                  ),
+                ),
+              )
+            }
           >
             Simpan Approver
           </Button>

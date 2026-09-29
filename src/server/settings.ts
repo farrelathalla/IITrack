@@ -1,16 +1,37 @@
 import { z } from "zod";
+import type {
+  ApprovalKind,
+  ApproverRule,
+  ApproverRules,
+} from "@/lib/auth/access";
+import { ROLE_LABELS } from "@/lib/auth/roles";
+import type { RoleName } from "@/lib/auth/types";
+import type { Tx } from "@/server/activity";
 import { prisma } from "@/server/db";
 
+export type { ApprovalKind } from "@/lib/auth/access";
+
 /** Jenis pengajuan di Pengaturan > Workflow & Approver (PRD bab 8.7). */
-export const APPROVAL_KINDS = [
+export const APPROVAL_KINDS: readonly ApprovalKind[] = [
   "PROJECT_CHARTER",
   "MOU",
   "PROGRAMMER_CONTRACT",
   "INVOICE",
   "DISBURSEMENT",
-] as const;
+];
 
-export type ApprovalKind = (typeof APPROVAL_KINDS)[number];
+/**
+ * Jabatan yang boleh dipilih sebagai approver utama dan delegasi. Untuk
+ * INVOICE, approver utamanya selalu Finance POC project, jadi yang dipilih
+ * hanya cadangannya.
+ */
+export const APPROVER_ROLES: Record<ApprovalKind, readonly RoleName[]> = {
+  PROJECT_CHARTER: ["COO", "VICE_COO"],
+  MOU: ["COO", "VICE_COO"],
+  PROGRAMMER_CONTRACT: ["CTO", "VICE_CTO"],
+  INVOICE: ["CFO", "VICE_CFO"],
+  DISBURSEMENT: ["CFO", "VICE_CFO"],
+};
 
 export const APPROVAL_KIND_INFO: Record<
   ApprovalKind,
@@ -100,4 +121,60 @@ export async function getSettings(): Promise<Settings> {
         ? (map.get("projectIdFormat") as string)
         : DEFAULT_SETTINGS.projectIdFormat,
   };
+}
+
+/**
+ * Approver yang berlaku saat ini. Orang yang dipilih tetapi sudah tidak
+ * memegang jabatan approver diabaikan; bila tidak ada yang tersisa, aturannya
+ * kosong dan semua pemegang jabatan kembali boleh memutuskan, supaya pengajuan
+ * tidak pernah tersangkut tanpa approver.
+ */
+export async function loadApproverRules(
+  client: Tx | typeof prisma = prisma,
+  now: Date = new Date(),
+): Promise<ApproverRules> {
+  const row = await client.setting.findUnique({ where: { key: "approvers" } });
+  const raw = (row?.value ?? {}) as Record<string, unknown>;
+  const chosen = new Map<ApprovalKind, string[]>();
+  for (const kind of APPROVAL_KINDS) {
+    const parsed = approverSchema.safeParse(raw[kind] ?? {});
+    if (!parsed.success) continue;
+    const ids =
+      kind === "INVOICE"
+        ? [parsed.data.delegateUserId]
+        : [parsed.data.primaryUserId, parsed.data.delegateUserId];
+    const unique = [...new Set(ids.filter((id): id is string => Boolean(id)))];
+    if (unique.length > 0) chosen.set(kind, unique);
+  }
+  if (chosen.size === 0) return {};
+
+  const holders = await client.roleAssignment.findMany({
+    where: {
+      userId: { in: [...new Set([...chosen.values()].flat())] },
+      OR: [{ endedAt: null }, { endedAt: { gt: now } }],
+      period: { startDate: { lte: now }, endDate: { gt: now } },
+      user: { status: "ACTIVE" },
+    },
+    select: { userId: true, role: true, user: { select: { name: true } } },
+  });
+
+  const rules: ApproverRules = {};
+  for (const [kind, ids] of chosen) {
+    const eligible = ids
+      .map((id) =>
+        holders.find(
+          (h) => h.userId === id && APPROVER_ROLES[kind].includes(h.role),
+        ),
+      )
+      .filter((h): h is (typeof holders)[number] => Boolean(h));
+    if (eligible.length === 0) continue;
+    const rule: ApproverRule = {
+      userIds: eligible.map((h) => h.userId),
+      names: eligible
+        .map((h) => `${h.user.name} (${ROLE_LABELS[h.role]})`)
+        .join(" atau "),
+    };
+    rules[kind] = rule;
+  }
+  return rules;
 }

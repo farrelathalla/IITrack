@@ -10,7 +10,7 @@ import {
   type WorkflowRow,
   WorkflowSection,
 } from "@/components/settings/workflow";
-import { canGlobally } from "@/lib/auth/access";
+import { canGlobally, canManageApprover } from "@/lib/auth/access";
 import {
   DIVISION_LABELS,
   isFinanceLead,
@@ -19,7 +19,6 @@ import {
   ROLE_DIVISION,
   ROLE_LABELS,
 } from "@/lib/auth/roles";
-import type { RoleName } from "@/lib/auth/types";
 import {
   isSettingsSection,
   SETTINGS_SECTIONS,
@@ -36,6 +35,7 @@ import { prisma } from "@/server/db";
 import {
   APPROVAL_KIND_INFO,
   APPROVAL_KINDS,
+  APPROVER_ROLES,
   getSettings,
 } from "@/server/settings";
 
@@ -50,17 +50,6 @@ export async function generateMetadata({
       SETTINGS_SECTIONS.find((s) => s.id === section)?.label ?? "Pengaturan",
   };
 }
-
-const APPROVER_ROLES: Record<
-  string,
-  { primary: RoleName[]; delegate: RoleName[] }
-> = {
-  PROJECT_CHARTER: { primary: ["COO"], delegate: ["VICE_COO"] },
-  MOU: { primary: ["COO"], delegate: ["VICE_COO"] },
-  PROGRAMMER_CONTRACT: { primary: ["CTO"], delegate: ["VICE_CTO"] },
-  INVOICE: { primary: ["FINANCE_POC"], delegate: ["CFO", "VICE_CFO"] },
-  DISBURSEMENT: { primary: ["CFO"], delegate: ["VICE_CFO"] },
-};
 
 export default async function SettingsSectionPage({
   params,
@@ -122,7 +111,7 @@ export default async function SettingsSectionPage({
       const rows: WorkflowRow[] = await Promise.all(
         APPROVAL_KINDS.map(async (kind) => {
           const info = APPROVAL_KIND_INFO[kind];
-          const roles = APPROVER_ROLES[kind];
+          const holders = await activeUsersByRoles(APPROVER_ROLES[kind]);
           return {
             kind,
             label: info.label,
@@ -130,17 +119,18 @@ export default async function SettingsSectionPage({
             primaryHint: info.primaryHint,
             delegateHint: info.delegateHint,
             primaryFixed: kind === "INVOICE",
-            primaryOptions: await activeUsersByRoles(roles.primary),
-            delegateOptions: await activeUsersByRoles(roles.delegate),
+            primaryOptions: holders,
+            delegateOptions: holders,
             value: settings.approvers[kind],
+            editable: canManageApprover(role, kind),
           };
         }),
       );
-      return <WorkflowSection rows={rows} canManage={canManage} />;
+      return <WorkflowSection rows={rows} />;
     }
     case "access": {
       const projects = await prisma.project.findMany({
-        where: { closedAt: null },
+        where: { closedAt: null, deletedAt: null },
         orderBy: { createdAt: "desc" },
         select: {
           code: true,

@@ -12,6 +12,7 @@ import { fieldErrors } from "@/lib/validation";
 import type { Tx } from "@/server/activity";
 import { viewerOf } from "@/server/auth/actor";
 import { prisma } from "@/server/db";
+import { loadApproverRules } from "@/server/settings";
 import { accessOf, loadSnapshot, syncStageCompletion } from "./snapshot";
 
 /**
@@ -83,7 +84,10 @@ export async function mutateProject<T>(
     const project = await loadSnapshot(input.projectId, tx);
     if (!project) throw new ActionError("Project tidak ditemukan.");
 
-    const access = accessOf(project);
+    const access = {
+      ...accessOf(project),
+      approvers: await loadApproverRules(tx, now),
+    };
     const actions = Array.isArray(input.action)
       ? (input.action as readonly ProjectAction[])
       : [input.action as ProjectAction];

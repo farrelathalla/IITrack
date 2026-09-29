@@ -16,7 +16,12 @@ import { documentOf, financePocOf, pmOf } from "@/lib/project/snapshot";
 import { formatDate, parseDateInput } from "@/lib/time";
 import { feedbackSchema } from "@/lib/validation";
 import { recordActivity } from "@/server/activity";
-import { notify, notifyRoles, projectHref } from "@/server/notify";
+import {
+  notify,
+  notifyApprovers,
+  notifyRoles,
+  projectHref,
+} from "@/server/notify";
 import { getSettings } from "@/server/settings";
 import {
   ActionError,
@@ -378,7 +383,7 @@ export async function verifyDisbursement(params: {
     actor: params.actor,
     projectId: params.projectId,
     action: "disbursement.finance",
-    run: async ({ tx, project, now }) => {
+    run: async ({ tx, project, access, now }) => {
       const updated = await tx.disbursement.updateMany({
         where: { projectId: project.id, status: "SUBMITTED" },
         data: {
@@ -401,10 +406,15 @@ export async function verifyDisbursement(params: {
         division: "FINANCE",
         result: "SUBMITTED",
       });
-      await notifyRoles(tx, ["CFO", "VICE_CFO"], {
-        message: `Finance Disbursement Project ${project.name} menunggu persetujuan Anda.`,
-        href: projectHref(project.code, { stage: 9, tab: "finance" }),
-      });
+      await notifyApprovers(
+        tx,
+        access.approvers?.DISBURSEMENT?.userIds,
+        ["CFO", "VICE_CFO"],
+        {
+          message: `Finance Disbursement Project ${project.name} menunggu persetujuan Anda.`,
+          href: projectHref(project.code, { stage: 9, tab: "finance" }),
+        },
+      );
     },
   });
 }
