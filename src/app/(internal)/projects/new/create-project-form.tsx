@@ -68,9 +68,17 @@ export function CreateProjectForm({
             </p>
           </div>
           <p className="max-w-sm text-right text-muted text-xs">
-            Nomor final terbit saat project dibuat.
+            Kosongkan nomor manual bila nomor ini yang dipakai.
           </p>
         </Card>
+
+        <TextField
+          label="Nomor manual (opsional)"
+          name="manualCode"
+          placeholder={nextId ?? "IIT-2627-006"}
+          error={fields.manualCode}
+          hint="Hanya diisi bila COO menetapkan nomor sendiri. Nomor yang sudah pernah terbit tidak bisa dipakai lagi."
+        />
 
         <Section title="Informasi Dasar">
           <TextField

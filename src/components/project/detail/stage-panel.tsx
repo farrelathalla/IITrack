@@ -411,6 +411,10 @@ function Stage6() {
           </div>
         )}
       </Subsection>
+      <p className="text-ink text-sm">
+        Eksekusi tidak menunggu Down Payment. Keduanya berjalan bersamaan
+        setelah tech assignment selesai.
+      </p>
       <ErrorText error={error} />
       {can["ops.edit"] && !project.developmentDoneAt ? (
         <Button

@@ -32,6 +32,7 @@ export async function createProjectAction(
         targetStart: text(formData, "targetStart"),
         targetEnd: text(formData, "targetEnd"),
         internalNote: text(formData, "internalNote"),
+        manualCode: text(formData, "manualCode"),
       },
     });
     revalidatePath("/", "layout");

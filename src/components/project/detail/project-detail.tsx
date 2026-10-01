@@ -12,6 +12,8 @@ import { PROJECT_TOP_BAR } from "@/components/project/tones";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { PROJECT_ROLE_LABELS } from "@/lib/auth/roles";
+import { financialSummary } from "@/lib/finance/terms";
+import { formatRupiah } from "@/lib/money";
 import {
   isStageNumber,
   stageDefinition,
@@ -39,7 +41,8 @@ function Header({
   onHistory: () => void;
   onAssign: (mode: AssignmentMode) => void;
 }) {
-  const { project, summary, can } = useProject();
+  const { project, summary, can, amountsHidden } = useProject();
+  const money = financialSummary(project.terms);
   const pm = pmOf(project);
   const percent = Math.round((summary.completed / TOTAL_STAGES) * 100);
   const color =
@@ -112,6 +115,25 @@ function Header({
           </div>
         </div>
         <ProjectDetailsMenu />
+        {!amountsHidden && project.terms.length > 0 ? (
+          <dl className="mt-4 grid grid-cols-2 gap-3 rounded-lg border border-line bg-surface px-4 py-3 text-sm sm:grid-cols-4">
+            {(
+              [
+                ["Nilai kontrak", money.total],
+                ["Sudah ditagih", money.billed],
+                ["Sudah dibayar", money.paid],
+                ["Sisa", money.remaining],
+              ] as const
+            ).map(([label, amount]) => (
+              <div key={label}>
+                <dt className="text-muted text-xs">{label}</dt>
+                <dd className="font-semibold text-ink">
+                  {formatRupiah(amount)}
+                </dd>
+              </div>
+            ))}
+          </dl>
+        ) : null}
 
         {summary.needsReassignment.length > 0 ? (
           <div className="mt-4 flex items-center gap-2 rounded-lg border border-danger-line bg-danger-bg px-3 py-2 text-danger-text text-xs">

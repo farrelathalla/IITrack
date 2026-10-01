@@ -18,7 +18,7 @@ import { Avatar } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { buttonClass } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/card";
-import { seesAllProjects } from "@/lib/auth/access";
+import { canSeeAmounts, seesAllProjects } from "@/lib/auth/access";
 import {
   isFinanceLead,
   isOpsLead,
@@ -26,6 +26,8 @@ import {
   PROJECT_ROLE_LABELS,
 } from "@/lib/auth/roles";
 import type { ProjectRole } from "@/lib/auth/types";
+import { financialSummary } from "@/lib/finance/terms";
+import { formatRupiah } from "@/lib/money";
 import {
   type ChartProject,
   divisionBars,
@@ -49,6 +51,7 @@ import {
   projectCounts,
   recentActivity,
 } from "@/server/project/queries";
+import { accessOf } from "@/server/project/snapshot";
 
 export const metadata: Metadata = { title: "Dashboard" };
 
@@ -115,6 +118,11 @@ export default async function DashboardPage() {
     stageStatus: item.summary.current.status,
   }));
   const chartsEmpty = chartProjects.length === 0;
+  const money = financialSummary(
+    [...items, ...past]
+      .filter((item) => canSeeAmounts(viewer, accessOf(item.project)))
+      .flatMap((item) => item.project.terms),
+  );
 
   const stats = [
     {
@@ -225,6 +233,32 @@ export default async function DashboardPage() {
           </div>
         ))}
       </section>
+
+      {money.total > 0 ? (
+        <section className="rounded-xl border border-line bg-white p-4 shadow-sm">
+          <h2 className="font-bold text-ink text-sm">Ringkasan finance</h2>
+          <p className="mt-0.5 text-muted text-xs">
+            Dihitung dari termin project yang nominalnya boleh Anda lihat.
+          </p>
+          <dl className="mt-3 grid grid-cols-2 gap-3 text-sm sm:grid-cols-4">
+            {(
+              [
+                ["Nilai kontrak", money.total],
+                ["Sudah ditagih", money.billed],
+                ["Sudah dibayar", money.paid],
+                ["Sisa", money.remaining],
+              ] as const
+            ).map(([label, amount]) => (
+              <div key={label}>
+                <dt className="text-muted text-xs">{label}</dt>
+                <dd className="font-semibold text-ink">
+                  {formatRupiah(amount)}
+                </dd>
+              </div>
+            ))}
+          </dl>
+        </section>
+      ) : null}
 
       <DashboardCharts
         bars={divisionBars(chartProjects)}

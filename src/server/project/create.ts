@@ -5,7 +5,7 @@ import {
   PROJECT_SOURCE_LABELS,
   PROJECT_TYPE_LABELS,
 } from "@/lib/project/catalog";
-import { formatProjectId } from "@/lib/project/project-id";
+import { formatProjectId, parseProjectId } from "@/lib/project/project-id";
 import { parseDateInput } from "@/lib/time";
 import { recordActivity } from "@/server/activity";
 import { viewerOf } from "@/server/auth/actor";
@@ -53,6 +53,11 @@ export const createProjectSchema = z
       .trim()
       .optional()
       .transform((value) => (value ? value : null)),
+    manualCode: z
+      .string()
+      .trim()
+      .optional()
+      .transform((value) => (value ? value.toUpperCase() : null)),
   })
   .refine((data) => data.targetEnd >= data.targetStart, {
     path: ["targetEnd"],
@@ -105,21 +110,56 @@ export async function createProject(params: {
     );
   }
 
+  const manual = data.manualCode ? parseProjectId(data.manualCode) : null;
+  if (data.manualCode && !manual) {
+    throw new ActionError(
+      "Bentuk Project ID tidak sesuai. Contoh: IIT-2627-006.",
+      { manualCode: "Bentuk Project ID tidak sesuai. Contoh: IIT-2627-006." },
+    );
+  }
+  if (manual && manual.period !== period.code) {
+    throw new ActionError(
+      `Nomor manual harus memakai periode yang sedang berjalan, ${period.code}.`,
+      {
+        manualCode: `Nomor manual harus memakai periode yang sedang berjalan, ${period.code}.`,
+      },
+    );
+  }
+
   return prisma.$transaction(async (tx) => {
     const pm = await assertEligible(tx, data.pmUserId, "PM", now);
 
-    const counter = await tx.projectNumberCounter.upsert({
+    const current = await tx.projectNumberCounter.findUnique({
       where: { periodCode: period.code },
-      create: { periodCode: period.code, highestIssued: 1 },
-      update: { highestIssued: { increment: 1 } },
     });
-    const code = formatProjectId(period.code, counter.highestIssued);
+    const highest = current?.highestIssued ?? 0;
+    let sequence = highest + 1;
+    if (manual) {
+      const taken = await tx.project.findUnique({
+        where: { code: formatProjectId(period.code, manual.sequence) },
+        select: { id: true },
+      });
+      if (taken) {
+        throw new ActionError("Nomor project ini sudah dipakai.", {
+          manualCode: "Nomor project ini sudah dipakai.",
+        });
+      }
+      sequence = manual.sequence;
+    }
+    if (sequence > highest) {
+      await tx.projectNumberCounter.upsert({
+        where: { periodCode: period.code },
+        create: { periodCode: period.code, highestIssued: sequence },
+        update: { highestIssued: sequence },
+      });
+    }
+    const code = formatProjectId(period.code, sequence);
 
     const project = await tx.project.create({
       data: {
         code,
         periodCode: period.code,
-        sequence: counter.highestIssued,
+        sequence,
         name: data.name,
         client: data.client,
         type: data.type,
@@ -146,7 +186,15 @@ export async function createProject(params: {
       projectId: project.id,
       actorId: params.actor.userId,
       action: "project.created",
-      summary: `Membuat project ${code} dan menugaskan ${pm.name} sebagai PM`,
+      summary: manual
+        ? `Membuat project ${code} dengan nomor yang ditetapkan manual, dan menugaskan ${pm.name} sebagai PM`
+        : `Membuat project ${code} dan menugaskan ${pm.name} sebagai PM`,
+      data: manual
+        ? {
+            autoNext: formatProjectId(period.code, highest + 1),
+            chosen: code,
+          }
+        : undefined,
       stage: 1,
       division: "OPERATIONAL",
       result: "CREATED",

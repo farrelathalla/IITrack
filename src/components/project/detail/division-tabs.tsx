@@ -274,12 +274,17 @@ function FinanceTab({
       </Subsection>
 
       <Subsection title="Project Financial Summary">
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-2 gap-3">
           {[
             {
               label: "Total Nilai Kontrak",
               value: summary.total,
               sub: "100% dari scope",
+            },
+            {
+              label: "Sudah Ditagih",
+              value: summary.billed,
+              sub: "invoice sudah dikirim",
             },
             {
               label: "Sudah Terbayar",

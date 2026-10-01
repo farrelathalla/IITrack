@@ -194,6 +194,16 @@ describe("PRD 4.1: sembilan stage berjalan berurutan", () => {
     ]);
   });
 
+  it("Stage 6 terbuka setelah tech assignment, tanpa menunggu Down Payment", () => {
+    const project = projectThroughStage4();
+    const stages = deriveStages(project, NOW);
+    expect(stages[4].status).not.toBe("locked");
+    expect(stages[5].status).not.toBe("locked");
+    expect(stages[6].status).toBe("locked");
+    expect(stages[6].lockedReason).toContain("Down Payment");
+    expect(stages[6].lockedReason).toContain("Project Execution");
+  });
+
   it("Stage 6 selesai saat PM menandai pengembangan selesai", () => {
     const base = projectThroughStage4();
     const project = {
@@ -264,5 +274,22 @@ describe("PRD 4.1: sembilan stage berjalan berurutan", () => {
     const stages = deriveStages(project, NOW);
     expect(currentStage(stages).n).toBe(5);
     expect(defaultPanelStage(stages)).toBe(5);
+  });
+
+  it("panel default memilih eksekusi bila progress tech sudah ada meski DP belum", () => {
+    const project = projectThroughStage4({
+      techInfo: {
+        githubRepo: null,
+        sprintPlanning: null,
+        currentSprint: "Sprint 1",
+        progressPercent: 10,
+        nextMilestone: null,
+        latestUpdate: null,
+        latestUpdateAt: null,
+      },
+    });
+    const stages = deriveStages(project, NOW);
+    expect(stages[5].status).toBe("in-progress");
+    expect(defaultPanelStage(stages)).toBe(6);
   });
 });
