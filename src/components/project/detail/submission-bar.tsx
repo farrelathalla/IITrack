@@ -42,8 +42,20 @@ export function RejectDialog({
   error: string | null;
 }) {
   const [feedback, setFeedback] = useState("");
+  const [localError, setLocalError] = useState<string | null>(null);
+
+  function close() {
+    setFeedback("");
+    setLocalError(null);
+    onOpenChange(false);
+  }
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange} title={title}>
+    <Dialog
+      open={open}
+      onOpenChange={(next) => (next ? onOpenChange(true) : close())}
+      title={title}
+    >
       <div className="space-y-3">
         <ErrorText error={error} />
         <TextArea
@@ -51,17 +63,28 @@ export function RejectDialog({
           name="feedback"
           required
           value={feedback}
-          onChange={(e) => setFeedback(e.target.value)}
+          hint="Wajib diisi. Tanpa alasan, pengajuan tidak bisa ditolak."
+          error={localError}
+          onChange={(e) => {
+            setFeedback(e.target.value);
+            if (e.target.value.trim()) setLocalError(null);
+          }}
           placeholder="Jelaskan apa yang perlu diperbaiki."
         />
         <div className="flex justify-end gap-2">
-          <Button variant="ghost" onClick={() => onOpenChange(false)}>
+          <Button variant="ghost" onClick={close}>
             Batal
           </Button>
           <Button
             variant="danger"
-            disabled={pending || feedback.trim() === ""}
-            onClick={() => onReject(feedback)}
+            disabled={pending}
+            onClick={() => {
+              if (feedback.trim() === "") {
+                setLocalError("Feedback wajib diisi saat menolak.");
+                return;
+              }
+              onReject(feedback);
+            }}
           >
             {pending ? "Mengirim…" : "Tolak dengan Feedback"}
           </Button>

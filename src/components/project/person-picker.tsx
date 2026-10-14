@@ -20,6 +20,7 @@ export function PersonPicker({
   candidates,
   error,
   value,
+  defaultValue = "",
   onChange,
   exclude = [],
 }: {
@@ -29,10 +30,11 @@ export function PersonPicker({
   candidates: Candidate[];
   error?: string;
   value?: string;
+  defaultValue?: string;
   onChange?: (id: string) => void;
   exclude?: string[];
 }) {
-  const [internal, setInternal] = useState("");
+  const [internal, setInternal] = useState(defaultValue);
   const selectedId = value ?? internal;
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
