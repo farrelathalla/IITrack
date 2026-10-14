@@ -2,7 +2,7 @@ import type { ButtonHTMLAttributes, ReactNode } from "react";
 import { cn } from "@/lib/utils";
 
 type ButtonVariant = "primary" | "secondary" | "ghost" | "danger" | "success";
-type ButtonSize = "sm" | "md";
+type ButtonSize = "sm" | "md" | "lg";
 
 const VARIANT: Record<ButtonVariant, string> = {
   primary: "bg-plum-600 font-semibold text-white hover:bg-plum-700",
@@ -17,6 +17,7 @@ const VARIANT: Record<ButtonVariant, string> = {
 const SIZE: Record<ButtonSize, string> = {
   sm: "h-7 px-2.5 text-[11px]",
   md: "h-8 px-3.5 text-xs",
+  lg: "h-11 px-5 text-sm",
 };
 
 const BASE =

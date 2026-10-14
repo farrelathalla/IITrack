@@ -229,16 +229,17 @@ export function SubmissionBar({
         latest?.status === "APPROVED" &&
         !doc?.signedAt &&
         canSubmit ? (
-          <div className="w-full rounded-lg border border-warning-line bg-warning-bg px-4 py-3">
-            <p className="font-semibold text-ink text-sm">
-              Tanda tangan belum dicatat
+          <div className="w-full rounded-xl border-2 border-warning-dot bg-warning-bg px-5 py-4">
+            <p className="font-bold text-ink text-base">
+              Tanda tangan {label} belum dicatat
             </p>
             <p className="mt-1 text-ink text-sm">
-              Persetujuan saja belum cukup. Tahap berikutnya tetap terkunci
-              sampai tanda tangan dicatat.
+              Persetujuan internal sudah ada. Stage berikutnya tetap terkunci
+              sampai tombol di bawah ini ditekan.
             </p>
             <Button
-              className="mt-3 h-10 px-4 text-sm"
+              size="lg"
+              className="mt-4"
               disabled={pending}
               onClick={() =>
                 run(() =>

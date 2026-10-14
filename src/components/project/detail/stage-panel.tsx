@@ -35,7 +35,12 @@ import {
   WarrantyBlock,
 } from "./ops";
 import { SubmissionBar } from "./submission-bar";
-import { StaffingBlock, TechProgress, TechReferences } from "./tech";
+import {
+  StaffingBlock,
+  TechProgress,
+  TechPulseCard,
+  TechReferences,
+} from "./tech";
 import { PaymentFlow, TermCard, TermsEditor, termDueLabel } from "./terms";
 
 const MANUAL_STATUS = ["MISSING", "IN_PROGRESS", "SUBMITTED", "DONE"] as const;
@@ -105,10 +110,10 @@ function StageNeeds({ stage }: { stage: number }) {
   if (gaps.length === 0) return null;
   return (
     <div className="rounded-lg border border-line bg-surface px-4 py-3">
-      <p className="font-semibold text-ink text-sm">
+      <p className="font-bold text-ink text-base">
         Yang masih kurang sebelum tahap ini selesai
       </p>
-      <ul className="mt-2 list-disc space-y-1 pl-5 text-ink text-sm">
+      <ul className="mt-2 list-disc space-y-1.5 pl-5 text-ink text-sm">
         {gaps.map((gap) => (
           <li key={gap}>{gap}</li>
         ))}
@@ -306,10 +311,10 @@ function Stage3() {
         signable
       />
       {latest?.status === "APPROVED" && !mou?.signedAt ? (
-        <p className="rounded-lg border border-warning-line bg-warning-bg px-4 py-3 text-ink text-sm">
+        <p className="rounded-xl border-2 border-warning-dot bg-warning-bg px-5 py-4 font-medium text-ink text-sm">
           Kirim MoU ke client, ganti tautan dengan versi bertanda tangan, lalu
-          klik Tandai Ditandatangani. Tanpa tanda tangan, stage berikutnya tetap
-          terkunci.
+          tekan tombol besar Tandai Ditandatangani di kartu dokumen. Tanpa itu,
+          Programmer Assignment tetap terkunci.
         </p>
       ) : null}
     </>
@@ -389,6 +394,7 @@ function Stage6() {
   );
   return (
     <>
+      <TechPulseCard />
       <Subsection title="Referensi Teknis">
         <TechReferences />
       </Subsection>
@@ -448,14 +454,26 @@ function Stage7() {
           />
           <ErrorText error={error} />
           {can["ops.edit"] && bast?.url && !bast.signedAt ? (
-            <Button
-              variant="secondary"
-              disabled={pending}
-              onClick={() => run(() => markSignedAction(project.code, "BAST"))}
-            >
-              <PenLine className="size-3.5" />
-              Tandai BAST Ditandatangani
-            </Button>
+            <div className="rounded-xl border-2 border-warning-dot bg-warning-bg px-5 py-4">
+              <p className="font-bold text-ink text-base">
+                Tanda tangan BAST belum dicatat
+              </p>
+              <p className="mt-1 text-ink text-sm">
+                Tanpa langkah ini, Handover tidak selesai dan Evaluation tetap
+                terkunci.
+              </p>
+              <Button
+                size="lg"
+                className="mt-4"
+                disabled={pending}
+                onClick={() =>
+                  run(() => markSignedAction(project.code, "BAST"))
+                }
+              >
+                <PenLine className="size-4" />
+                Tandai BAST Ditandatangani
+              </Button>
+            </div>
           ) : null}
         </div>
       </Subsection>

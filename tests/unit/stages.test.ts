@@ -286,6 +286,7 @@ describe("PRD 4.1: sembilan stage berjalan berurutan", () => {
         nextMilestone: null,
         latestUpdate: null,
         latestUpdateAt: null,
+        updatedAt: NOW,
       },
     });
     const stages = deriveStages(project, NOW);

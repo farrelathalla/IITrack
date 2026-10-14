@@ -28,19 +28,23 @@ import { InfoGrid, ReadOnlyBanner, Subsection } from "./bits";
 import { useProject } from "./context";
 import { ClosureBlock, DisbursementBlock } from "./disbursement";
 import { DocumentCard, documentBadge } from "./document-card";
-import { MilestonesBlock, UatControl } from "./ops";
+import { MilestonesBlock } from "./ops";
 import { TermsSummary } from "./stage-panel";
 import { SubmissionBar } from "./submission-bar";
-import { StaffingBlock, TechProgress, TechReferences } from "./tech";
+import {
+  StaffingBlock,
+  TechProgress,
+  TechPulseCard,
+  TechReferences,
+} from "./tech";
 import { TermCard } from "./terms";
 
 function PmTab() {
-  const { project, can, stages } = useProject();
+  const { project, stages } = useProject();
   const mou = documentOf(project, "MOU");
   const mouLatest = latestSubmission(project, mou?.id);
   const mouBadge = documentBadge(mou, mouLatest);
   const developers = developersOf(project);
-  const bast = documentOf(project, "BAST");
 
   return (
     <div className="space-y-6">
@@ -76,72 +80,12 @@ function PmTab() {
         <MilestonesBlock />
       </Subsection>
 
-      <div className="grid grid-cols-2 gap-4">
-        <Subsection title="Requirement Gathering">
-          <DocumentCard
-            kind="REQUIREMENT_GATHERING"
-            editable={can["stage1.edit"] && !project.stage1DoneAt}
-            statusOptions={["MISSING", "IN_PROGRESS", "SUBMITTED", "DONE"]}
-          />
-        </Subsection>
-        <Subsection title="Project Charter">
-          <DocumentCard
-            kind="PROJECT_CHARTER"
-            editable={can["charter.edit"] && stages[1].status !== "locked"}
-          />
-        </Subsection>
-      </div>
-
-      <Subsection title="Agreement Overview">
-        <InfoGrid>
-          <InfoRow label="Status MoU">
-            <Badge tone={mouBadge.tone}>
-              {mou ? mouBadge.label : "Belum Ada"}
-            </Badge>
-          </InfoRow>
-          <InfoRow label="Status Tanda Tangan">
-            {mou?.signedAt ? "Ditandatangani" : "Belum Ditandatangani"}
-          </InfoRow>
-          <InfoRow label="Deadline MoU">{formatDate(mou?.deadline)}</InfoRow>
-        </InfoGrid>
-        {mouLatest?.status === "REJECTED" ? (
-          <SubmissionBar
-            kind="MOU"
-            label="MoU"
-            approverLabel="COO / Vice COO"
-            canSubmit={can["mou.edit"]}
-            canDecide={false}
-          />
-        ) : null}
-      </Subsection>
+      <p className="text-muted text-xs">
+        Charter, MoU, UAT, dan BAST diisi di panel stage di atas, bukan di
+        ringkasan ini.
+      </p>
 
       {stages[2].status !== "locked" ? <TermsSummary /> : null}
-
-      <div className="grid grid-cols-2 gap-4">
-        <Subsection title="UAT">
-          <UatControl
-            editable={can["ops.edit"] && stages[6].status !== "locked"}
-          />
-        </Subsection>
-        <Subsection title="BAST">
-          <div className="flex items-center justify-between rounded-lg border border-line bg-white px-4 py-3">
-            <span className="font-medium text-ink text-xs">
-              Handover Report / BAST
-            </span>
-            <Badge
-              tone={
-                bast?.signedAt ? "success" : bast?.url ? "warning" : "neutral"
-              }
-            >
-              {bast?.signedAt
-                ? "Ditandatangani"
-                : bast?.url
-                  ? "Belum Ditandatangani"
-                  : "Belum Ada"}
-            </Badge>
-          </div>
-        </Subsection>
-      </div>
 
       <Subsection title="Closure Checklist">
         <ClosureBlock />
@@ -165,6 +109,7 @@ function TechTab({ onAssign }: { onAssign: (mode: AssignmentMode) => void }) {
 
   return (
     <div className="space-y-6">
+      <TechPulseCard />
       <Subsection title="Tech Staffing Request">
         <StaffingBlock onAssign={onAssign} />
       </Subsection>
@@ -405,9 +350,9 @@ export function DivisionTabs({
     >
       <div className="flex items-end justify-between gap-4 border-line border-b bg-surface px-5 pt-4">
         <div className="pb-3">
-          <p className="font-bold text-ink text-sm">Tampilan Divisi</p>
+          <p className="font-bold text-ink text-sm">Ringkasan per divisi</p>
           <p className="text-muted text-xs">
-            Data yang sama, dilihat per divisi
+            Bukan langkah kerja. Alur stage ada di panel di atas.
           </p>
         </div>
         <div className="flex" role="tablist">
@@ -433,8 +378,8 @@ export function DivisionTabs({
       </div>
       <div className="space-y-4 p-5">
         <p className="text-subtle text-xs">
-          Terhubung dengan workflow di atas. Perubahan di satu divisi langsung
-          terlihat di divisi lain.
+          Perubahan di satu divisi langsung terlihat di divisi lain dan di panel
+          stage.
         </p>
         {!editableTabs[tab] ? (
           <ReadOnlyBanner>

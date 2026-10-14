@@ -37,11 +37,16 @@ interface PeriodOption {
 
 type DialogState =
   | { kind: "add" }
+  | { kind: "invite"; path: string; email: string }
   | { kind: "view"; user: UserRow }
   | { kind: "role"; user: UserRow }
   | { kind: "revoke"; user: UserRow }
   | { kind: "password"; user: UserRow }
   | null;
+
+function invitePathFrom(message: string | undefined): string | null {
+  return message?.match(/\/undang\/[a-f0-9]+/)?.[0] ?? null;
+}
 
 function RoleSelect({ defaultValue }: { defaultValue?: RoleName | null }) {
   return (
@@ -105,6 +110,7 @@ export function UsersSection({
   const [period, setPeriod] = useState("");
   const [status, setStatus] = useState("");
   const [dialog, setDialog] = useState<DialogState>(null);
+  const [copied, setCopied] = useState(false);
   const { run, pending, error, message } = useRunner();
 
   const filtered = users.filter((u) => {
@@ -279,21 +285,32 @@ export function UsersSection({
         title="Tambah User"
       >
         <form
-          action={(fd) =>
-            run(() =>
-              addUserAction({
-                name: String(fd.get("name") ?? ""),
-                email: String(fd.get("email") ?? ""),
-                role: String(fd.get("role") ?? "") as RoleName,
-                periodId: String(fd.get("periodId") ?? ""),
-                password: String(fd.get("password") ?? ""),
-              }),
-            )
-          }
+          action={(fd) => {
+            const email = String(fd.get("email") ?? "");
+            run(
+              () =>
+                addUserAction({
+                  name: String(fd.get("name") ?? ""),
+                  email,
+                  role: String(fd.get("role") ?? "") as RoleName,
+                  periodId: String(fd.get("periodId") ?? ""),
+                  password: String(fd.get("password") ?? ""),
+                }),
+              (result) => {
+                const path = invitePathFrom(result.message);
+                if (path) {
+                  setCopied(false);
+                  setDialog({ kind: "invite", path, email });
+                }
+              },
+            );
+          }}
           className="space-y-3"
         >
           {error ? <Alert tone="danger">{error}</Alert> : null}
-          {message ? <Alert tone="success">{message}</Alert> : null}
+          {message && dialog?.kind === "add" ? (
+            <Alert tone="success">{message}</Alert>
+          ) : null}
           <TextField label="Nama" name="name" required />
           <TextField label="Email IIT" name="email" type="email" required />
           <RoleSelect />
@@ -305,7 +322,7 @@ export function UsersSection({
             autoComplete="new-password"
             minLength={8}
             required
-            hint="Sandi awal ini bisa dipakai langsung. Setelah simpan, salin tautan undangan yang muncul dan kirimkan. Email otomatis belum ada."
+            hint="Sandi awal bisa dipakai langsung. IITrack tidak mengirim email: setelah simpan, salin tautan undangan dan kirim sendiri."
           />
           <div className="flex justify-end gap-2">
             <Button variant="ghost" onClick={close}>
@@ -317,6 +334,43 @@ export function UsersSection({
           </div>
         </form>
       </Dialog>
+
+      {dialog?.kind === "invite" ? (
+        <Dialog open onOpenChange={(o) => !o && close()} title="Kirim undangan">
+          <div className="space-y-3">
+            <p className="text-ink text-sm">
+              IITrack tidak mengirim email. Salin tautan ini, lalu kirim ke{" "}
+              {dialog.email} lewat email atau WhatsApp. Berlaku 7 hari. Orang
+              baru membuka tautan, mengatur kata sandi, lalu masuk.
+            </p>
+            <TextField
+              label="Tautan undangan"
+              name="invite"
+              readOnly
+              defaultValue={`${window.location.origin}${dialog.path}`}
+            />
+            <div className="flex flex-wrap justify-end gap-2">
+              <Button
+                variant="secondary"
+                onClick={async () => {
+                  const url = `${window.location.origin}${dialog.path}`;
+                  await navigator.clipboard.writeText(url);
+                  setCopied(true);
+                }}
+              >
+                {copied ? "Tersalin" : "Salin tautan"}
+              </Button>
+              <a
+                className="inline-flex h-8 items-center rounded-lg border border-plum-200 bg-white px-3.5 font-medium text-muted text-xs hover:bg-surface hover:text-ink"
+                href={`mailto:${encodeURIComponent(dialog.email)}?subject=${encodeURIComponent("Undangan IITrack")}&body=${encodeURIComponent(`Berikut tautan undangan IITrack (berlaku 7 hari):\n${window.location.origin}${dialog.path}\n\nBuka tautan itu, atur kata sandi, lalu masuk.`)}`}
+              >
+                Buka email
+              </a>
+              <Button onClick={close}>Selesai</Button>
+            </div>
+          </div>
+        </Dialog>
+      ) : null}
 
       {dialog?.kind === "view" ? (
         <Dialog

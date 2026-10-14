@@ -102,6 +102,8 @@ export interface TechInfoSnapshot {
   nextMilestone: string | null;
   latestUpdate: string | null;
   latestUpdateAt: Date | null;
+  /** Terisi setiap kali baris tech_infos berubah (progres, tautan, update). */
+  updatedAt: Date | null;
 }
 
 export interface BlockerSnapshot {

@@ -25,9 +25,35 @@ export interface ProjectListItem {
   awaitingMe: boolean;
 }
 
+function toListItems(
+  snapshots: ProjectSnapshot[],
+  viewer: Viewer,
+  now: Date,
+  myRoleOf: (project: ProjectSnapshot) => MyProjectRole | null = (project) =>
+    myProjectRole(viewer, accessOf(project)),
+): ProjectListItem[] {
+  return snapshots.map((project) => {
+    const stages = deriveStages(project, now);
+    const summary = summarize(project, stages, now);
+    return {
+      project,
+      stages,
+      summary,
+      deadlines: openDeadlines(project, stages),
+      myRole: myRoleOf(project),
+      awaitingMe: isAwaitingUser(
+        summary.nextAction,
+        viewer.userId,
+        viewer.role,
+      ),
+    };
+  });
+}
+
 /**
- * Project yang relevan untuk pengguna: C-Level (dan Super Admin) melihat
- * semua, jabatan lain hanya project tempat ia ditugaskan (PRD bab 8.1-8.2).
+ * Project yang relevan untuk Dashboard, Active, dan Past: C-Level (dan Super
+ * Admin) melihat semua, jabatan lain hanya project tempat ia ditugaskan
+ * (PRD bab 8.1-8.2). All Projects memakai `listDirectoryProjects`.
  */
 export async function listProjects(
   viewer: Viewer,
@@ -50,23 +76,28 @@ export async function listProjects(
     orderBy: options.closed ? { closedAt: "desc" } : { createdAt: "desc" },
   });
 
-  const snapshots = await snapshotsFrom(rows);
-  return snapshots.map((project) => {
-    const stages = deriveStages(project, now);
-    const summary = summarize(project, stages, now);
-    return {
-      project,
-      stages,
-      summary,
-      deadlines: openDeadlines(project, stages),
-      myRole: myProjectRole(viewer, accessOf(project)),
-      awaitingMe: isAwaitingUser(
-        summary.nextAction,
-        viewer.userId,
-        viewer.role,
-      ),
-    };
+  return toListItems(await snapshotsFrom(rows), viewer, now);
+}
+
+/**
+ * Direktori All Projects: setiap akun aktif melihat semua project yang belum
+ * dihapus, termasuk yang tidak melibatkan dirinya. Nominal tetap disembunyikan
+ * di halaman detail menurut `canSeeAmounts`.
+ */
+export async function listDirectoryProjects(
+  viewer: Viewer,
+  now: Date = new Date(),
+): Promise<ProjectListItem[]> {
+  const rows = await prisma.project.findMany({
+    where: { deletedAt: null },
+    include: SNAPSHOT_INCLUDE,
   });
+  rows.sort((a, b) => {
+    const closed = Number(Boolean(a.closedAt)) - Number(Boolean(b.closedAt));
+    if (closed !== 0) return closed;
+    return b.updatedAt.getTime() - a.updatedAt.getTime();
+  });
+  return toListItems(await snapshotsFrom(rows), viewer, now);
 }
 
 /** Riwayat project yang pernah ditangani, termasuk penugasan yang sudah berakhir. */

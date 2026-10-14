@@ -1,6 +1,6 @@
 "use client";
 
-import { AlertTriangle, ChevronRight, History, UserCog } from "lucide-react";
+import { AlertTriangle, ChevronRight } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useState } from "react";
@@ -10,7 +10,6 @@ import {
 } from "@/components/project/status-chip";
 import { PROJECT_TOP_BAR } from "@/components/project/tones";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { PROJECT_ROLE_LABELS } from "@/lib/auth/roles";
 import { financialSummary } from "@/lib/finance/terms";
 import { formatRupiah } from "@/lib/money";
@@ -41,7 +40,7 @@ function Header({
   onHistory: () => void;
   onAssign: (mode: AssignmentMode) => void;
 }) {
-  const { project, summary, can, amountsHidden } = useProject();
+  const { project, summary, amountsHidden } = useProject();
   const money = financialSummary(project.terms);
   const pm = pmOf(project);
   const percent = Math.round((summary.completed / TOTAL_STAGES) * 100);
@@ -92,20 +91,7 @@ function Header({
             <h1 className="font-bold text-xl text-ink">{project.name}</h1>
           </div>
           <div className="flex shrink-0 items-center gap-2">
-            <Button variant="secondary" size="sm" onClick={onHistory}>
-              <History className="size-3.5" />
-              Riwayat Aktivitas
-            </Button>
-            {can["project.assignPm"] ? (
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={() => onAssign({ kind: "pm" })}
-              >
-                <UserCog className="size-3.5" />
-                Ganti PM
-              </Button>
-            ) : null}
+            <ProjectDetailsMenu onHistory={onHistory} onAssign={onAssign} />
             <Link
               href={project.closedAt ? "/projects/past" : "/projects"}
               className="rounded-lg px-3 py-1.5 font-semibold text-muted text-xs hover:bg-surface hover:text-ink"
@@ -114,7 +100,6 @@ function Header({
             </Link>
           </div>
         </div>
-        <ProjectDetailsMenu />
         {!amountsHidden && project.terms.length > 0 ? (
           <dl className="mt-4 grid grid-cols-2 gap-3 rounded-lg border border-line bg-surface px-4 py-3 text-sm sm:grid-cols-4">
             {(
@@ -219,7 +204,7 @@ function Detail({ activity }: { activity: ActivityItem[] }) {
       <StagePanel stage={stage} onAssign={setAssignment} />
       <details className="rounded-xl border border-line bg-white p-4 shadow-sm">
         <summary className="cursor-pointer font-semibold text-ink text-sm">
-          Tampilan divisi (PM, Tech, Finance)
+          Ringkasan per divisi (bukan alur kerja)
         </summary>
         <div className="mt-4">
           <DivisionTabs onAssign={setAssignment} />

@@ -163,6 +163,7 @@ export function toSnapshot(
       nextMilestone: row.techInfo.nextMilestone,
       latestUpdate: row.techInfo.latestUpdate,
       latestUpdateAt: row.techInfo.latestUpdateAt,
+      updatedAt: row.techInfo.updatedAt,
     },
     blockers: row.blockers.map((b) => ({
       id: b.id,

@@ -327,9 +327,9 @@ export function myProjectRole(
 }
 
 /**
- * C-Level melihat semua project; jabatan lain hanya yang ditugaskan (PRD bab
- * 8.1-8.2). Super Admin ikut melihat semua karena perannya memantau secara
- * read-only dan ia tidak pernah ditugaskan ke project mana pun.
+ * Dashboard dan Active/Past Projects: C-Level dan Super Admin melihat semua
+ * project; jabatan lain hanya yang ditugaskan (PRD bab 8.1-8.2). Halaman All
+ * Projects adalah direktori organisasi dan tidak memakai fungsi ini.
  */
 export function seesAllProjects(role: RoleName | null): boolean {
   return isCLevel(role) || role === "SUPER_ADMIN";
