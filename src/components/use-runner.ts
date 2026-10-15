@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useCallback, useState, useTransition } from "react";
 import type { ActionResult } from "@/server/project/mutate";
 
@@ -8,6 +9,7 @@ import type { ActionResult } from "@/server/project/mutate";
  * ditampilkan di dekat tombol yang ditekan.
  */
 export function useRunner() {
+  const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
@@ -19,17 +21,21 @@ export function useRunner() {
     ) => {
       setError(null);
       setMessage(null);
-      startTransition(async () => {
-        const result = await fn();
-        if (result.ok) {
-          setMessage(result.message ?? null);
-          onSuccess?.(result);
-        } else {
-          setError(result.error);
-        }
+      return new Promise<void>((resolve) => {
+        startTransition(async () => {
+          const result = await fn();
+          if (result.ok) {
+            setMessage(result.message ?? null);
+            onSuccess?.(result);
+            router.refresh();
+          } else {
+            setError(result.error);
+          }
+          resolve();
+        });
       });
     },
-    [],
+    [router],
   );
 
   return { run, pending, error, setError, message };

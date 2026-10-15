@@ -19,6 +19,8 @@ import {
   documentOf,
   financePocOf,
   latestSubmission,
+  WARRANTY_STATUS_LABELS,
+  warrantyStatus,
 } from "@/lib/project/snapshot";
 import { isFeedbackComplete, STAGE_STATUS_LABELS } from "@/lib/project/stages";
 import { formatDate } from "@/lib/time";
@@ -104,6 +106,76 @@ function StageNeeds({ stage }: { stage: number }) {
           `Kontrak Programmer ${developer.name}`,
           developer.userId,
         ),
+      );
+    }
+  }
+  if (stage === 5) {
+    if (!financePocOf(project)) {
+      gaps.push(
+        "Finance POC belum ditunjuk. Tombolnya di Ringkasan per divisi → tab Finance (CFO / Vice CFO).",
+      );
+    }
+    const dp = project.terms.find((term) => term.sequence === 1);
+    if (!dp) gaps.push("Termin DP belum diisi.");
+    else if (dp.step !== "DONE") gaps.push(`${dp.name} belum lunas.`);
+  }
+  if (stage === 6) {
+    if (!project.developmentDoneAt) {
+      gaps.push("Pengembangan belum ditandai selesai.");
+    }
+    for (const term of project.terms) {
+      if (stageOfTerm(term.sequence, project.terms.length) !== 6) continue;
+      if (term.feedback && term.step !== "DONE") {
+        gaps.push(
+          `${term.name} ada umpan balik finance. Perbaiki, lalu lanjutkan alur invoice.`,
+        );
+      }
+    }
+  }
+  if (stage === 7) {
+    const bast = documentOf(project, "BAST");
+    if (!bast?.url) gaps.push("Tautan BAST belum diisi.");
+    else if (!bast.signedAt) gaps.push("Tanda tangan BAST belum dicatat.");
+    const total = project.terms.length;
+    const final =
+      total > 1
+        ? project.terms.find((term) => term.sequence === total)
+        : project.terms[0];
+    if (final && final.step !== "DONE") {
+      gaps.push(`${final.name} belum lunas.`);
+    }
+    const now = new Date();
+    const warranty = warrantyStatus(project.handover, now);
+    if (!project.handover?.warrantyStart || !project.handover.warrantyEnd) {
+      gaps.push("Tanggal mulai dan akhir garansi belum diisi.");
+    } else if (warranty !== "DONE") {
+      gaps.push(
+        warranty === "NOT_STARTED"
+          ? `Garansi belum dimulai (${formatDate(project.handover.warrantyStart)}). Stage 7 selesai sehari setelah tanggal akhir garansi.`
+          : `Garansi masih ${WARRANTY_STATUS_LABELS.ACTIVE} sampai ${formatDate(project.handover.warrantyEnd)}. Stage 7 selesai sehari setelah tanggal itu (WIB), bukan saat tanggal diisi.`,
+      );
+    }
+  }
+  if (stage === 8) {
+    if (!isFeedbackComplete(documentOf(project, "CLIENT_FEEDBACK"))) {
+      gaps.push("Client Feedback belum lengkap (tautan dan status Selesai).");
+    }
+    if (!isFeedbackComplete(documentOf(project, "PROGRAMMER_FEEDBACK"))) {
+      gaps.push(
+        "Programmer Feedback belum lengkap (tautan dan status Selesai).",
+      );
+    }
+  }
+  if (stage === 9) {
+    if (!documentOf(project, "PROJECT_DOCUMENTATION")?.url) {
+      gaps.push("Project Documentation belum ditautkan.");
+    }
+    if (!documentOf(project, "SOURCE_CODE_DOCUMENTATION")?.url) {
+      gaps.push("Source Code Documentation belum ditautkan.");
+    }
+    if (project.disbursement?.status !== "DISBURSED") {
+      gaps.push(
+        "Finance Disbursement belum dicairkan. Pengajuan boleh sebelum dokumentasi; tutup project tidak.",
       );
     }
   }

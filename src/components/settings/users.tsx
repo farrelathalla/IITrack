@@ -45,7 +45,7 @@ type DialogState =
   | null;
 
 function invitePathFrom(message: string | undefined): string | null {
-  return message?.match(/\/undang\/[a-f0-9]+/)?.[0] ?? null;
+  return message?.match(/\/undang\/[A-Za-z0-9_-]+/)?.[0] ?? null;
 }
 
 function RoleSelect({ defaultValue }: { defaultValue?: RoleName | null }) {
@@ -281,13 +281,17 @@ export function UsersSection({
 
       <Dialog
         open={dialog?.kind === "add"}
-        onOpenChange={(o) => !o && close()}
+        onOpenChange={(open) => {
+          if (!open) {
+            setDialog((current) => (current?.kind === "add" ? null : current));
+          }
+        }}
         title="Tambah User"
       >
         <form
-          action={(fd) => {
+          action={async (fd) => {
             const email = String(fd.get("email") ?? "");
-            run(
+            await run(
               () =>
                 addUserAction({
                   name: String(fd.get("name") ?? ""),
@@ -309,7 +313,12 @@ export function UsersSection({
         >
           {error ? <Alert tone="danger">{error}</Alert> : null}
           {message && dialog?.kind === "add" ? (
-            <Alert tone="success">{message}</Alert>
+            <Alert tone="success">
+              {message.replace(
+                /\/undang\/[A-Za-z0-9_-]+/,
+                (path) => `${window.location.origin}${path}`,
+              )}
+            </Alert>
           ) : null}
           <TextField label="Nama" name="name" required />
           <TextField label="Email IIT" name="email" type="email" required />
