@@ -4,6 +4,7 @@ import {
   defaultPanelStage,
   deriveStages,
   newlyCompletedStages,
+  requirementMetAt,
   type StageStatus,
 } from "@/lib/project/stages";
 import {
@@ -96,6 +97,24 @@ describe("PRD 4.1: sembilan stage berjalan berurutan", () => {
     ]);
   });
 
+  it("Stage 2 tetap menunggu CTO bila baru COO yang menyetujui", () => {
+    const charter = doc("PROJECT_CHARTER");
+    const project = emptyProject({
+      stage1DoneAt: day("2026-08-05"),
+      documents: [doc("REQUIREMENT_GATHERING"), charter],
+      submissions: [
+        submission("PROJECT_CHARTER", charter, "PENDING", {
+          opsApprovedAt: day("2026-09-02"),
+          opsApprovedByName: "Ghazy",
+        }),
+      ],
+    });
+    const stage = deriveStages(project, NOW)[1];
+    expect(stage.status).toBe("waiting-approval");
+    expect(stage.waitingFor).toBe("CTO / Vice CTO");
+    expect(requirementMetAt(project, 2, NOW)).toBeNull();
+  });
+
   it("Stage 3 berstatus Disetujui sampai MoU ditandatangani", () => {
     const charter = doc("PROJECT_CHARTER");
     const mou = doc("MOU");
@@ -175,6 +194,16 @@ describe("PRD 4.1: sembilan stage berjalan berurutan", () => {
     ]);
   });
 
+  it("Stage 6 terbuka setelah tech assignment, tanpa menunggu Down Payment", () => {
+    const project = projectThroughStage4();
+    const stages = deriveStages(project, NOW);
+    expect(stages[4].status).not.toBe("locked");
+    expect(stages[5].status).not.toBe("locked");
+    expect(stages[6].status).toBe("locked");
+    expect(stages[6].lockedReason).toContain("Down Payment");
+    expect(stages[6].lockedReason).toContain("Project Execution");
+  });
+
   it("Stage 6 selesai saat PM menandai pengembangan selesai", () => {
     const base = projectThroughStage4();
     const project = {
@@ -245,5 +274,23 @@ describe("PRD 4.1: sembilan stage berjalan berurutan", () => {
     const stages = deriveStages(project, NOW);
     expect(currentStage(stages).n).toBe(5);
     expect(defaultPanelStage(stages)).toBe(5);
+  });
+
+  it("panel default memilih eksekusi bila progress tech sudah ada meski DP belum", () => {
+    const project = projectThroughStage4({
+      techInfo: {
+        githubRepo: null,
+        sprintPlanning: null,
+        currentSprint: "Sprint 1",
+        progressPercent: 10,
+        nextMilestone: null,
+        latestUpdate: null,
+        latestUpdateAt: null,
+        updatedAt: NOW,
+      },
+    });
+    const stages = deriveStages(project, NOW);
+    expect(stages[5].status).toBe("in-progress");
+    expect(defaultPanelStage(stages)).toBe(6);
   });
 });

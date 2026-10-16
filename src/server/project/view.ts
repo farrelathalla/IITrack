@@ -23,6 +23,7 @@ import {
 } from "@/lib/project/stages";
 import { type ProjectSummary, summarize } from "@/lib/project/status";
 import { prisma } from "@/server/db";
+import { getSettings } from "@/server/settings";
 import { accessOf, loadSnapshot, syncStageCompletion } from "./snapshot";
 
 const ACTIONS: ProjectAction[] = [
@@ -31,6 +32,7 @@ const ACTIONS: ProjectAction[] = [
   "stage1.edit",
   "charter.edit",
   "charter.decide",
+  "charter.decideTech",
   "mou.edit",
   "mou.decide",
   "terms.edit",
@@ -65,6 +67,8 @@ export interface ProjectView {
   disbursementMissing: string[];
   /** Dokumen yang tautannya ada tetapi disembunyikan dari pengguna ini. */
   hiddenDocumentIds: string[];
+  /** Nama yang dipilih di Workflow & Approver. Wewenang tetap mengikuti jabatan. */
+  namedApprovers: { charterOps: string | null; charterTech: string | null };
 }
 
 /**
@@ -132,6 +136,14 @@ export async function loadProjectView(
     }),
   };
 
+  const settings = await getSettings();
+  const namedApprovers = {
+    charterOps: await userName(
+      settings.approvers.PROJECT_CHARTER.primaryUserId,
+    ),
+    charterTech: await userName(settings.approvers.CHARTER_TECH.primaryUserId),
+  };
+
   return {
     project: sanitized,
     stages,
@@ -149,5 +161,15 @@ export async function loadProjectView(
     checklist: closureChecklist(project, now),
     disbursementMissing: readiness.ready ? [] : readiness.missing,
     hiddenDocumentIds,
+    namedApprovers,
   };
+}
+
+async function userName(userId: string | null): Promise<string | null> {
+  if (!userId) return null;
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { name: true },
+  });
+  return user?.name ?? null;
 }

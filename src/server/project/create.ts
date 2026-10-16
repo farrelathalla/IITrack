@@ -5,7 +5,7 @@ import {
   PROJECT_SOURCE_LABELS,
   PROJECT_TYPE_LABELS,
 } from "@/lib/project/catalog";
-import { formatProjectId } from "@/lib/project/project-id";
+import { formatProjectId, parseProjectId } from "@/lib/project/project-id";
 import { parseDateInput } from "@/lib/time";
 import { recordActivity } from "@/server/activity";
 import { viewerOf } from "@/server/auth/actor";
@@ -53,6 +53,11 @@ export const createProjectSchema = z
       .trim()
       .optional()
       .transform((value) => (value ? value : null)),
+    manualCode: z
+      .string()
+      .trim()
+      .optional()
+      .transform((value) => (value ? value.toUpperCase() : null)),
   })
   .refine((data) => data.targetEnd >= data.targetStart, {
     path: ["targetEnd"],
@@ -105,21 +110,56 @@ export async function createProject(params: {
     );
   }
 
+  const manual = data.manualCode ? parseProjectId(data.manualCode) : null;
+  if (data.manualCode && !manual) {
+    throw new ActionError(
+      "Bentuk Project ID tidak sesuai. Contoh: IIT-2627-006.",
+      { manualCode: "Bentuk Project ID tidak sesuai. Contoh: IIT-2627-006." },
+    );
+  }
+  if (manual && manual.period !== period.code) {
+    throw new ActionError(
+      `Nomor manual harus memakai periode yang sedang berjalan, ${period.code}.`,
+      {
+        manualCode: `Nomor manual harus memakai periode yang sedang berjalan, ${period.code}.`,
+      },
+    );
+  }
+
   return prisma.$transaction(async (tx) => {
     const pm = await assertEligible(tx, data.pmUserId, "PM", now);
 
-    const counter = await tx.projectNumberCounter.upsert({
+    const current = await tx.projectNumberCounter.findUnique({
       where: { periodCode: period.code },
-      create: { periodCode: period.code, highestIssued: 1 },
-      update: { highestIssued: { increment: 1 } },
     });
-    const code = formatProjectId(period.code, counter.highestIssued);
+    const highest = current?.highestIssued ?? 0;
+    let sequence = highest + 1;
+    if (manual) {
+      const taken = await tx.project.findUnique({
+        where: { code: formatProjectId(period.code, manual.sequence) },
+        select: { id: true },
+      });
+      if (taken) {
+        throw new ActionError("Nomor project ini sudah dipakai.", {
+          manualCode: "Nomor project ini sudah dipakai.",
+        });
+      }
+      sequence = manual.sequence;
+    }
+    if (sequence > highest) {
+      await tx.projectNumberCounter.upsert({
+        where: { periodCode: period.code },
+        create: { periodCode: period.code, highestIssued: sequence },
+        update: { highestIssued: sequence },
+      });
+    }
+    const code = formatProjectId(period.code, sequence);
 
     const project = await tx.project.create({
       data: {
         code,
         periodCode: period.code,
-        sequence: counter.highestIssued,
+        sequence,
         name: data.name,
         client: data.client,
         type: data.type,
@@ -146,7 +186,15 @@ export async function createProject(params: {
       projectId: project.id,
       actorId: params.actor.userId,
       action: "project.created",
-      summary: `Membuat project ${code} dan menugaskan ${pm.name} sebagai PM`,
+      summary: manual
+        ? `Membuat project ${code} dengan nomor yang ditetapkan manual, dan menugaskan ${pm.name} sebagai PM`
+        : `Membuat project ${code} dan menugaskan ${pm.name} sebagai PM`,
+      data: manual
+        ? {
+            autoNext: formatProjectId(period.code, highest + 1),
+            chosen: code,
+          }
+        : undefined,
       stage: 1,
       division: "OPERATIONAL",
       result: "CREATED",
@@ -159,5 +207,104 @@ export async function createProject(params: {
     });
 
     return { code, pmName: pm.name };
+  });
+}
+
+const editProjectSchema = z
+  .object({
+    name: z.string().trim().min(1, "Nama project wajib diisi."),
+    client: z.string().trim().min(1, "Client wajib diisi."),
+    type: optionalEnum(PROJECT_TYPE_LABELS),
+    source: optionalEnum(PROJECT_SOURCE_LABELS),
+    targetStart: dateField("Target mulai"),
+    targetEnd: dateField("Target selesai"),
+    internalNote: z
+      .string()
+      .trim()
+      .optional()
+      .transform((value) => (value ? value : null)),
+  })
+  .refine((data) => data.targetEnd >= data.targetStart, {
+    path: ["targetEnd"],
+    message: "Target selesai harus setelah target mulai.",
+  });
+
+/** Ubah data awal project. Project ID tidak berubah. */
+export async function updateProjectDetails(params: {
+  actor: Actor;
+  projectId: string;
+  input: z.input<typeof editProjectSchema>;
+}): Promise<void> {
+  const now = new Date();
+  const decision = canGlobally(
+    viewerOf(params.actor, now),
+    "project.editDetails",
+  );
+  if (!decision.allowed) throw new ActionError(decision.reason);
+  const data = parseInput(editProjectSchema, params.input);
+  const project = await prisma.project.findFirst({
+    where: {
+      deletedAt: null,
+      OR: [{ id: params.projectId }, { code: params.projectId }],
+    },
+  });
+  if (!project) throw new ActionError("Project tidak ditemukan.");
+  if (project.closedAt) {
+    throw new ActionError("Project yang sudah ditutup tidak bisa diubah.");
+  }
+  await prisma.project.update({
+    where: { id: project.id },
+    data,
+  });
+  await prisma.$transaction((tx) =>
+    recordActivity(tx, {
+      projectId: project.id,
+      actorId: params.actor.userId,
+      action: "project.updated",
+      summary: `Memperbarui detail awal ${project.code}`,
+      stage: 1,
+      division: "OPERATIONAL",
+      result: "UPDATED",
+    }),
+  );
+}
+
+/**
+ * Sembunyikan project yang masih di awal (stage 1 belum selesai).
+ * Riwayat tidak dihapus.
+ */
+export async function deleteProject(params: {
+  actor: Actor;
+  projectId: string;
+}): Promise<void> {
+  const now = new Date();
+  const decision = canGlobally(viewerOf(params.actor, now), "project.delete");
+  if (!decision.allowed) throw new ActionError(decision.reason);
+  const project = await prisma.project.findFirst({
+    where: {
+      deletedAt: null,
+      OR: [{ id: params.projectId }, { code: params.projectId }],
+    },
+  });
+  if (!project) throw new ActionError("Project tidak ditemukan.");
+  if (project.closedAt || project.stage1DoneAt) {
+    throw new ActionError(
+      "Hanya project yang masih di awal, sebelum stage 1 selesai, yang bisa dihapus.",
+    );
+  }
+  await prisma.$transaction(async (tx) => {
+    await recordActivity(tx, {
+      projectId: project.id,
+      actorId: params.actor.userId,
+      action: "project.deleted",
+      summary: `Menghapus project ${project.code} dari daftar`,
+      stage: 1,
+      division: "OPERATIONAL",
+      result: "UPDATED",
+    });
+    await tx.project.update({
+      where: { id: project.id },
+      data: { deletedAt: now },
+    });
   });
 }

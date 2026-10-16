@@ -178,7 +178,7 @@ describe("PRD 2.4 dan 13: izin diperiksa di server, termasuk bila dipanggil lang
 });
 
 describe("PRD 2.3: keputusan pertama yang berlaku", () => {
-  it("COO dan Vice COO memutuskan bersamaan: satu berhasil, yang lain ditolak", async () => {
+  it("dua persetujuan COO pada charter yang sama: hanya satu yang masuk", async () => {
     const team = await createTeam();
     const code = await newProject(team);
     await saveDocument({
@@ -201,20 +201,23 @@ describe("PRD 2.3: keputusan pertama yang berlaku", () => {
 
     const results = await Promise.allSettled([
       decidePending(code, "PROJECT_CHARTER", team.coo, "APPROVE"),
-      decidePending(
-        code,
-        "PROJECT_CHARTER",
-        team.vcoo,
-        "REJECT",
-        "Perlu revisi",
-      ),
+      decidePending(code, "PROJECT_CHARTER", team.vcoo, "APPROVE"),
     ]);
     expect(results.filter((r) => r.status === "fulfilled")).toHaveLength(1);
     const decided = await testDb.submission.findMany({
       where: { project: { code }, kind: "PROJECT_CHARTER" },
     });
     expect(decided).toHaveLength(1);
-    expect(decided[0].status).not.toBe("PENDING");
+    expect(decided[0].status).toBe("PENDING");
+    expect(decided[0].opsApprovedAt).not.toBeNull();
+    expect(decided[0].techApprovedAt).toBeNull();
+
+    await decidePending(code, "PROJECT_CHARTER", team.cto, "APPROVE");
+    const finished = await testDb.submission.findFirstOrThrow({
+      where: { project: { code }, kind: "PROJECT_CHARTER" },
+    });
+    expect(finished.status).toBe("APPROVED");
+    expect(finished.techApprovedAt).not.toBeNull();
   });
 });
 

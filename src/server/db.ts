@@ -10,7 +10,10 @@ function createPrismaClient() {
     );
   }
 
-  return new PrismaClient({ adapter: new PrismaPg({ connectionString }) });
+  return new PrismaClient({
+    adapter: new PrismaPg({ connectionString }),
+    transactionOptions: { timeout: 30_000 },
+  });
 }
 
 // Next.js membuang modul pada setiap hot reload, jadi klien disimpan di

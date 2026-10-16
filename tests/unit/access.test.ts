@@ -207,7 +207,7 @@ describe("PRD 2.4: aturan visibilitas", () => {
     expect(canEditTab(viewer("SUPER_ADMIN", "a"), p, "finance")).toBe(false);
   });
 
-  it("C-Level dan Super Admin melihat semua project, jabatan lain hanya yang ditugaskan", () => {
+  it("Dashboard dan Active/Past: C-Level dan Super Admin melihat semua, jabatan lain hanya yang ditugaskan", () => {
     expect(seesAllProjects("COO")).toBe(true);
     expect(seesAllProjects("VICE_CFO")).toBe(true);
     expect(seesAllProjects("SUPER_ADMIN")).toBe(true);

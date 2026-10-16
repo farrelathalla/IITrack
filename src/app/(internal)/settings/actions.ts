@@ -46,7 +46,13 @@ export async function addUserAction(input: {
   periodId: string;
   password: string;
 }) {
-  return act((actor) => addUser({ actor, input }), "Akun ditambahkan.");
+  const result = await runAction(async () => {
+    const { actor } = await requireActionUser();
+    const path = await addUser({ actor, input });
+    return `Akun ditambahkan. Kirim tautan undangan ini (berlaku 7 hari; IITrack tidak mengirim email): ${path}`;
+  });
+  if (result.ok) revalidatePath("/", "layout");
+  return result;
 }
 
 export async function editRoleAction(input: {

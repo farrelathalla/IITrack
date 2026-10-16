@@ -50,10 +50,15 @@ export function CreateProjectForm({
     INITIAL,
   );
   const fields = state.status === "error" ? (state.fields ?? {}) : {};
+  const values = state.status === "error" ? state.values : undefined;
 
   return (
     <>
-      <form action={formAction} className="space-y-4">
+      <form
+        key={state.status === "error" ? state.resetKey : "idle"}
+        action={formAction}
+        className="space-y-4"
+      >
         {state.status === "error" ? (
           <Alert tone="danger">{state.error}</Alert>
         ) : null}
@@ -68,9 +73,18 @@ export function CreateProjectForm({
             </p>
           </div>
           <p className="max-w-sm text-right text-muted text-xs">
-            Nomor final terbit saat project dibuat.
+            Kosongkan nomor manual bila nomor ini yang dipakai.
           </p>
         </Card>
+
+        <TextField
+          label="Nomor manual (opsional)"
+          name="manualCode"
+          placeholder={nextId ?? "IIT-2627-006"}
+          defaultValue={values?.manualCode}
+          error={fields.manualCode}
+          hint="Hanya diisi bila COO menetapkan nomor sendiri. Nomor yang sudah pernah terbit tidak bisa dipakai lagi."
+        />
 
         <Section title="Informasi Dasar">
           <TextField
@@ -78,6 +92,7 @@ export function CreateProjectForm({
             name="name"
             required
             placeholder="contoh: Pharmanova Internal Platform"
+            defaultValue={values?.name}
             error={fields.name}
           />
           <TextField
@@ -85,13 +100,14 @@ export function CreateProjectForm({
             name="client"
             required
             placeholder="contoh: PT Pharmanova Nusantara"
+            defaultValue={values?.client}
             error={fields.client}
           />
           <div className="grid grid-cols-2 gap-4">
             <SelectField
               label="Tipe Project"
               name="type"
-              defaultValue=""
+              defaultValue={values?.type ?? ""}
               error={fields.type}
             >
               <option value="">Pilih tipe…</option>
@@ -104,7 +120,7 @@ export function CreateProjectForm({
             <SelectField
               label="Sumber Project"
               name="source"
-              defaultValue=""
+              defaultValue={values?.source ?? ""}
               error={fields.source}
             >
               <option value="">Pilih sumber…</option>
@@ -123,6 +139,7 @@ export function CreateProjectForm({
             label="Project Manager"
             placeholder="Pilih Project Manager…"
             candidates={pmCandidates}
+            defaultValue={values?.pmUserId}
             error={fields.pmUserId}
           />
           <p className="flex items-start gap-1.5 text-muted text-xs">
@@ -138,6 +155,7 @@ export function CreateProjectForm({
               name="targetStart"
               type="date"
               required
+              defaultValue={values?.targetStart}
               error={fields.targetStart}
             />
             <TextField
@@ -145,6 +163,7 @@ export function CreateProjectForm({
               name="targetEnd"
               type="date"
               required
+              defaultValue={values?.targetEnd}
               error={fields.targetEnd}
             />
           </div>
@@ -155,6 +174,7 @@ export function CreateProjectForm({
             label="Catatan Internal"
             name="internalNote"
             rows={3}
+            defaultValue={values?.internalNote}
             placeholder="Catatan untuk tim internal terkait project ini…"
           />
         </Section>

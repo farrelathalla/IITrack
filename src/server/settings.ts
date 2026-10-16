@@ -4,6 +4,7 @@ import { prisma } from "@/server/db";
 /** Jenis pengajuan di Pengaturan > Workflow & Approver (PRD bab 8.7). */
 export const APPROVAL_KINDS = [
   "PROJECT_CHARTER",
+  "CHARTER_TECH",
   "MOU",
   "PROGRAMMER_CONTRACT",
   "INVOICE",
@@ -22,10 +23,16 @@ export const APPROVAL_KIND_INFO: Record<
   }
 > = {
   PROJECT_CHARTER: {
-    label: "Project Charter Review",
+    label: "Project Charter — COO",
     approverLabel: "COO / Vice COO",
     primaryHint: "COO",
     delegateHint: "Vice COO",
+  },
+  CHARTER_TECH: {
+    label: "Project Charter — CTO",
+    approverLabel: "CTO / Vice CTO",
+    primaryHint: "CTO",
+    delegateHint: "Vice CTO",
   },
   MOU: {
     label: "MoU Review",

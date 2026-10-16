@@ -166,7 +166,7 @@ export function DocumentCard({
             type="url"
             placeholder="https://docs.google.com/…"
             defaultValue={doc?.url ?? ""}
-            hint="Tautan Google Docs atau Drive."
+            hint="Tautan Google Docs atau Drive. Harus diawali https://."
           />
           <TextField
             label="Tenggat (opsional)"

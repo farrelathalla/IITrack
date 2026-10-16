@@ -48,6 +48,10 @@ model User {
   passwordHash String?
   status       UserStatus @default(ACTIVE)
 
+  /// Hash tautan undangan. Kosong setelah orangnya mengatur kata sandi.
+  inviteTokenHash String?   @unique
+  inviteExpiresAt DateTime?
+
   revokedAt    DateTime?
   revokedById  String?
   revokedBy    User?     @relation("UserRevokedBy", fields: [revokedById], references: [id], onDelete: Restrict)
@@ -69,6 +73,8 @@ model User {
   documentsUpdated   Document[]          @relation("DocumentUpdatedBy")
   submissionsMade    Submission[]        @relation("SubmissionSubmitter")
   submissionsDecided Submission[]        @relation("SubmissionDecider")
+  charterOpsApprovals  Submission[]      @relation("CharterOpsApprover")
+  charterTechApprovals Submission[]      @relation("CharterTechApprover")
   blockers           TechBlocker[]
 
   @@map("users")
@@ -172,6 +178,8 @@ model Project {
   /// ditutup bersifat read-only untuk semua jabatan.
   closedAt    DateTime?
   finalStatus FinalStatus?
+  /// Disembunyikan dari daftar. Riwayat aktivitas tetap, karena tidak boleh dihapus.
+  deletedAt   DateTime?
 
   // Penanda stage yang butuh tombol eksplisit dari PM (PRD bab 4.1).
   stage1DoneAt       DateTime?
@@ -339,6 +347,14 @@ model Submission {
   decidedBy     User?     @relation("SubmissionDecider", fields: [decidedById], references: [id], onDelete: Restrict)
   decidedAt     DateTime?
   feedback      String?
+
+  /// Project Charter butuh dua persetujuan. Keduanya terisi sebelum status APPROVED.
+  opsApprovedAt    DateTime?
+  opsApprovedById  String?
+  opsApprovedBy    User?     @relation("CharterOpsApprover", fields: [opsApprovedById], references: [id], onDelete: Restrict)
+  techApprovedAt   DateTime?
+  techApprovedById String?
+  techApprovedBy   User?     @relation("CharterTechApprover", fields: [techApprovedById], references: [id], onDelete: Restrict)
 
   @@index([projectId, kind])
   @@index([status])

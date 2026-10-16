@@ -2,7 +2,9 @@
  * Status sembilan stage, dihitung dari potret project (PRD bab 4.1-4.2).
  *
  * Aturannya:
- * - Stage berikutnya terkunci sampai stage sebelumnya selesai. Stage 5 juga
+ * - Stage berikutnya terkunci sampai stage sebelumnya selesai, kecuali
+ *   Stage 6: eksekusi terbuka setelah Stage 4, tanpa menunggu Down Payment.
+ *   Stage 7 menunggu Stage 5 dan Stage 6 sama-sama selesai. Stage 5 juga
  *   menunggu Finance POC ditunjuk.
  * - Stage selesai begitu syaratnya terpenuhi. Waktu selesainya lalu dicatat
  *   permanen oleh server (`stageCompletedAt`), sehingga perubahan belakangan
@@ -216,11 +218,28 @@ function activityOf(project: ProjectSnapshot, n: StageNumber): Activity {
     }
     case 2: {
       const charter = documentOf(project, "PROJECT_CHARTER");
-      const sub = fromSubmission(
-        latestSubmission(project, charter?.id),
-        "COO / Vice COO",
-      );
+      const latest = latestSubmission(project, charter?.id);
+      const waitingFor =
+        latest?.status === "PENDING"
+          ? !latest.opsApprovedAt && !latest.techApprovedAt
+            ? "COO / Vice COO dan CTO / Vice CTO"
+            : !latest.opsApprovedAt
+              ? "COO / Vice COO"
+              : !latest.techApprovedAt
+                ? "CTO / Vice CTO"
+                : null
+          : null;
+      const partial =
+        latest?.status === "PENDING" && waitingFor
+          ? {
+              status: "waiting-approval" as const,
+              rejection: null,
+              waitingFor,
+            }
+          : null;
+      const sub = fromSubmission(latest, "COO / Vice COO dan CTO / Vice CTO");
       return strongest([
+        partial,
         sub,
         touched(charter) || touched(documentOf(project, "GANTT_CHART"))
           ? IN_PROGRESS
@@ -370,15 +389,33 @@ function activityOf(project: ProjectSnapshot, n: StageNumber): Activity {
 
 // ─── Penurunan status seluruh stage ───────────────────────────────────────
 
-function lockedReasonFor(
+function gateReason(
   project: ProjectSnapshot,
   n: StageNumber,
-  previousComplete: boolean,
+  earlier: readonly StageState[],
 ): string | null {
-  if (!previousComplete) {
-    const prev = stageDefinition(n - 1);
-    return `Selesaikan ${prev.name} (Stage ${prev.n}) terlebih dahulu.`;
+  const done = (stage: StageNumber) =>
+    earlier.some((item) => item.n === stage && item.status === "completed");
+  const blocked = (stage: StageNumber) => {
+    const previous = stageDefinition(stage);
+    return `Selesaikan ${previous.name} (Stage ${previous.n}) terlebih dahulu.`;
+  };
+  const nameOf = (stage: StageNumber) => {
+    const previous = stageDefinition(stage);
+    return `${previous.name} (Stage ${previous.n})`;
+  };
+
+  // Eksekusi berjalan sejajar dengan Down Payment. Tech mulai setelah
+  // penugasan, tanpa menunggu DP lunas.
+  if (n === 6) return done(4) ? null : blocked(4);
+  if (n === 7) {
+    const missing = ([5, 6] as const).filter((stage) => !done(stage));
+    if (missing.length === 0) return null;
+    return `Selesaikan ${missing.map(nameOf).join(" dan ")} terlebih dahulu.`;
   }
+
+  const previous = (n - 1) as StageNumber;
+  if (previous >= 1 && !done(previous)) return blocked(previous);
   if (n === 5 && !financePocOf(project)) {
     return "Menunggu CFO/VCFO menunjuk Finance POC.";
   }
@@ -390,14 +427,12 @@ export function deriveStages(
   now: Date,
 ): StageState[] {
   const result: StageState[] = [];
-  let previousComplete = true;
 
   for (const definition of STAGES) {
     const n = definition.n;
     const deadline = project.stageDeadlines[n] ?? null;
     const recorded = project.stageCompletedAt[n] ?? null;
-    const lockedReason =
-      n === 1 ? null : lockedReasonFor(project, n, previousComplete);
+    const lockedReason = n === 1 ? null : gateReason(project, n, result);
 
     // Stage yang sudah tercatat selesai tetap selesai, termasuk bila syarat
     // pembukanya kemudian berubah (misalnya Finance POC diganti).
@@ -411,7 +446,6 @@ export function deriveStages(
         rejection: null,
         waitingFor: null,
       });
-      previousComplete = true;
       continue;
     }
 
@@ -425,7 +459,6 @@ export function deriveStages(
         rejection: null,
         waitingFor: null,
       });
-      previousComplete = false;
       continue;
     }
 
@@ -440,7 +473,6 @@ export function deriveStages(
         rejection: null,
         waitingFor: null,
       });
-      previousComplete = true;
       continue;
     }
 
@@ -454,7 +486,6 @@ export function deriveStages(
       rejection: activity.rejection,
       waitingFor: activity.waitingFor,
     });
-    previousComplete = false;
   }
 
   return result;
@@ -487,15 +518,16 @@ export function currentStage(stages: readonly StageState[]): StageState {
  * menunggu persetujuan, atau revisi (PRD bab 8.3).
  */
 export function defaultPanelStage(stages: readonly StageState[]): StageNumber {
-  const active = stages.find(
+  const working = stages.find(
     (stage) =>
       stage.status === "in-progress" ||
       stage.status === "waiting-approval" ||
       stage.status === "revision-required" ||
-      stage.status === "approved" ||
-      stage.status === "not-started",
+      stage.status === "approved",
   );
-  return active?.n ?? currentStage(stages).n;
+  if (working) return working.n;
+  const pending = stages.find((stage) => stage.status === "not-started");
+  return pending?.n ?? currentStage(stages).n;
 }
 
 export function completedCount(stages: readonly StageState[]): number {

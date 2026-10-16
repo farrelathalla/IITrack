@@ -38,6 +38,7 @@ export type ProjectAction =
   | "stage1.edit"
   | "charter.edit"
   | "charter.decide"
+  | "charter.decideTech"
   | "mou.edit"
   | "mou.decide"
   | "terms.edit"
@@ -56,6 +57,8 @@ export type ProjectAction =
 
 export type GlobalAction =
   | "project.create"
+  | "project.editDetails"
+  | "project.delete"
   | "users.view"
   | "users.manage"
   | "settings.view"
@@ -140,6 +143,11 @@ export function canOnProject(
         ? ALLOW
         : deny("Hanya COO atau Vice COO yang bisa memutuskan pengajuan ini.");
 
+    case "charter.decideTech":
+      return isTechLead(role)
+        ? ALLOW
+        : deny("Hanya CTO atau Vice CTO yang bisa menyetujui Project Charter.");
+
     case "terms.edit":
       if (project.mouSigned) {
         return isFinanceLead(role)
@@ -200,6 +208,14 @@ export function canGlobally(viewer: Viewer, action: GlobalAction): Decision {
       return isOpsLead(role)
         ? ALLOW
         : deny("Hanya COO dan Vice COO yang dapat membuat project.");
+    case "project.editDetails":
+      return isOpsLead(role)
+        ? ALLOW
+        : deny("Hanya COO dan Vice COO yang dapat mengubah detail project.");
+    case "project.delete":
+      return isOpsLead(role)
+        ? ALLOW
+        : deny("Hanya COO dan Vice COO yang dapat menghapus project.");
     case "users.view":
     case "settings.view":
       return role === "SUPER_ADMIN" || isCLevel(role)
@@ -311,9 +327,9 @@ export function myProjectRole(
 }
 
 /**
- * C-Level melihat semua project; jabatan lain hanya yang ditugaskan (PRD bab
- * 8.1-8.2). Super Admin ikut melihat semua karena perannya memantau secara
- * read-only dan ia tidak pernah ditugaskan ke project mana pun.
+ * Dashboard dan Active/Past Projects: C-Level dan Super Admin melihat semua
+ * project; jabatan lain hanya yang ditugaskan (PRD bab 8.1-8.2). Halaman All
+ * Projects adalah direktori organisasi dan tidak memakai fungsi ini.
  */
 export function seesAllProjects(role: RoleName | null): boolean {
   return isCLevel(role) || role === "SUPER_ADMIN";

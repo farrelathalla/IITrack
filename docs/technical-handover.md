@@ -316,9 +316,13 @@ berubah cukup satu berkas di `src/lib` atau `src/server` beserta testnya.
 - **Stage yang sudah selesai tidak terkunci ulang.** Waktu selesai dicatat
   permanen (`project_stages.completedAt`), supaya mengganti developer di Stage
   6 tidak mengunci Stage 5-9. Lihat `src/lib/project/stages.ts`.
-- **Super Admin melihat semua project** di Dashboard dan daftar, read-only
+- **Super Admin melihat semua project** di Dashboard dan Active/Past, read-only
   tanpa nominal. PRD bab 8.1 hanya menyebut C-Level dan yang ditugaskan.
   Lihat `seesAllProjects` di `src/lib/auth/access.ts`.
+- **All Projects adalah direktori organisasi.** Setiap akun aktif melihat semua
+  project yang belum dihapus, termasuk yang tidak melibatkan dirinya. Nominal
+  tetap mengikuti `canSeeAmounts` di halaman detail. Lihat
+  `listDirectoryProjects` di `src/server/project/queries.ts`.
 - **Termin pertama adalah DP (Stage 5), termin terakhir adalah termin final
   (Stage 7), sisanya di Stage 6.** Project dengan satu termin tidak punya
   termin final. Lihat `stageOfTerm` di `src/lib/finance/terms.ts`.
@@ -331,9 +335,11 @@ berubah cukup satu berkas di `src/lib` atau `src/server` beserta testnya.
   dan keputusan pertama yang berlaku (PRD bab 2.3).
 - **Role Permissions ditampilkan, tidak diedit.** Matriksnya diturunkan dari
   aturan server supaya halaman dan penegakan tidak bisa berbeda.
-- **Akun dibuat dengan kata sandi awal dari Super Admin**, karena undangan email
-  di luar MVP (PRD bab 1.2). Pemilik akun bisa menggantinya di Profil. Foto
-  profil belum dibangun karena IITrack tidak menyimpan berkas.
+- **Undangan orang baru adalah tautan `/undang/[token]`, berlaku 7 hari.** Super
+  Admin menyalin tautan itu dan mengirimkannya sendiri (email atau WhatsApp).
+  IITrack tidak mengirim email otomatis (PRD bab 1.2). Sandi awal dari Super
+  Admin juga bisa dipakai langsung. Foto profil belum dibangun karena IITrack
+  tidak menyimpan berkas.
 - **Akhir periode tidak memicu notifikasi terjadwal.** Tidak ada penjadwal di
   MVP; project dengan penugasan ke akun yang sudah tidak aktif langsung tampil
   "Perlu Penugasan Ulang" di Dashboard C-Level dan header project. Notifikasi

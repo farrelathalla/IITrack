@@ -62,7 +62,7 @@ export const STAGES: readonly StageDefinition[] = [
     shortName: "Down Payment",
     divisionLabel: "Finance",
     division: "FINANCE",
-    description: "Proses pembayaran DP sebelum pengembangan mulai.",
+    description: "Proses pembayaran DP. Pengembangan boleh berjalan bersamaan.",
   },
   {
     n: 6,

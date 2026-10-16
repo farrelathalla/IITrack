@@ -19,8 +19,8 @@ export interface AllProjectRow {
 }
 
 /**
- * Satu tabel untuk project aktif dan selesai. Filter di klien; baris yang
- * masuk sudah dibatasi server menurut jabatan dan penugasan.
+ * Direktori organisasi: semua project yang belum dihapus. Filter di klien.
+ * Active/Past Projects tetap membatasi menurut jabatan dan penugasan.
  */
 export function AllProjectsTable({ rows }: { rows: AllProjectRow[] }) {
   const [query, setQuery] = useState("");

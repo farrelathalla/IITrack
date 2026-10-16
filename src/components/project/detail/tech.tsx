@@ -23,6 +23,7 @@ import { Dialog } from "@/components/ui/dialog";
 import { TextArea } from "@/components/ui/text-area";
 import { TextField } from "@/components/ui/text-field";
 import { developersOf, pmOf } from "@/lib/project/snapshot";
+import { techPulse } from "@/lib/project/tech-pulse";
 import { formatDate, formatDateTimeShort, toDateInput } from "@/lib/time";
 import type { AssignmentMode } from "./assignment-modal";
 import { ErrorText, ExternalAnchor, InfoGrid, Subsection } from "./bits";
@@ -297,6 +298,35 @@ export function TechReferences() {
           </div>
         </form>
       </Dialog>
+    </div>
+  );
+}
+
+const PULSE_TONE = {
+  NOT_STARTED: "neutral",
+  ON_TRACK: "success",
+  STALE: "warning",
+  BLOCKED: "danger",
+} as const;
+
+/** Status pengembangan yang dihitung dari jejak yang sudah ada. */
+export function TechPulseCard() {
+  const { project } = useProject();
+  const pulse = techPulse(project, new Date());
+  return (
+    <div className="rounded-xl border border-line bg-surface px-4 py-3">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <p className="font-semibold text-ink text-sm">Jejak pengembangan</p>
+        <Badge tone={PULSE_TONE[pulse.status]} dot>
+          {pulse.label}
+        </Badge>
+      </div>
+      <p className="mt-1 text-ink text-sm">{pulse.detail}</p>
+      {pulse.lastActivityAt ? (
+        <p className="mt-1 text-subtle text-xs">
+          Terakhir {formatDateTimeShort(pulse.lastActivityAt)}
+        </p>
+      ) : null}
     </div>
   );
 }

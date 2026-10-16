@@ -1,10 +1,10 @@
 import { z } from "zod";
 
-/** Tautan dokumen harus berupa URL valid (PRD bab 10). */
+/** Tautan dokumen harus URL https (PRD bab 10). */
 export function isValidLink(value: string): boolean {
   try {
     const url = new URL(value.trim());
-    return url.protocol === "https:" || url.protocol === "http:";
+    return url.protocol === "https:";
   } catch {
     return false;
   }

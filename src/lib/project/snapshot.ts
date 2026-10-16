@@ -55,6 +55,12 @@ export interface SubmissionSnapshot {
   decidedByName: string | null;
   decidedAt: Date | null;
   feedback: string | null;
+  /** Terisi bila COO/Vice COO sudah menyetujui Project Charter. */
+  opsApprovedAt: Date | null;
+  opsApprovedByName: string | null;
+  /** Terisi bila CTO/Vice CTO sudah menyetujui Project Charter. */
+  techApprovedAt: Date | null;
+  techApprovedByName: string | null;
 }
 
 export interface TermSnapshot {
@@ -96,6 +102,8 @@ export interface TechInfoSnapshot {
   nextMilestone: string | null;
   latestUpdate: string | null;
   latestUpdateAt: Date | null;
+  /** Terisi setiap kali baris tech_infos berubah (progres, tautan, update). */
+  updatedAt: Date | null;
 }
 
 export interface BlockerSnapshot {

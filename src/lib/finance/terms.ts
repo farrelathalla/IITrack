@@ -415,8 +415,23 @@ export function isAwaitingFinance(step: TermStep): boolean {
 
 // ─── Ringkasan keuangan ────────────────────────────────────────────────────
 
+const BILLED_STEPS: readonly TermStep[] = [
+  "SENT_TO_CLIENT",
+  "PROOF_SUBMITTED",
+  "PAYMENT_RECEIVED",
+  "RECEIPT_ISSUED",
+  "DONE",
+];
+
+const PAID_STEPS: readonly TermStep[] = [
+  "PAYMENT_RECEIVED",
+  "RECEIPT_ISSUED",
+  "DONE",
+];
+
 export interface FinancialSummary {
   total: number;
+  billed: number;
   paid: number;
   remaining: number;
   paidTerms: number;
@@ -427,14 +442,19 @@ export interface FinancialSummary {
 export function financialSummary(
   terms: readonly Pick<TermLike, "amount" | "step">[],
 ): FinancialSummary {
-  const total = terms.reduce((sum, t) => sum + t.amount, 0);
-  const paidList = terms.filter((t) => t.step === "DONE");
-  const paid = paidList.reduce((sum, t) => sum + t.amount, 0);
+  const sum = (steps?: readonly TermStep[]) =>
+    terms.reduce((totalAmount, term) => {
+      if (steps && !steps.includes(term.step)) return totalAmount;
+      return totalAmount + term.amount;
+    }, 0);
+  const total = sum();
+  const paid = sum(PAID_STEPS);
   return {
     total,
+    billed: sum(BILLED_STEPS),
     paid,
     remaining: total - paid,
-    paidTerms: paidList.length,
+    paidTerms: terms.filter((term) => PAID_STEPS.includes(term.step)).length,
     totalTerms: terms.length,
   };
 }

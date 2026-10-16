@@ -27,17 +27,29 @@ export function uniqueEmail(prefix: string): string {
  * supaya Project ID tiap eksekusi tidak bertabrakan.
  */
 export async function testPeriod(): Promise<{ id: string; code: string }> {
-  const code = `9${String(Math.floor(Math.random() * 1000)).padStart(3, "0")}`;
   const now = Date.now();
-  return testDb.period.create({
-    data: {
-      name: `${code}/${RUN}`,
-      code,
-      startDate: new Date(now - 30 * 24 * 3600 * 1000),
-      endDate: new Date(now + 365 * 24 * 3600 * 1000),
-    },
-    select: { id: true, code: true },
-  });
+  for (let attempt = 0; attempt < 24; attempt++) {
+    counter += 1;
+    const code = `9${String((Math.floor(Math.random() * 1000) + counter) % 1000).padStart(3, "0")}`;
+    try {
+      return await testDb.period.create({
+        data: {
+          name: `${code}/${RUN}/${counter}`,
+          code,
+          startDate: new Date(now - 30 * 24 * 3600 * 1000),
+          endDate: new Date(now + 365 * 24 * 3600 * 1000),
+        },
+        select: { id: true, code: true },
+      });
+    } catch (error) {
+      const codeName =
+        error && typeof error === "object" && "code" in error
+          ? String((error as { code: unknown }).code)
+          : "";
+      if (codeName !== "P2002") throw error;
+    }
+  }
+  throw new Error("testPeriod: kehabisan kode periode unik");
 }
 
 /** Membuat pengurus aktif dengan satu jabatan pada periode uji. */

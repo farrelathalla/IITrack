@@ -263,9 +263,10 @@ describe("PRD 5.4: ringkasan keuangan dihitung dari termin", () => {
       ]),
     ).toEqual({
       total: 15_000_000,
-      paid: 4_500_000,
-      remaining: 10_500_000,
-      paidTerms: 1,
+      billed: 10_500_000,
+      paid: 10_500_000,
+      remaining: 4_500_000,
+      paidTerms: 2,
       totalTerms: 3,
     });
   });

@@ -19,6 +19,8 @@ import {
   documentOf,
   financePocOf,
   latestSubmission,
+  WARRANTY_STATUS_LABELS,
+  warrantyStatus,
 } from "@/lib/project/snapshot";
 import { isFeedbackComplete, STAGE_STATUS_LABELS } from "@/lib/project/stages";
 import { formatDate } from "@/lib/time";
@@ -35,10 +37,162 @@ import {
   WarrantyBlock,
 } from "./ops";
 import { SubmissionBar } from "./submission-bar";
-import { StaffingBlock, TechProgress, TechReferences } from "./tech";
+import {
+  StaffingBlock,
+  TechProgress,
+  TechPulseCard,
+  TechReferences,
+} from "./tech";
 import { PaymentFlow, TermCard, TermsEditor, termDueLabel } from "./terms";
 
 const MANUAL_STATUS = ["MISSING", "IN_PROGRESS", "SUBMITTED", "DONE"] as const;
+
+function openGaps(
+  project: ReturnType<typeof useProject>["project"],
+  kind: "MOU" | "PROGRAMMER_CONTRACT",
+  label: string,
+  developerId = "",
+): string[] {
+  const doc = documentOf(project, kind, developerId);
+  const latest = latestSubmission(project, doc?.id);
+  if (!doc?.url) return [`Tautan ${label} belum diisi.`];
+  if (!latest) return [`${label} belum diajukan untuk persetujuan.`];
+  if (latest.status === "REJECTED") {
+    return [`${label} ditolak. Perbaiki lalu ajukan ulang.`];
+  }
+  if (latest.status === "PENDING") {
+    return [`${label} masih menunggu persetujuan.`];
+  }
+  if (!doc.signedAt) {
+    return [
+      `Tanda tangan ${label} belum dicatat. Tombol Tandai Ditandatangani ada di kartu dokumen, di bawah status Disetujui.`,
+    ];
+  }
+  return [];
+}
+
+function StageNeeds({ stage }: { stage: number }) {
+  const { project } = useProject();
+  const gaps: string[] = [];
+  if (stage === 1 && !documentOf(project, "REQUIREMENT_GATHERING")?.url) {
+    gaps.push("Tautan Requirement Gathering belum diisi.");
+  }
+  if (stage === 2) {
+    const charter = documentOf(project, "PROJECT_CHARTER");
+    const latest = latestSubmission(project, charter?.id);
+    if (!charter?.url) gaps.push("Tautan Project Charter belum diisi.");
+    if (!latest) gaps.push("Project Charter belum diajukan.");
+    if (latest?.status === "PENDING" && !latest.opsApprovedAt) {
+      gaps.push("Persetujuan COO atau Vice COO belum ada.");
+    }
+    if (latest?.status === "PENDING" && !latest.techApprovedAt) {
+      gaps.push("Persetujuan CTO atau Vice CTO belum ada.");
+    }
+    if (latest?.status === "REJECTED") {
+      gaps.push("Project Charter ditolak. Ajukan ulang setelah diperbaiki.");
+    }
+  }
+  if (stage === 3) gaps.push(...openGaps(project, "MOU", "MoU"));
+  if (stage === 4) {
+    const developers = developersOf(project);
+    if (developers.length === 0) {
+      gaps.push("Belum ada developer yang ditugaskan.");
+    }
+    for (const developer of developers) {
+      gaps.push(
+        ...openGaps(
+          project,
+          "PROGRAMMER_CONTRACT",
+          `Kontrak Programmer ${developer.name}`,
+          developer.userId,
+        ),
+      );
+    }
+  }
+  if (stage === 5) {
+    if (!financePocOf(project)) {
+      gaps.push(
+        "Finance POC belum ditunjuk. Tombolnya di Ringkasan per divisi → tab Finance (CFO / Vice CFO).",
+      );
+    }
+    const dp = project.terms.find((term) => term.sequence === 1);
+    if (!dp) gaps.push("Termin DP belum diisi.");
+    else if (dp.step !== "DONE") gaps.push(`${dp.name} belum lunas.`);
+  }
+  if (stage === 6) {
+    if (!project.developmentDoneAt) {
+      gaps.push("Pengembangan belum ditandai selesai.");
+    }
+    for (const term of project.terms) {
+      if (stageOfTerm(term.sequence, project.terms.length) !== 6) continue;
+      if (term.feedback && term.step !== "DONE") {
+        gaps.push(
+          `${term.name} ada umpan balik finance. Perbaiki, lalu lanjutkan alur invoice.`,
+        );
+      }
+    }
+  }
+  if (stage === 7) {
+    const bast = documentOf(project, "BAST");
+    if (!bast?.url) gaps.push("Tautan BAST belum diisi.");
+    else if (!bast.signedAt) gaps.push("Tanda tangan BAST belum dicatat.");
+    const total = project.terms.length;
+    const final =
+      total > 1
+        ? project.terms.find((term) => term.sequence === total)
+        : project.terms[0];
+    if (final && final.step !== "DONE") {
+      gaps.push(`${final.name} belum lunas.`);
+    }
+    const now = new Date();
+    const warranty = warrantyStatus(project.handover, now);
+    if (!project.handover?.warrantyStart || !project.handover.warrantyEnd) {
+      gaps.push("Tanggal mulai dan akhir garansi belum diisi.");
+    } else if (warranty !== "DONE") {
+      gaps.push(
+        warranty === "NOT_STARTED"
+          ? `Garansi belum dimulai (${formatDate(project.handover.warrantyStart)}). Stage 7 selesai sehari setelah tanggal akhir garansi.`
+          : `Garansi masih ${WARRANTY_STATUS_LABELS.ACTIVE} sampai ${formatDate(project.handover.warrantyEnd)}. Stage 7 selesai sehari setelah tanggal itu (WIB), bukan saat tanggal diisi.`,
+      );
+    }
+  }
+  if (stage === 8) {
+    if (!isFeedbackComplete(documentOf(project, "CLIENT_FEEDBACK"))) {
+      gaps.push("Client Feedback belum lengkap (tautan dan status Selesai).");
+    }
+    if (!isFeedbackComplete(documentOf(project, "PROGRAMMER_FEEDBACK"))) {
+      gaps.push(
+        "Programmer Feedback belum lengkap (tautan dan status Selesai).",
+      );
+    }
+  }
+  if (stage === 9) {
+    if (!documentOf(project, "PROJECT_DOCUMENTATION")?.url) {
+      gaps.push("Project Documentation belum ditautkan.");
+    }
+    if (!documentOf(project, "SOURCE_CODE_DOCUMENTATION")?.url) {
+      gaps.push("Source Code Documentation belum ditautkan.");
+    }
+    if (project.disbursement?.status !== "DISBURSED") {
+      gaps.push(
+        "Finance Disbursement belum dicairkan. Pengajuan boleh sebelum dokumentasi; tutup project tidak.",
+      );
+    }
+  }
+  if (gaps.length === 0) return null;
+  return (
+    <div className="rounded-lg border border-line bg-surface px-4 py-3">
+      <p className="font-bold text-ink text-base">
+        Yang masih kurang sebelum tahap ini selesai
+      </p>
+      <ul className="mt-2 list-disc space-y-1.5 pl-5 text-ink text-sm">
+        {gaps.map((gap) => (
+          <li key={gap}>{gap}</li>
+        ))}
+      </ul>
+    </div>
+  );
+}
 
 function Stage1() {
   const { project, can } = useProject();
@@ -73,7 +227,7 @@ function Stage1() {
 }
 
 function Stage2() {
-  const { can } = useProject();
+  const { can, namedApprovers } = useProject();
   const editable = can["charter.edit"];
   return (
     <>
@@ -83,13 +237,22 @@ function Stage2() {
       <Subsection title="Dokumen Pendukung (Opsional)">
         <DocumentCard kind="GANTT_CHART" editable={editable} />
       </Subsection>
-      <p className="text-subtle text-xs">Perlu persetujuan COO / Vice COO.</p>
+      <div className="rounded-lg border border-line bg-white px-4 py-3 text-sm">
+        <p className="font-semibold text-ink">
+          Stage ini selesai setelah COO atau Vice COO dan CTO atau Vice CTO
+          sama-sama menyetujui.
+        </p>
+        <p className="mt-1 text-ink">
+          {`Approver yang ditunjuk: COO ${namedApprovers.charterOps ?? "belum dipilih"}, CTO ${namedApprovers.charterTech ?? "belum dipilih"}. Siapa pun yang sedang menjabat jabatan itu tetap bisa memutuskan.`}
+        </p>
+      </div>
       <SubmissionBar
         kind="PROJECT_CHARTER"
         label="Project Charter"
-        approverLabel="COO / Vice COO"
+        approverLabel="COO / Vice COO dan CTO / Vice CTO"
         canSubmit={editable}
         canDecide={can["charter.decide"]}
+        canDecideTech={can["charter.decideTech"]}
       />
     </>
   );
@@ -220,9 +383,10 @@ function Stage3() {
         signable
       />
       {latest?.status === "APPROVED" && !mou?.signedAt ? (
-        <p className="text-subtle text-xs">
+        <p className="rounded-xl border-2 border-warning-dot bg-warning-bg px-5 py-4 font-medium text-ink text-sm">
           Kirim MoU ke client, ganti tautan dengan versi bertanda tangan, lalu
-          klik Tandai Ditandatangani.
+          tekan tombol besar Tandai Ditandatangani di kartu dokumen. Tanpa itu,
+          Programmer Assignment tetap terkunci.
         </p>
       ) : null}
     </>
@@ -302,6 +466,7 @@ function Stage6() {
   );
   return (
     <>
+      <TechPulseCard />
       <Subsection title="Referensi Teknis">
         <TechReferences />
       </Subsection>
@@ -324,6 +489,10 @@ function Stage6() {
           </div>
         )}
       </Subsection>
+      <p className="text-ink text-sm">
+        Eksekusi tidak menunggu Down Payment. Keduanya berjalan bersamaan
+        setelah tech assignment selesai.
+      </p>
       <ErrorText error={error} />
       {can["ops.edit"] && !project.developmentDoneAt ? (
         <Button
@@ -357,14 +526,26 @@ function Stage7() {
           />
           <ErrorText error={error} />
           {can["ops.edit"] && bast?.url && !bast.signedAt ? (
-            <Button
-              variant="secondary"
-              disabled={pending}
-              onClick={() => run(() => markSignedAction(project.code, "BAST"))}
-            >
-              <PenLine className="size-3.5" />
-              Tandai BAST Ditandatangani
-            </Button>
+            <div className="rounded-xl border-2 border-warning-dot bg-warning-bg px-5 py-4">
+              <p className="font-bold text-ink text-base">
+                Tanda tangan BAST belum dicatat
+              </p>
+              <p className="mt-1 text-ink text-sm">
+                Tanpa langkah ini, Handover tidak selesai dan Evaluation tetap
+                terkunci.
+              </p>
+              <Button
+                size="lg"
+                className="mt-4"
+                disabled={pending}
+                onClick={() =>
+                  run(() => markSignedAction(project.code, "BAST"))
+                }
+              >
+                <PenLine className="size-4" />
+                Tandai BAST Ditandatangani
+              </Button>
+            </div>
           ) : null}
         </div>
       </Subsection>
@@ -529,6 +710,7 @@ export function StagePanel({
           />
         ) : (
           <>
+            <StageNeeds stage={state.n} />
             {state.n === 1 ? <Stage1 /> : null}
             {state.n === 2 ? <Stage2 /> : null}
             {state.n === 3 ? <Stage3 /> : null}

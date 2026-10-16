@@ -119,6 +119,10 @@ export function submission(
     decidedByName: status === "PENDING" ? null : "Ghazy",
     decidedAt: status === "PENDING" ? null : day("2026-09-02"),
     feedback: status === "REJECTED" ? "Scope belum sesuai." : null,
+    opsApprovedAt: null,
+    opsApprovedByName: null,
+    techApprovedAt: null,
+    techApprovedByName: null,
     ...overrides,
   };
 }
