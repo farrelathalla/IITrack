@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { cache } from "react";
 import type { Viewer } from "@/lib/auth/access";
 import type { Actor } from "@/lib/auth/types";
 import { viewerOf } from "@/server/auth/actor";
@@ -11,11 +12,19 @@ export interface CurrentUser {
 }
 
 /**
+ * Layout dan page dirender dalam satu permintaan yang sama, dan keduanya
+ * memanggil `requireUser`. `cache` membuat sesi cukup dibaca sekali per
+ * permintaan; permintaan berikutnya tetap memeriksa ulang dari basis data,
+ * sehingga pencabutan sesi tetap berlaku seketika.
+ */
+const inspectSessionOnce = cache(inspectSession);
+
+/**
  * Pengguna yang sedang masuk, untuk halaman. Sesi yang tidak sah langsung
  * diarahkan ke halaman masuk beserta alasannya.
  */
 export async function requireUser(): Promise<CurrentUser> {
-  const inspection = await inspectSession();
+  const inspection = await inspectSessionOnce();
   if (inspection.kind === "anonymous") redirect("/login");
   if (inspection.kind === "ended") {
     redirect(`/login?alasan=${inspection.alasan}`);

@@ -137,12 +137,11 @@ export async function loadProjectView(
   };
 
   const settings = await getSettings();
-  const namedApprovers = {
-    charterOps: await userName(
-      settings.approvers.PROJECT_CHARTER.primaryUserId,
-    ),
-    charterTech: await userName(settings.approvers.CHARTER_TECH.primaryUserId),
-  };
+  const [charterOps, charterTech] = await Promise.all([
+    userName(settings.approvers.PROJECT_CHARTER.primaryUserId),
+    userName(settings.approvers.CHARTER_TECH.primaryUserId),
+  ]);
+  const namedApprovers = { charterOps, charterTech };
 
   return {
     project: sanitized,

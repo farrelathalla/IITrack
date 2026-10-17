@@ -119,25 +119,50 @@ export default async function SettingsSectionPage({
     case "permissions":
       return <PermissionsSection />;
     case "workflow": {
-      const settings = await getSettings();
-      const rows: WorkflowRow[] = await Promise.all(
-        APPROVAL_KINDS.map(async (kind) => {
-          const info = APPROVAL_KIND_INFO[kind];
-          const roles = APPROVER_ROLES[kind];
-          return {
-            kind,
-            label: info.label,
-            approverLabel: info.approverLabel,
-            primaryHint: info.primaryHint,
-            delegateHint: info.delegateHint,
-            primaryFixed: kind === "INVOICE",
-            primaryOptions: await activeUsersByRoles(roles.primary),
-            delegateOptions: await activeUsersByRoles(roles.delegate),
-            value: settings.approvers[kind],
-          };
-        }),
-      );
-      return <WorkflowSection rows={rows} canManage={canManage} />;
+      // Beberapa jenis approval memakai kelompok jabatan yang sama (misalnya
+      // COO untuk Charter dan MOU). Setiap kelompok cukup ditanyakan sekali,
+      // dan semuanya dijalankan bersamaan, bukan bergantian.
+      const optionsByRoles = new Map<
+        string,
+        ReturnType<typeof activeUsersByRoles>
+      >();
+      const optionsFor = (roles: RoleName[]) => {
+        const key = roles.join(",");
+        let options = optionsByRoles.get(key);
+        if (!options) {
+          options = activeUsersByRoles(roles);
+          optionsByRoles.set(key, options);
+        }
+        return options;
+      };
+      const [settings, rows] = await Promise.all([
+        getSettings(),
+        Promise.all(
+          APPROVAL_KINDS.map(async (kind) => {
+            const info = APPROVAL_KIND_INFO[kind];
+            const roles = APPROVER_ROLES[kind];
+            const [primaryOptions, delegateOptions] = await Promise.all([
+              optionsFor(roles.primary),
+              optionsFor(roles.delegate),
+            ]);
+            return {
+              kind,
+              label: info.label,
+              approverLabel: info.approverLabel,
+              primaryHint: info.primaryHint,
+              delegateHint: info.delegateHint,
+              primaryFixed: kind === "INVOICE",
+              primaryOptions,
+              delegateOptions,
+            };
+          }),
+        ),
+      ]);
+      const workflowRows: WorkflowRow[] = rows.map((row) => ({
+        ...row,
+        value: settings.approvers[row.kind],
+      }));
+      return <WorkflowSection rows={workflowRows} canManage={canManage} />;
     }
     case "access": {
       const projects = await prisma.project.findMany({
