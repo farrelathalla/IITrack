@@ -52,13 +52,11 @@ export function CreateProjectForm({
   const fields = state.status === "error" ? (state.fields ?? {}) : {};
   const values = state.status === "error" ? state.values : undefined;
 
+  // Form tetap terpasang agar transisi useActionState dapat selesai.
+  // Select saja yang dipasang ulang untuk memulihkan default setelah reset form.
   return (
     <>
-      <form
-        key={state.status === "error" ? state.resetKey : "idle"}
-        action={formAction}
-        className="space-y-4"
-      >
+      <form action={formAction} className="space-y-4">
         {state.status === "error" ? (
           <Alert tone="danger">{state.error}</Alert>
         ) : null}
@@ -105,6 +103,7 @@ export function CreateProjectForm({
           />
           <div className="grid grid-cols-2 gap-4">
             <SelectField
+              key={`type-${values?.type ?? ""}`}
               label="Tipe Project"
               name="type"
               defaultValue={values?.type ?? ""}
@@ -118,6 +117,7 @@ export function CreateProjectForm({
               ))}
             </SelectField>
             <SelectField
+              key={`source-${values?.source ?? ""}`}
               label="Sumber Project"
               name="source"
               defaultValue={values?.source ?? ""}

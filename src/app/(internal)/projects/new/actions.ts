@@ -41,7 +41,11 @@ export async function createProjectAction(
         manualCode: values.manualCode,
       },
     });
-    revalidatePath("/", "layout");
+    // Segarkan halaman tujuan tanpa membangun ulang layout/form yang
+    // masih menyelesaikan transisi useActionState.
+    revalidatePath("/");
+    revalidatePath("/projects");
+    revalidatePath("/projects/all");
     return { status: "created", ...result };
   } catch (error) {
     if (error instanceof ActionError) {
