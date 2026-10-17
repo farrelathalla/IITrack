@@ -23,26 +23,34 @@ Prinsip yang dipegang (PRD bab 1.1):
 
 ## Tech stack
 
-- **Runtime**: Bun
+- **Package manager dan script runner**: Bun
+- **Runtime Next.js**: Node.js (script saat ini mengikuti shebang CLI Next)
 - **Framework**: Next.js (App Router, Turbopack), Server Actions
 - **Bahasa**: TypeScript
 - **UI**: Tailwind CSS v4, lucide-react
 - **Basis data**: PostgreSQL via Prisma
-- **Test**: Vitest
+- **Test**: Vitest dan Playwright (regresi browser)
 - **Kualitas**: Biome
 
 ## Menjalankan secara lokal
 
+Jalankan perintah dari root repo `IITrack`. Prasyarat yang sudah diuji: Bun
+1.4.0, Node.js 22.18.0, dan PostgreSQL 17. `bun run dev`/`build` menjalankan CLI
+Next dengan Node.js; memakai Bun sebagai script runner tidak otomatis mengganti
+runtime CLI menjadi Bun. Lihat [perilaku shebang Bun](https://bun.sh/docs/runtime).
+
 ```sh
-bun install
+bun install --frozen-lockfile
 cp .env.example .env
 ```
 
-Pasang PostgreSQL, lalu buat pengguna serta basis data aplikasi dan basis data
-test:
+Contoh penyiapan pertama di Ubuntu/Debian: pasang dan nyalakan PostgreSQL,
+lalu buat pengguna serta basis data aplikasi dan test. Lewati pembuatan pengguna
+atau basis data yang sudah ada:
 
 ```sh
 sudo apt install -y postgresql
+sudo systemctl start postgresql
 ```
 
 ```sh
@@ -59,7 +67,49 @@ bun run db:seed
 bun run dev
 ```
 
-Buka `http://localhost:3000`.
+Buka `http://localhost:3000`. Mode `dev` memakai Turbopack dan hot reload;
+halaman yang pertama dibuka dapat menunggu kompilasi. Untuk demo atau mengukur
+respons aplikasi sesudah build, gunakan mode production di bawah.
+
+Sebelum menjalankan test integrasi, terapkan migrasi ke `TEST_DATABASE_URL`
+juga. Untuk URL contoh di `.env.example`:
+
+```sh
+DATABASE_URL="postgresql://iitrack:iitrack@localhost:5432/iitrack_test" bun run db:deploy
+```
+
+### Build dan menjalankan production secara lokal
+
+Repo memakai `output: "standalone"`. Hentikan server development pada port yang
+akan dipakai, lalu buat build dan salin aset yang dibutuhkan server standalone:
+
+```sh
+bun run build
+cp -r public .next/standalone/
+cp -r .next/static .next/standalone/.next/
+HOSTNAME=127.0.0.1 PORT=3000 node --env-file=.env .next/standalone/server.js
+```
+
+Buka `http://localhost:3000`. Server ini memakai hasil build sehingga tidak
+mengompilasi halaman setiap kali pertama dibuka. Jalankan build dan salin ulang
+aset setelah kode berubah. Variabel `DATABASE_URL` dan `SESSION_SECRET` dibaca
+dari `.env` oleh opsi Node di atas; nilai yang sudah diekspor di shell tetap
+berlaku.
+
+Penyalinan `public` dan `.next/static` diperlukan bila aset dilayani oleh server
+standalone sendiri. Next tidak menyalinnya otomatis. `bun run start` saat ini
+memanggil `next start` dan menghasilkan peringatan karena output standalone;
+untuk konfigurasi repo ini gunakan perintah `server.js` di atas. Lihat
+[dokumentasi output standalone Next.js](https://nextjs.org/docs/app/api-reference/config/next-config-js/output).
+
+Petunjuk ini untuk menjalankan build secara lokal atau pada server sendiri.
+Deployment Vercel memakai integrasi Next.js dari platform. Seed akun contoh
+hanya untuk lingkungan pengembangan, bukan data awal production.
+
+Build memeriksa TypeScript. Berkas `.ts`/`.tsx` lokal yang tidak di-commit juga
+tercakup oleh `tsconfig.json`; bila error menunjuk skrip percobaan lama, periksa
+skrip tersebut atau gunakan checkout bersih. Jangan mematikan pemeriksaan tipe
+untuk melewati error.
 
 ### Akun contoh
 
@@ -85,13 +135,16 @@ lokal lalu mengisi ulang data contoh.
 
 | Perintah | Kegunaan |
 |---|---|
-| `bun run dev` | Server pengembangan |
+| `bun run dev` | Server pengembangan dengan Turbopack dan hot reload |
+| `bun run build` | Build production dengan Turbopack, termasuk pemeriksaan tipe |
+| `bun run start` | `next start`; untuk output standalone gunakan `server.js` sesuai petunjuk di atas |
 | `bun run test` | Test unit aturan bisnis, tanpa basis data |
 | `bun run test:integration` | Test integrasi; memakai `TEST_DATABASE_URL` bila diisi |
 | `bun run test:all` | Keduanya |
 | `bun run test:ui` | Regresi klik UI dengan Chromium (Playwright) |
 | `bun run typecheck` | Pemeriksaan tipe |
 | `bun run lint` | Lint dan format (Biome) |
+| `bun run db:generate` | Membangkitkan klien Prisma setelah clone atau perubahan skema |
 | `bun run db:migrate` | Membuat migrasi baru dari perubahan skema |
 | `bun run db:deploy` | Menerapkan migrasi |
 | `bun run db:seed` | Mengisi data contoh (dilewati bila sudah ada pengguna) |
@@ -129,7 +182,8 @@ Mengikuti Development Workflow & Guidelines Inkubator IT.
 `chore/…`. Tidak ada yang dikerjakan langsung di `main`.
 
 **Commit.** `type: description` dengan type `feat`, `fix`, `refactor`, `docs`,
-`test`, `chore`, atau `style`.
+`test`, `perf`, `chore`, atau `style`. Scope opsional, misalnya
+`perf(project): avoid refetching panels`.
 
 **Test.** Judul `describe` menyebut bab PRD yang diuji, misalnya
 `PRD 5.2, alur status per termin`, supaya setiap test bisa ditelusuri ke
@@ -148,12 +202,29 @@ lain dan pipeline yang hijau.
 ### Regresi browser
 
 `bunx playwright install chromium` memasang browser untuk `bun run test:ui`.
-Gunakan basis data khusus yang sudah dimigrasikan dan diisi `bun run db:seed`:
-test masuk sebagai akun seed, memilih stage/tab, serta menyimpan Latest Update.
-Test memeriksa pilihan URL, reload, Back/Forward, dan memastikan pergantian panel
-tidak meminta ulang halaman project. Untuk Chrome yang sudah terpasang, isi
-`PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH` dengan lokasi executable.
+Gunakan basis data browser terpisah yang masih kosong, misalnya
+`iitrack_browser`. Akun seed tidak akan dibuat bila database sudah berisi user
+dari test integrasi. `TEST_DATABASE_URL` hanya mengarahkan test integrasi;
+Playwright dan server aplikasinya memakai `DATABASE_URL`.
 
-Lokal menjalankan `bun run dev` (Turbopack). Job CI `browser` memakai basis data
-terpisah, `bun run build`, dan `bun run start` agar regresi juga diuji pada build
-production. Job `verify` tetap menjalankan lint, typecheck, unit dan integrasi.
+Contoh menggunakan pengguna PostgreSQL lokal di atas:
+
+```sh
+sudo -u postgres psql -c "CREATE DATABASE iitrack_browser OWNER iitrack;"
+DATABASE_URL="postgresql://iitrack:iitrack@localhost:5432/iitrack_browser" bun run db:deploy
+DATABASE_URL="postgresql://iitrack:iitrack@localhost:5432/iitrack_browser" bun run db:seed
+bunx playwright install chromium
+DATABASE_URL="postgresql://iitrack:iitrack@localhost:5432/iitrack_browser" bun run test:ui
+```
+
+Test masuk sebagai akun seed, memilih stage/tab, serta menyimpan Latest Update.
+Test memeriksa pilihan URL, reload, Back/Forward, hak akses, scroll, dan
+memastikan pergantian panel tidak meminta ulang halaman project. Untuk Chrome
+yang sudah terpasang, isi `PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH` dengan lokasi
+executable.
+
+Lokal, Playwright menjalankan `bun run dev` pada port 3111. Job CI `browser`
+memakai basis data terpisah, `bun run build`, dan `bun run start` untuk menguji
+build production. Peringatan standalone dari `next start` masih berlaku pada
+job ini; petunjuk menjalankan server standalone ada di atas. Job `verify`
+menjalankan lint, typecheck, unit dan integrasi.

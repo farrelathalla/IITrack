@@ -114,13 +114,15 @@ Aturan yang ditegakkan basis data, bukan disiplin kode:
 
 ## 2. Penyiapan
 
-Prasyarat: [Bun](https://bun.sh) dan PostgreSQL 17 ke atas. Node.js tidak
-diperlukan terpisah.
+Prasyarat yang sudah diuji: [Bun](https://bun.sh) 1.4.0, Node.js 22.18.0,
+dan PostgreSQL 17. Bun dipakai untuk instalasi dan menjalankan script; CLI Next
+pada script saat ini berjalan dengan Node.js. Lihat [README](../README.md)
+untuk build production dan server standalone.
 
 ```sh
 git clone https://github.com/farrelathalla/IITrack.git
 cd IITrack
-bun install
+bun install --frozen-lockfile
 cp .env.example .env
 ```
 
@@ -238,12 +240,13 @@ berlaku lagi: perubahan skema ditulis sebagai migrasi baru.
 
 ## 5. Pengujian
 
-Dua lapis, dipisah karena ongkos jalannya berbeda.
+Tiga lapis, dipisah karena kebutuhan dan ongkos jalannya berbeda.
 
 | Lapis | Letak | Perlu Postgres | Perintah |
 |---|---|---|---|
 | Unit | `tests/unit/` | tidak | `bun run test` |
 | Integrasi | `tests/integration/` | ya | `bun run test:integration` |
+| Browser | `tests/browser/` | ya, terpisah dan berisi seed | `bun run test:ui` |
 
 Test unit menguji `src/lib` dengan potret project buatan
 (`tests/support/factories.ts`): matriks akses, status stage, alur termin,
@@ -267,7 +270,10 @@ basis data terpisah supaya data pengembangan tidak ikut bertambah.
 `main`. Urutannya: `bun install --frozen-lockfile`, `prisma generate`, lint,
 typecheck, test unit, `prisma migrate deploy`, test integrasi. Postgres 17
 disediakan sebagai service, dan variabel lingkungannya disuntikkan dari
-konfigurasi workflow, bukan dari berkas `.env`.
+konfigurasi workflow, bukan dari berkas `.env`. Job `browser` memakai database
+terpisah untuk migration, seed, build production, dan regresi Playwright.
+Jangan gunakan database integrasi yang sudah berisi fixture sebagai database
+browser: seed akan dilewati dan akun login browser belum tersedia.
 
 Tidak ada pull request yang digabung tanpa pipeline hijau dan review dari
 pelaksana yang lain.
