@@ -2,7 +2,7 @@
 
 import { AlertTriangle, ChevronRight } from "lucide-react";
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { useCallback, useState } from "react";
 import {
   ProjectIdChip,
@@ -170,7 +170,6 @@ function Header({
 
 function Detail({ activity }: { activity: ActivityItem[] }) {
   const view = useProject();
-  const router = useRouter();
   const params = useSearchParams();
   const [assignment, setAssignment] = useState<AssignmentMode | null>(null);
   const [history, setHistory] = useState(false);
@@ -184,9 +183,14 @@ function Detail({ activity }: { activity: ActivityItem[] }) {
     (n: number) => {
       const search = new URLSearchParams(params.toString());
       search.set("stage", String(n));
-      router.replace(`?${search.toString()}`, { scroll: false });
+      // Pilihan panel memakai data yang sudah dimuat; tidak perlu render server lagi.
+      window.history.replaceState(
+        null,
+        "",
+        `?${search.toString()}${window.location.hash}`,
+      );
     },
-    [params, router],
+    [params],
   );
   const closeHistory = useCallback(() => setHistory(false), []);
 

@@ -1,7 +1,7 @@
 "use client";
 
 import { Code2, FolderKanban, UserCog, Wallet } from "lucide-react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { STAGE_TONE } from "@/components/project/tones";
 import { Avatar } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -332,7 +332,6 @@ export function DivisionTabs({
   onAssign: (mode: AssignmentMode) => void;
 }) {
   const { editableTabs, project } = useProject();
-  const router = useRouter();
   const params = useSearchParams();
   const raw = params.get("tab");
   const tab: DivisionTab = raw === "tech" || raw === "finance" ? raw : "pm";
@@ -340,7 +339,12 @@ export function DivisionTabs({
   function select(next: DivisionTab) {
     const search = new URLSearchParams(params.toString());
     search.set("tab", next);
-    router.replace(`?${search.toString()}`, { scroll: false });
+    // Pilihan panel memakai data yang sudah dimuat; tidak perlu render server lagi.
+    window.history.replaceState(
+      null,
+      "",
+      `?${search.toString()}${window.location.hash}`,
+    );
   }
 
   return (
