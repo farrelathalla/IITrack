@@ -89,6 +89,7 @@ lokal lalu mengisi ulang data contoh.
 | `bun run test` | Test unit aturan bisnis, tanpa basis data |
 | `bun run test:integration` | Test integrasi; memakai `TEST_DATABASE_URL` bila diisi |
 | `bun run test:all` | Keduanya |
+| `bun run test:ui` | Regresi klik UI dengan Chromium (Playwright) |
 | `bun run typecheck` | Pemeriksaan tipe |
 | `bun run lint` | Lint dan format (Biome) |
 | `bun run db:migrate` | Membuat migrasi baru dari perubahan skema |
@@ -143,3 +144,16 @@ ditolak. Pesan penolakan ditulis dalam Bahasa Indonesia.
 
 **Review.** Tidak ada pull request yang digabung tanpa review dari pelaksana
 lain dan pipeline yang hijau.
+
+### Regresi browser
+
+`bunx playwright install chromium` memasang browser untuk `bun run test:ui`.
+Gunakan basis data khusus yang sudah dimigrasikan dan diisi `bun run db:seed`:
+test masuk sebagai akun seed, memilih stage/tab, serta menyimpan Latest Update.
+Test memeriksa pilihan URL, reload, Back/Forward, dan memastikan pergantian panel
+tidak meminta ulang halaman project. Untuk Chrome yang sudah terpasang, isi
+`PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH` dengan lokasi executable.
+
+Lokal menjalankan `bun run dev` (Turbopack). Job CI `browser` memakai basis data
+terpisah, `bun run build`, dan `bun run start` agar regresi juga diuji pada build
+production. Job `verify` tetap menjalankan lint, typecheck, unit dan integrasi.
