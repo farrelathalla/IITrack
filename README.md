@@ -223,8 +223,9 @@ memastikan pergantian panel tidak meminta ulang halaman project. Untuk Chrome
 yang sudah terpasang, isi `PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH` dengan lokasi
 executable.
 
-Lokal, Playwright menjalankan `bun run dev` pada port 3111. Job CI `browser`
-memakai basis data terpisah, `bun run build`, dan `bun run start` untuk menguji
-build production. Peringatan standalone dari `next start` masih berlaku pada
-job ini; petunjuk menjalankan server standalone ada di atas. Job `verify`
-menjalankan lint, typecheck, unit dan integrasi.
+Lokal menjalankan `bun run dev` (Turbopack). Job CI `browser` memakai basis data
+terpisah, `bun run build`, menyalin aset public/static, lalu menjalankan
+`node .next/standalone/server.js` agar regresi memakai output production yang
+sama dengan server standalone. Regresi juga memeriksa create project setelah
+error nomor manual dan perubahan teknis berturut-turut tanpa reload manual.
+Job `verify` tetap menjalankan lint, typecheck, unit dan integrasi.

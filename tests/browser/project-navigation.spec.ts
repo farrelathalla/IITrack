@@ -190,3 +190,115 @@ test("panel selection preserves the URL fragment and does not reset scroll", asy
   await expect(page).toHaveURL(/stage=2&context=uat#navigation-regression$/);
   await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(100);
 });
+
+test("creating a project after manual code errors completes the success dialog", async ({
+  page,
+}) => {
+  await login(page, "ghazy@iit.test");
+  await page.goto("/projects/new");
+  const main = page.locator("main");
+  const name = `Browser create recovery ${Date.now()}`;
+  await main.locator('[name="name"]').fill(name);
+  await main.locator('[name="client"]').fill("PT Browser Uji");
+  await main.locator('[name="type"]').selectOption("INTEGRATION");
+  await main.locator('[name="source"]').selectOption("BUSINESS_DEVELOPMENT");
+  await main.locator('[name="targetStart"]').fill("2026-10-20");
+  await main.locator('[name="targetEnd"]').fill("2026-12-31");
+  await main
+    .locator('[name="internalNote"]')
+    .fill("Keep the complete form after validation");
+  await main
+    .getByRole("button", { name: "Pilih Project Manager…", exact: true })
+    .click();
+  await page.getByRole("button", { name: /Karen Evangeline/ }).click();
+
+  for (const [code, message] of [
+    ["ABC", "Bentuk"],
+    ["IIT-2526-001", "periode"],
+    ["IIT-2627-002", "sudah dipakai"],
+    ["iit-2627-0xx", "Bentuk"],
+  ]) {
+    await main.locator('[name="manualCode"]').fill(code);
+    await main
+      .getByRole("button", { name: "Buat Project →", exact: true })
+      .click();
+    await expect(main.getByRole("alert").first()).toContainText(message);
+    await expect(main.locator('[name="name"]')).toHaveValue(name);
+    await expect(main.locator('[name="client"]')).toHaveValue("PT Browser Uji");
+    await expect(main.locator('[name="type"]')).toHaveValue("INTEGRATION");
+    await expect(main.locator('[name="source"]')).toHaveValue(
+      "BUSINESS_DEVELOPMENT",
+    );
+    await expect(main.locator('[name="targetStart"]')).toHaveValue(
+      "2026-10-20",
+    );
+    await expect(main.locator('[name="targetEnd"]')).toHaveValue("2026-12-31");
+    await expect(
+      main.getByRole("button", { name: "Buat Project →", exact: true }),
+    ).toBeEnabled();
+  }
+  await main.locator('[name="manualCode"]').fill("");
+  await main
+    .getByRole("button", { name: "Buat Project →", exact: true })
+    .click();
+  const dialog = page.getByRole("dialog", {
+    name: "Project berhasil dibuat.",
+    exact: true,
+  });
+  await expect(dialog).toBeVisible();
+  await dialog.getByRole("link", { name: "Buka Project", exact: true }).click();
+  await expect(page.getByRole("heading", { name, exact: true })).toBeVisible();
+});
+
+test("consecutive technical mutations update the blocker list and pulse without reload", async ({
+  page,
+}) => {
+  await login(page, "anice@iit.test");
+  await page.goto(`${projectPath}?stage=1`);
+  await stageButton(page, 6).click();
+  await expect(stageButton(page, 6)).toHaveAttribute("aria-current", "step");
+  await page
+    .getByRole("button", { name: "Update Progress", exact: true })
+    .click();
+  let dialog = page.getByRole("dialog", {
+    name: "Update Progress",
+    exact: true,
+  });
+  await dialog
+    .locator('[name="currentSprint"]')
+    .fill("Browser sequential save");
+  await dialog.locator('[name="progressPercent"]').fill("68");
+  await dialog.locator('[name="nextMilestone"]').fill("Browser UAT");
+  await dialog.getByRole("button", { name: "Simpan", exact: true }).click();
+  await expect(dialog).not.toBeVisible();
+  await expect(
+    page.getByText("68% fitur selesai", { exact: true }).first(),
+  ).toBeVisible();
+
+  await page
+    .getByRole("button", { name: "Tambah Technical Blocker", exact: true })
+    .click();
+  dialog = page.getByRole("dialog", {
+    name: "Tambah Technical Blocker",
+    exact: true,
+  });
+  const blocker = `Browser blocker ${Date.now()}`;
+  await dialog.locator('[name="description"]').fill(blocker);
+  await dialog.getByRole("button", { name: "Tambah", exact: true }).click();
+  await expect(dialog).not.toBeVisible();
+  await expect(page.getByText(blocker, { exact: true })).toBeVisible();
+  await expect(
+    page.getByText("Ada blocker", { exact: true }).first(),
+  ).toBeVisible();
+
+  const card = page
+    .locator("div.rounded-lg.border")
+    .filter({
+      has: page.getByText(blocker, { exact: true }),
+    })
+    .last();
+  await card.getByRole("button", { name: "Selesaikan", exact: true }).click();
+  await expect(
+    card.getByRole("button", { name: "Selesaikan", exact: true }),
+  ).toHaveCount(0);
+});

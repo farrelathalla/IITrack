@@ -18,8 +18,9 @@ export default defineConfig({
   },
   webServer: {
     command: process.env.CI
-      ? "bun run start --hostname 127.0.0.1 --port 3111"
+      ? "node .next/standalone/server.js"
       : "bun run dev --hostname 127.0.0.1 --port 3111",
+    env: { HOSTNAME: "127.0.0.1", PORT: "3111" },
     url: `${baseURL}/login`,
     reuseExistingServer: false,
     timeout: 120_000,

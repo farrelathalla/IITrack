@@ -89,6 +89,10 @@ jobs:
       - run: bun run db:deploy
       - run: bun run db:seed
       - run: bun run build
+      - name: Prepare standalone assets
+        run: |
+          cp -r public .next/standalone/
+          cp -r .next/static .next/standalone/.next/
       - run: bunx playwright install --with-deps chromium
       - run: bun run test:ui
 
