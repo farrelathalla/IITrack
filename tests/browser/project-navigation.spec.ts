@@ -233,6 +233,12 @@ test("creating a project after manual code errors completes the success dialog",
       "2026-10-20",
     );
     await expect(main.locator('[name="targetEnd"]')).toHaveValue("2026-12-31");
+    await expect(main.locator('[name="internalNote"]')).toHaveValue(
+      "Keep the complete form after validation",
+    );
+    await expect(
+      main.getByRole("button", { name: /Karen Evangeline.*Project Manager/ }),
+    ).toBeVisible();
     await expect(
       main.getByRole("button", { name: "Buat Project →", exact: true }),
     ).toBeEnabled();
@@ -298,7 +304,59 @@ test("consecutive technical mutations update the blocker list and pulse without 
     })
     .last();
   await card.getByRole("button", { name: "Selesaikan", exact: true }).click();
+  await expect(card.getByText(blocker, { exact: true })).toBeVisible();
   await expect(
     card.getByRole("button", { name: "Selesaikan", exact: true }),
   ).toHaveCount(0);
+});
+
+test("creating a project on the first submit completes without another UI interaction", async ({
+  page,
+}) => {
+  await login(page, "ghazy@iit.test");
+  await page.goto("/projects/new");
+  const main = page.locator("main");
+  const name = `Browser first create ${Date.now()}`;
+  await main.locator('[name="name"]').fill(name);
+  await main.locator('[name="client"]').fill("PT Browser Uji");
+  await main.locator('[name="type"]').selectOption("DEVELOPMENT");
+  await main.locator('[name="source"]').selectOption("INTERNAL");
+  await main.locator('[name="targetStart"]').fill("2026-10-20");
+  await main.locator('[name="targetEnd"]').fill("2026-12-31");
+  await main
+    .getByRole("button", { name: "Pilih Project Manager…", exact: true })
+    .click();
+  await page.getByRole("button", { name: /Karen Evangeline/ }).click();
+  await page.waitForLoadState("networkidle");
+  let createRequests = 0;
+  page.on("request", (request) => {
+    if (
+      request.method() === "POST" &&
+      new URL(request.url()).pathname === "/projects/new"
+    )
+      createRequests++;
+  });
+  await main
+    .getByRole("button", { name: "Buat Project →", exact: true })
+    .click();
+  const dialog = page.getByRole("dialog", {
+    name: "Project berhasil dibuat.",
+    exact: true,
+  });
+  await expect(dialog).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(dialog).not.toBeVisible();
+  await expect(
+    main.getByRole("button", { name: "Project Sudah Dibuat", exact: true }),
+  ).toBeDisabled();
+  await main.locator('[name="name"]').press("Enter");
+  if (
+    (await page
+      .getByRole("button", { name: "Project", exact: true })
+      .getAttribute("aria-expanded")) === "false"
+  )
+    await page.getByRole("button", { name: "Project", exact: true }).click();
+  await page.getByRole("link", { name: "All Projects", exact: true }).click();
+  await expect(main.getByRole("link", { name, exact: true })).toHaveCount(1);
+  expect(createRequests).toBe(1);
 });

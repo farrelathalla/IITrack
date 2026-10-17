@@ -2,7 +2,7 @@
 
 import { CheckCircle2, Info } from "lucide-react";
 import Link from "next/link";
-import { useActionState } from "react";
+import { type FormEvent, useRef, useState } from "react";
 import { PersonPicker } from "@/components/project/person-picker";
 import {
   Alert,
@@ -45,18 +45,38 @@ export function CreateProjectForm({
   pmCandidates: Candidate[];
   nextId: string | null;
 }) {
-  const [state, formAction, pending] = useActionState(
-    createProjectAction,
-    INITIAL,
-  );
+  const [state, setState] = useState<CreateProjectState>(INITIAL);
+  const [pending, setPending] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const submitting = useRef(false);
+
+  async function submit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (submitting.current || state.status === "created") return;
+    const data = new FormData(event.currentTarget);
+    submitting.current = true;
+    setPending(true);
+    setSubmitError(null);
+    try {
+      // Hasil aksi tidak ikut menunggu commit transisi router hasil revalidasi.
+      // Form juga tidak di-reset, sehingga semua isian tetap ada saat ditolak.
+      setState(await createProjectAction(state, data));
+    } catch {
+      setSubmitError(
+        "Hasil penyimpanan belum dapat dipastikan. Periksa daftar project sebelum mencoba lagi.",
+      );
+    } finally {
+      submitting.current = false;
+      setPending(false);
+    }
+  }
   const fields = state.status === "error" ? (state.fields ?? {}) : {};
   const values = state.status === "error" ? state.values : undefined;
 
-  // Form tetap terpasang agar transisi useActionState dapat selesai.
-  // Select saja yang dipasang ulang untuk memulihkan default setelah reset form.
   return (
     <>
-      <form action={formAction} className="space-y-4">
+      <form onSubmit={submit} className="space-y-4">
+        {submitError ? <Alert tone="danger">{submitError}</Alert> : null}
         {state.status === "error" ? (
           <Alert tone="danger">{state.error}</Alert>
         ) : null}
@@ -103,7 +123,6 @@ export function CreateProjectForm({
           />
           <div className="grid grid-cols-2 gap-4">
             <SelectField
-              key={`type-${values?.type ?? ""}`}
               label="Tipe Project"
               name="type"
               defaultValue={values?.type ?? ""}
@@ -117,7 +136,6 @@ export function CreateProjectForm({
               ))}
             </SelectField>
             <SelectField
-              key={`source-${values?.source ?? ""}`}
               label="Sumber Project"
               name="source"
               defaultValue={values?.source ?? ""}
@@ -187,8 +205,15 @@ export function CreateProjectForm({
             <Link href="/projects" className={buttonClass("secondary")}>
               Batal
             </Link>
-            <Button type="submit" disabled={pending || !nextId}>
-              {pending ? "Membuat…" : "Buat Project →"}
+            <Button
+              type="submit"
+              disabled={pending || state.status === "created" || !nextId}
+            >
+              {pending
+                ? "Membuat…"
+                : state.status === "created"
+                  ? "Project Sudah Dibuat"
+                  : "Buat Project →"}
             </Button>
           </div>
         </div>

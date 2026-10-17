@@ -227,5 +227,7 @@ Lokal menjalankan `bun run dev` (Turbopack). Job CI `browser` memakai basis data
 terpisah, `bun run build`, menyalin aset public/static, lalu menjalankan
 `node .next/standalone/server.js` agar regresi memakai output production yang
 sama dengan server standalone. Regresi juga memeriksa create project setelah
-error nomor manual dan perubahan teknis berturut-turut tanpa reload manual.
+error nomor manual, submit pertama tanpa interaksi pemulihan, pencegahan
+submit ulang sesudah sukses, dan perubahan teknis berturut-turut tanpa reload
+manual.
 Job `verify` tetap menjalankan lint, typecheck, unit dan integrasi.
