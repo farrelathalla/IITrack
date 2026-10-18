@@ -39,9 +39,15 @@ Jalankan perintah dari root repo `IITrack`. Prasyarat yang sudah diuji: Bun
 Next dengan Node.js; memakai Bun sebagai script runner tidak otomatis mengganti
 runtime CLI menjadi Bun. Lihat [perilaku shebang Bun](https://bun.sh/docs/runtime).
 
+Untuk demo atau cek performa setelah setup, gunakan
+[blok production siap salin](#build-dan-menjalankan-production-secara-lokal).
+Penyiapan pertama dan mode development dijelaskan berikut ini.
+
+### Penyiapan pertama dan mode development
+
 ```sh
 bun install --frozen-lockfile
-cp .env.example .env
+test -f .env || cp .env.example .env
 ```
 
 Contoh penyiapan pertama di Ubuntu/Debian: pasang dan nyalakan PostgreSQL,
@@ -80,21 +86,61 @@ DATABASE_URL="postgresql://iitrack:iitrack@localhost:5432/iitrack_test" bun run 
 
 ### Build dan menjalankan production secara lokal
 
-Repo memakai `output: "standalone"`. Hentikan server development pada port yang
-akan dipakai, lalu buat build dan salin aset yang dibutuhkan server standalone:
+Untuk demo dan cek performa, salin **seluruh blok berikut sekaligus** dari root
+repo `IITrack`. Blok ini untuk Ubuntu/Debian dengan PostgreSQL lokal pada port
+5432. Bun, Node.js, PostgreSQL, pengguna/database, dan `.env` harus sudah
+disiapkan sesuai bagian penyiapan pertama. Hentikan server yang memakai port
+3000 sebelum menjalankannya.
 
 ```sh
-bun run build
-cp -r public .next/standalone/
-cp -r .next/static .next/standalone/.next/
+(
+  set -e
+
+  if [ ! -f .env ]; then
+    echo "Berkas .env belum ada. Ikuti penyiapan pertama di README." >&2
+    exit 1
+  fi
+
+  # Periksa PostgreSQL; nyalakan jika belum aktif.
+  pg_isready -h 127.0.0.1 -p 5432 || sudo systemctl start postgresql
+
+  bun install --frozen-lockfile
+  bun run db:generate
+  bun run db:deploy
+
+  bun run build
+  mkdir -p .next/standalone/.next
+  cp -r public .next/standalone/
+  cp -r .next/static .next/standalone/.next/
+
+  HOSTNAME=127.0.0.1 PORT=3000 \
+    node --env-file=.env .next/standalone/server.js
+)
+```
+
+Buka `http://localhost:3000` setelah server siap. Biarkan terminal menyala;
+hentikan server dengan `Ctrl+C`. Blok ini memeriksa database, memperbarui Prisma
+client, menerapkan migrasi, membangun aplikasi, menyalin aset, lalu menjalankan
+server production. Data yang sudah ada tetap dipakai; seed tidak dijalankan.
+`set -e` menghentikan blok saat suatu langkah gagal, sehingga server hanya
+dijalankan setelah build berhasil. Tanda kurung membatasi pengaturan itu pada
+blok ini.
+
+`pg_isready` menunjukkan apakah PostgreSQL menerima koneksi. `db:deploy`
+kemudian memeriksa akses ke database pada `DATABASE_URL` dan menerapkan migrasi
+yang belum terpasang. Build membutuhkan waktu, sedangkan server production
+memakai hasil build sehingga halaman tidak perlu dikompilasi saat dibuka.
+
+Kalau kode dan dependensi belum berubah sejak build berhasil, cukup jalankan
+perintah berikut dari root repo untuk menyalakan server lagi:
+
+```sh
 HOSTNAME=127.0.0.1 PORT=3000 node --env-file=.env .next/standalone/server.js
 ```
 
-Buka `http://localhost:3000`. Server ini memakai hasil build sehingga tidak
-mengompilasi halaman setiap kali pertama dibuka. Jalankan build dan salin ulang
-aset setelah kode berubah. Variabel `DATABASE_URL` dan `SESSION_SECRET` dibaca
-dari `.env` oleh opsi Node di atas; nilai yang sudah diekspor di shell tetap
-berlaku.
+Jalankan kembali blok lengkap setelah kode/dependensi berubah atau hasil build
+belum tersedia. Variabel `DATABASE_URL` dan `SESSION_SECRET` dibaca dari `.env`
+oleh opsi Node di atas; nilai yang sudah diekspor di shell tetap berlaku.
 
 Penyalinan `public` dan `.next/static` diperlukan bila aset dilayani oleh server
 standalone sendiri. Next tidak menyalinnya otomatis. `bun run start` saat ini
