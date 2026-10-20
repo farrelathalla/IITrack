@@ -198,6 +198,16 @@ describe("PRD 2.3: keputusan pertama yang berlaku", () => {
       projectId: code,
       kind: "PROJECT_CHARTER",
     });
+    for (const approver of [team.coo, team.vcoo, team.cto]) {
+      const notice = await testDb.notification.findFirst({
+        where: {
+          userId: approver.userId,
+          message: { contains: "Project Charter" },
+          href: { contains: code },
+        },
+      });
+      expect(notice, `notifikasi untuk ${approver.userId}`).not.toBeNull();
+    }
 
     const results = await Promise.allSettled([
       decidePending(code, "PROJECT_CHARTER", team.coo, "APPROVE"),

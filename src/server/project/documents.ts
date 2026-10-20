@@ -66,8 +66,9 @@ const APPROVERS: Record<
   SubmissionKind,
   { roles: RoleName[]; label: string; decide: ProjectAction }
 > = {
+  // Charter diputuskan dua sisi, jadi kedua sisi perlu tahu ada pengajuan.
   PROJECT_CHARTER: {
-    roles: ["COO", "VICE_COO"],
+    roles: ["COO", "VICE_COO", "CTO", "VICE_CTO"],
     label: "Project Charter",
     decide: "charter.decide",
   },
