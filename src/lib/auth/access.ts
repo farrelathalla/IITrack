@@ -170,11 +170,12 @@ export function canOnProject(
             "Hanya CTO atau Vice CTO yang bisa memutuskan Kontrak Programmer.",
           );
 
+    // PM ikut boleh: laporan tech mengalir lewat PM (jawaban CTO, 29 Sep).
     case "tech.edit":
-      return isTechLead(role) || isAssignedDeveloper(viewer, project)
+      return pm || isTechLead(role) || isAssignedDeveloper(viewer, project)
         ? ALLOW
         : deny(
-            "Hanya developer yang ditugaskan di project ini, CTO, atau Vice CTO yang bisa mengubah data teknis.",
+            "Hanya PM atau developer yang ditugaskan di project ini, CTO, atau Vice CTO yang bisa mengubah data teknis.",
           );
 
     case "financePoc.assign":
@@ -289,7 +290,11 @@ export function canEditTab(
     case "pm":
       return isPm(viewer, project);
     case "tech":
-      return isTechLead(viewer.role) || isAssignedDeveloper(viewer, project);
+      return (
+        isPm(viewer, project) ||
+        isTechLead(viewer.role) ||
+        isAssignedDeveloper(viewer, project)
+      );
     case "finance":
       return isFinanceLead(viewer.role) || isFinancePoc(viewer, project);
   }
