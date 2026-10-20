@@ -85,8 +85,14 @@ function row(
 type RolePermissions = Record<Area, Record<PermissionAction, Grant>>;
 
 // Jabatan wakil sama dengan jabatan utamanya (PRD bab 2.1).
+// COO/VCOO mengubah detail awal dan menghapus project; isian harian tetap PM.
 const OPS_LEAD: RolePermissions = {
-  "Project Management": row({ Create: "full", Approve: "full" }),
+  "Project Management": row({
+    Create: "full",
+    Edit: "limited",
+    Delete: "full",
+    Approve: "full",
+  }),
   "Tech Development": row({}),
   Finance: row({}),
   "Project Assignment": row({ Assign: "full" }),
@@ -113,11 +119,12 @@ const FINANCE_LEAD: RolePermissions = {
 };
 
 export const ROLE_PERMISSIONS: Record<RoleName, RolePermissions> = {
+  // PM, developer, dan Finance POC hanya melihat project yang ditugaskan.
   PROJECT_MANAGER: {
-    "Project Management": row({ Edit: "limited" }),
-    "Tech Development": row({}),
-    Finance: row({ Edit: "limited" }),
-    "Project Assignment": row({}),
+    "Project Management": row({ View: "limited", Edit: "limited" }),
+    "Tech Development": row({ View: "limited", Edit: "limited" }),
+    Finance: row({ View: "limited", Edit: "limited" }),
+    "Project Assignment": row({ View: "limited" }),
     "Role Management": row({ View: null }),
     "Workflow Config": row({ View: null }),
   },
@@ -126,20 +133,20 @@ export const ROLE_PERMISSIONS: Record<RoleName, RolePermissions> = {
   CTO: TECH_LEAD,
   VICE_CTO: TECH_LEAD,
   TECH_DEVELOPER: {
-    "Project Management": row({}),
-    "Tech Development": row({ Edit: "limited" }),
+    "Project Management": row({ View: "limited" }),
+    "Tech Development": row({ View: "limited", Edit: "limited" }),
     Finance: row({ View: "limited" }),
-    "Project Assignment": row({}),
+    "Project Assignment": row({ View: "limited" }),
     "Role Management": row({ View: null }),
     "Workflow Config": row({ View: null }),
   },
   CFO: FINANCE_LEAD,
   VICE_CFO: FINANCE_LEAD,
   FINANCE_POC: {
-    "Project Management": row({}),
-    "Tech Development": row({}),
-    Finance: row({ Edit: "limited", Approve: "limited" }),
-    "Project Assignment": row({}),
+    "Project Management": row({ View: "limited" }),
+    "Tech Development": row({ View: "limited" }),
+    Finance: row({ View: "limited", Edit: "limited", Approve: "limited" }),
+    "Project Assignment": row({ View: "limited" }),
     "Role Management": row({ View: null }),
     "Workflow Config": row({ View: null }),
   },

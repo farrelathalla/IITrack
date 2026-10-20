@@ -11,6 +11,7 @@ import {
 } from "@/lib/auth/access";
 import { activeRole } from "@/lib/auth/period";
 import type { RoleName } from "@/lib/auth/types";
+import { ROLE_PERMISSIONS } from "@/lib/settings";
 import {
   access,
   actor,
@@ -249,5 +250,41 @@ describe("PRD 2.1: satu jabatan aktif per akun", () => {
     const end = pm.roleAssignments[0].endDate;
     expect(activeRole(pm, new Date(end.getTime() - 1))).toBe("PROJECT_MANAGER");
     expect(activeRole(pm, end)).toBeNull();
+  });
+});
+
+describe("PRD 8.7: tabel Role Permissions mengikuti aturan server", () => {
+  it("izin edit dan hapus di tabel sama dengan yang ditegakkan canOnProject/canGlobally", () => {
+    expect(ROLE_PERMISSIONS.PROJECT_MANAGER["Tech Development"].Edit).toBe(
+      allowed("PROJECT_MANAGER", PM_ID, "tech.edit") ? "limited" : null,
+    );
+    expect(ROLE_PERMISSIONS.COO["Project Management"].Delete).toBe(
+      canGlobally(viewer("COO"), "project.delete").allowed ? "full" : null,
+    );
+    expect(ROLE_PERMISSIONS.COO["Project Management"].Edit).toBe(
+      canGlobally(viewer("COO"), "project.editDetails").allowed
+        ? "limited"
+        : null,
+    );
+    expect(
+      ROLE_PERMISSIONS.PROJECT_MANAGER["Project Management"].Create,
+    ).toBeNull();
+  });
+
+  it("jabatan yang hanya melihat project yang ditugaskan tidak ditulis View penuh", () => {
+    for (const role of [
+      "PROJECT_MANAGER",
+      "TECH_DEVELOPER",
+      "FINANCE_POC",
+    ] as const) {
+      expect(seesAllProjects(role)).toBe(false);
+      for (const area of [
+        "Project Management",
+        "Tech Development",
+        "Finance",
+      ] as const) {
+        expect(ROLE_PERMISSIONS[role][area].View).toBe("limited");
+      }
+    }
   });
 });
